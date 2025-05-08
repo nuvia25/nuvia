@@ -11,7 +11,6 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
-    libpq-dev \
     libzip-dev \
     zip \
     unzip \
@@ -22,7 +21,7 @@ RUN apt-get update && apt-get install -y \
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Instalar extensões PHP
-RUN docker-php-ext-install pdo pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip
+RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip
 
 # Obter e instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -47,16 +46,20 @@ COPY .env.example /var/www/.env
 RUN chown -R $user:$user /var/www
 RUN chmod -R 755 /var/www/storage /var/www/bootstrap/cache
 
+# Criar diretório para logs do PHP-FPM
+RUN mkdir -p /var/log/php-fpm
+RUN chown -R $user:$user /var/log/php-fpm
+RUN chmod -R 755 /var/log/php-fpm
+
+
 # Instalar dependências do Composer
 RUN composer install --no-interaction --no-scripts --prefer-dist
+RUN php artisan migrate
 RUN php artisan key:generate
+RUN php artisan db:seed
 RUN php artisan config:clear
 RUN php artisan route:clear
 RUN php artisan view:clear
-
-# Instalar dependências do Node.js e construir assets
-RUN npm install
-RUN npm run build
 
 # Mudar para o usuário Laravel
 USER $user
