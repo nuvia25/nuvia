@@ -14,6 +14,9 @@ services:
       - ./:/var/www
     networks:
       - laravel-network
+    depends_on:
+      db:
+        condition: service_healthy
 
   db:
     image: mysql:8.0
@@ -32,6 +35,12 @@ services:
     networks:
       - laravel-network
     command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 
   nginx:
     image: nginx:alpine
