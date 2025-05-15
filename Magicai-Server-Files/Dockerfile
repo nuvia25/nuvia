@@ -53,10 +53,10 @@ RUN chmod -R 755 /var/log/php-fpm
 
 
 # Instalar dependências do Composer
-RUN composer install --no-interaction --no-scripts --prefer-dist
-RUN php artisan config:clear
-RUN php artisan route:clear
-RUN php artisan view:clear
+#RUN composer install --no-interaction --no-scripts --prefer-dist
+#RUN php artisan config:clear
+#RUN php artisan route:clear
+#RUN php artisan view:clear
 
 # Mudar para o usuário Laravel
 USER $user

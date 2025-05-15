@@ -1,10 +1,10 @@
 # Makefile para gerenciar o ambiente Docker com .env.local
 
 # Definição de variáveis
-ENV_FILE := .env.local
+ENV_FILE := .env
 DOCKER_COMPOSE := docker compose --env-file $(ENV_FILE)
 
-# Garantindo que o .env.local exista
+# Garantindo que o .env exista
 $(ENV_FILE):
 	@echo "Arquivo $(ENV_FILE) não encontrado!"
 	@exit 1
@@ -18,7 +18,7 @@ check-dependencies:
 # Construir os containers
 .PHONY: build
 build: check-dependencies
-	$(DOCKER_COMPOSE) build
+	$(DOCKER_COMPOSE) build --no-cache
 
 # Iniciar os containers em modo detached
 .PHONY: up
