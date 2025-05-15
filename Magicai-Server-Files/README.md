@@ -4,8 +4,9 @@
 
 Instalação
 
-- Rode make build
-- Rode make up
-- Rode make composer-install
-- Rode make migrate
-- Rode make seed
+- make build
+- make up
+- make composer-install
+- make migrate
+- make seed
+- make npm-install
