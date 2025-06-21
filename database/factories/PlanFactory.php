@@ -32,6 +32,7 @@ class PlanFactory extends Factory
             'updated_at'           => Carbon::now(),
             'trial_days'           => $this->faker->randomNumber(),
             'is_team_plan'         => $this->faker->boolean(),
+            'price_tax_included'   => $this->faker->boolean(),
             'plan_allow_seat'      => $this->faker->randomNumber(),
             'open_ai_items'        => $this->faker->words(),
             'description'          => $this->faker->text(),

@@ -17,7 +17,7 @@
                 href="{{ \App\Helpers\Classes\MarketplaceHelper::isRegistered('chatbot') ? route('dashboard.chatbot.index') : '#' }}"
             >
                 <span class="text-nowrap font-bold text-foreground"> {{ __('View All') }} </span>
-                <x-tabler-chevron-right class="ms-auto size-4" />
+                <x-tabler-chevron-right class="size-4 rtl:rotate-180" />
             </x-button>
         </div>
     </x-slot:head>
@@ -28,20 +28,47 @@
                 class:body="space-y-3"
                 size="sm"
             >
-                <img
-                    class="rounded-full max-sm:mx-auto"
-                    width="61"
-                    height="61"
-                    src="{{ asset($chatbot->avatar) }}"
-                    alt=""
+                <a
+                    @class([
+                        'absolute left-0 top-0 z-2 block h-full w-full',
+                        'border-[3px] border-secondary' =>
+                            $chatbot->openaiGeneratorChatCategory->plan == 'premium',
+                    ])
+                    href="{{ route('dashboard.user.openai.chat.chat', $chatbot->openaiGeneratorChatCategory?->slug) }}"
+                ></a>
+
+                <div
+                    class="!mt-0 flex items-center rounded-full max-sm:mx-auto"
+                    style="width: 61px; height: 61px; background: {{ $chatbot->openaiGeneratorChatCategory?->color }};"
                 >
-                <h4 class="font-medium max-sm:text-center">{{ $chatbot->title }}</h4>
+                    @if ($chatbot->openaiGeneratorChatCategory?->slug === 'ai-chat-bot')
+                        <img
+                            class="lqd-chat-avatar-img h-full w-full object-cover object-center"
+                            src="{{ custom_theme_url('/assets/img/chat-default.jpg') }}"
+                            alt="{{ __($chatbot->openaiGeneratorChatCategory?->name) }}"
+                        >
+                    @elseif ($chatbot->openaiGeneratorChatCategory?->image)
+                        <img
+                            class="lqd-chat-avatar-img h-full w-full object-cover object-center"
+                            src="{{ custom_theme_url($chatbot->openaiGeneratorChatCategory?->image, true) }}"
+                            alt="{{ __($chatbot->openaiGeneratorChatCategory?->name) }}"
+                        >
+                    @else
+                        <span
+                            class="block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-center text-2xl"
+                        >
+                            {{ __($chatbot->openaiGeneratorChatCategory?->short_name) }}
+                        </span>
+                    @endif
+                </div>
+                <h4 class="font-medium max-sm:text-center">{{ $chatbot->openaiGeneratorChatCategory?->name }}</h4>
                 <div class="flex w-fit rounded-xl border px-2 py-1 max-sm:mx-auto">
-                    <span class="text-center">{{ ucwords(str_replace('_', ' ', $chatbot->interaction_type->value)) }}</span>
+                    <span
+                        class="text-center">{{ ucwords(str_replace('_', ' ', $chatbot->openaiGeneratorChatCategory?->description)) }}</span>
                 </div>
             </x-card>
         @empty
-            <h3 class="mx-auto">
+            <h3 class="mx-auto text-foreground">
                 {{ __("You don't have favorite chatbot") }}
             </h3>
         @endforelse

@@ -74,3 +74,15 @@ function adsense_faq_728x90()
                 </center>';
     }
 }
+
+function adsense_chat_pro_top_header_728x90()
+{
+    if (adsense('chat-pro-top-header-section-728x90')) {
+        return '
+ 		<div class="flex w-full items-center justify-center bg-gray-400 bg-opacity-10 py-2">
+			<div class="google-ads-728">
+			' . adsense('chat-pro-top-header-section-728x90')->code . '
+			</div>
+    	</div>';
+    }
+}

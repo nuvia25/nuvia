@@ -21,7 +21,8 @@
             {!! $check_html !!}
         </span>
 
-        {{ __('Access') }} <strong>{{ $isPrepaid ? __('All') : __($plan->checkOpenAiItemCount()) }}</strong> {{ __('Features') }}
+        {{ __('Access') }} <strong>{{ $isPrepaid ? __('All') : __($plan->checkOpenAiItemCount()) }}</strong>
+        {{ __('Features') }}
 
         <div class="group inline-block sm:relative sm:before:absolute sm:before:-inset-2.5">
             <span class="peer relative -mt-6 inline-flex !h-6 !w-6 cursor-pointer items-center justify-center">
@@ -59,7 +60,7 @@
                                     @endif
                                 </span>
                                 <small @class(['opacity-60' => !$exist])>
-                                    {{ $itemOpenAi->title }}
+                                    {{ __($itemOpenAi->title) }}
                                 </small>
                             </li>
                         @endforeach

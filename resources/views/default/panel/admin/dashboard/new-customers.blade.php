@@ -24,7 +24,7 @@
                 <p class="mb-0 text-base font-medium text-heading-foreground">@lang('Paid')</p>
             </div>
             <div class="flex items-center gap-2.5">
-                <span class="size-2.5 rounded-sm bg-[#E2C5F3]"></span>
+                <span class="size-2.5 rounded-sm bg-secondary"></span>
                 <p class="mb-0 text-base font-medium text-heading-foreground">@lang('Free')</p>
             </div>
         </div>

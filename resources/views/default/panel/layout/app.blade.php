@@ -20,7 +20,7 @@
         $body_classname .= ' page-' . $route_name;
     }
 @endphp
-<!doctype html>
+<!DOCTYPE html>
 <html
     class="scroll-smooth"
     lang="{{ LaravelLocalization::getCurrentLocale() }}"
@@ -48,7 +48,6 @@
         'hide-titlebar' => isset($disable_titlebar),
     ])
 >
-
     @if ($app_is_not_demo)
         @includeFirst(['onboarding-pro::banner', 'vendor.empty'])
     @endif
@@ -157,15 +156,25 @@
     @endauth
 
     @if (!isset($disableChatbot))
-        @includeWhen(in_array($settings_two->chatbot_status, ['dashboard', 'both']) &&
+        @php
+            $currentUrl = url()->current();
+            $shouldShowChatbot =
+                in_array($settings_two->chatbot_status, ['dashboard', 'both']) &&
                 !activeRoute('dashboard.user.openai.chat.chat', 'dashboard.user.openai.webchat.workbook', 'dashboard.user.advanced-image.index') &&
-                !(route('dashboard.user.openai.generator.workbook', 'ai_vision') == url()->current()) &&
-                !(route('dashboard.user.openai.generator.workbook', 'ai_chat_image') == url()->current()) &&
-                !(route('dashboard.user.openai.generator.workbook', 'ai_pdf') == url()->current()),
-            'panel.chatbot.widget')
+                route('dashboard.user.openai.generator.workbook', 'ai_vision') !== $currentUrl &&
+                route('dashboard.user.openai.generator.workbook', 'ai_chat_image') !== $currentUrl &&
+                route('dashboard.user.openai.generator.workbook', 'ai_pdf') !== $currentUrl;
+
+            if (\App\Helpers\Classes\MarketplaceHelper::isRegistered('ai-chat-pro')) {
+                $shouldShowChatbot = $shouldShowChatbot && route('dashboard.user.openai.chat.pro.index') !== $currentUrl && route('chat.pro') !== $currentUrl;
+            }
+        @endphp
+
+        @includeWhen($shouldShowChatbot, 'panel.chatbot.widget')
     @endif
 
-    <script src="{{ custom_theme_url('/assets/libs/underscore/underscore-umd-min.js') }}"></script>
+    @includeIf('live-customizer::particles.customizer')
+
     @include('panel.layout.scripts')
 
     @if (session()->has('message'))
@@ -181,23 +190,6 @@
             @endforeach
         </script>
     @endif
-
-    @auth
-        {{--        <script type="module"> --}}
-        {{--            Echo.private(`App.Models.User.{{ auth()->user()?->id }}`) --}}
-        {{--                .listen(".Illuminate\\Notifications\\Events\\BroadcastNotificationCreated", (notification) => { --}}
-        {{--                    if (Alpine) { --}}
-        {{--                        Alpine.store('notifications').add({ --}}
-        {{--                            id: notification.id, --}}
-        {{--                            title: notification.data.title, --}}
-        {{--                            message: notification.data.message, --}}
-        {{--                            link: notification.data.link, --}}
-        {{--                            unread: true --}}
-        {{--                        }) --}}
-        {{--                    } --}}
-        {{--                }); --}}
-        {{--        </script> --}}
-    @endauth
 
     @stack('script')
 

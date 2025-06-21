@@ -76,7 +76,7 @@
         id="chatbot-wrapper"
         style="{{ $chatbot_custom_dimensions }}"
     >
-        <div class="flex items-center justify-between gap-3 bg-[#9A34CD] !px-7 !py-5 shadow-[0_4px_28px_rgba(0,0,0,0.3)]">
+        <div class="flex items-center justify-between gap-3 bg-accent !px-7 !py-5 shadow-[0_4px_28px_rgba(0,0,0,0.3)]">
             <div>
                 <h5 class="m-0 text-[18px] font-semibold text-white opacity-70">{{ $chatbot->title }}</h5>
                 <p class="m-0 text-[13px] leading-tight text-white opacity-70">{{ $chatbot->role }}</p>
@@ -95,7 +95,7 @@
             id="chatbot-messages"
         >
             <div
-                class="chats-container h-60 grow overflow-y-auto !px-6 !py-8 text-[14px] font-normal leading-5 [&_.chat-content-container]:rounded-2xl [&_.lqd-chat-avatar]:hidden [&_.lqd-chat-user-bubble_.chat-content-container]:bg-[#9A34CD] [&_.lqd-chat-user-bubble_.chat-content-container]:text-white">
+                class="chats-container h-60 grow overflow-y-auto !px-6 !py-8 text-xs font-normal leading-5 [&_.chat-content-container]:rounded-2xl [&_.lqd-chat-avatar]:hidden [&_.lqd-chat-user-bubble_.chat-content-container]:bg-accent [&_.lqd-chat-user-bubble_.chat-content-container]:text-accent-foreground">
             </div>
             <form
                 class="sticky bottom-0 z-10 flex w-full items-end !gap-2 self-end bg-white/15 !px-5 !py-3 shadow-[0_4px_34px_rgba(0,0,0,0.05)] dark:bg-black/15"
@@ -145,7 +145,7 @@
             ></span>
         </span>
         <div
-            class="chat-content-container group relative mb-[7px] max-w-[calc(100%-64px)] rounded-[2em] border-none bg-[#F3E2FD] text-[#090A0A] dark:bg-[#9A34CD]/30 dark:text-white">
+            class="chat-content-container group relative mb-[7px] max-w-[calc(100%-64px)] rounded-[2em] border-none bg-[#F3E2FD] text-[#090A0A] dark:bg-accent/30 dark:text-accent-foreground">
             <div class="chat-content px-[1.5rem] py-[0.75rem]"></div>
             <div
                 class="lqd-clipboard-copy-wrap group/copy-wrap pointer-events-auto invisible absolute -start-5 bottom-0 opacity-0 transition-all group-hover:!visible group-hover:!opacity-100">

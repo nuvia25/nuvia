@@ -23,7 +23,7 @@
             href="{{ route('dashboard.admin.health.index') }}"
         >
             <span class="text-nowrap font-bold text-foreground"> {{ __('View Logs') }} </span>
-            <x-tabler-chevron-right class="ms-auto size-4" />
+            <x-tabler-chevron-right class="size-4 rtl:rotate-180" />
         </x-button>
     </x-slot:head>
 

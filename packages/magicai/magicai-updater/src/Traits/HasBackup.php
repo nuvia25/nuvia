@@ -3,6 +3,7 @@
 namespace MagicAI\Updater\Traits;
 
 use Exception;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
@@ -29,6 +30,11 @@ trait HasBackup
         'public/upload',
     ];
 
+    //    public function getBackupFileNameCacheKey(): string
+    //    {
+    //        return $this->backupFileNameCacheKey;
+    //    }
+
     public function backup(): bool
     {
         $this->configurePhp();
@@ -48,7 +54,11 @@ trait HasBackup
 
                 $zip->close();
             }
+
         } catch (Exception $e) {
+
+            Cache::forget($this->backupFileNameCacheKey);
+
             throw ValidationException::withMessages([
                 'message' => __('Something went wrong!'),
             ]);
@@ -120,19 +130,48 @@ trait HasBackup
 
     private function backupFileName(): string
     {
-        $fileName = 'backup-' . date('Y-m-d_H-i') . '.zip';
-
-        Cache::remember($this->backupFileNameCacheKey, now()->addMinutes(10), function () use ($fileName) {
-            return $fileName;
-        });
-
-        return $fileName;
+        return 'backup-' . date('Y-m-d_H-i') . '.zip';
     }
 
-    public function backupFileNameGetFromCache()
+    public function isLastBackupRecent(int $minutes = 30): bool
     {
-        return Cache::get($this->backupFileNameCacheKey);
+        $lastBackup = $this->findLastBackup();
+
+        if ($lastBackup === null) {
+            return false;
+        }
+
+        // backup-2025-05-28_09-17.zip → 2025-05-28 09:17
+        if (preg_match('/backup-(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2})\.zip/', $lastBackup, $matches)) {
+            $backupDateTime = Carbon::createFromFormat('Y-m-d H-i', "{$matches[1]} {$matches[2]}");
+
+            return $backupDateTime->greaterThanOrEqualTo(now()->subMinutes($minutes));
+        }
+
+        return false;
     }
+
+    public function findLastBackup(): ?string
+    {
+        $backupFiles = glob(base_path('/backup-*.zip'));
+
+        if (! empty($backupFiles)) {
+            usort($backupFiles, function ($a, $b) {
+                return strcmp(basename($b), basename($a));
+            });
+
+            $latestBackup = $backupFiles[0];
+
+            return basename($latestBackup);
+        }
+
+        return null;
+    }
+
+    //    public function backupFileNameGetFromCache()
+    //    {
+    //        return Cache::get($this->backupFileNameCacheKey);
+    //    }
 
     private function configurePhp(): void
     {

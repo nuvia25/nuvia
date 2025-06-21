@@ -177,7 +177,7 @@
                                                 id="spinner"
                                             ></div>
                                             <span>
-                                                {{ __('Pay') }} {!! displayCurr(currency()->symbol, $plan->price, $taxValue, $newDiscountedPrice) !!} {{ __('with') }}
+                                                {{ __('Pay') }} {!! displayCurr(currency()->symbol, $plan->price, $taxValue, $newDiscountedPrice, tax_included: $plan->price_tax_included) !!} {{ __('with') }}
                                             </span>
                                             <img
                                                 class="rounded-3xl bg-[--tblr-primary] px-3"
@@ -200,7 +200,7 @@
                                                 id="spinner"
                                             ></div>
                                             <span>
-                                                {{ __('Pay') }} {!! displayCurr(currency()->symbol, $plan->price, $taxValue, $newDiscountedPrice) !!} {{ __('with') }}
+                                                {{ __('Pay') }} {!! displayCurr(currency()->symbol, $plan->price, $taxValue, $newDiscountedPrice, tax_included: $plan->price_tax_included) !!} {{ __('with') }}
                                             </span>
                                             <img
                                                 class="h-auto w-24"

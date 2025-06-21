@@ -27,7 +27,7 @@
 		padding: 1.125rem 0.9375rem;
 		box-shadow: 0 2px 5px rgb(0 0 0 / 7%);
 		border-width: 0;
-		border-radius: 0.625rem;
+		border-radius: var(--card-rounded);
 
 		.lqd-posts-item-content-inner {
 			mask-image: linear-gradient(to top, transparent 10%, black 80%);

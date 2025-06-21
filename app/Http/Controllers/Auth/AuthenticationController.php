@@ -240,7 +240,10 @@ class AuthenticationController extends Controller
         }
 
         // event(new Registered($user));
-        EmailConfirmation::forUser($user)->send();
+        try { // attempt to send email confirmation
+            EmailConfirmation::forUser($user)->send();
+        } catch (Exception $e) {
+        }
 
         if ($settings->login_without_confirmation === 1) {
             Auth::login($user);

@@ -121,37 +121,38 @@ function taxToVal($price, $tax)
     return $tax_with_val;
 }
 
-function displayCurr($symbol, $price, $taxValue = 0, $discountedprice = null)
+function displayCurr($symbol, $price, $taxValue = 0, $discountedprice = null, $tax_included = false)
 {
+    $newPrice = $tax_included ? $price : $price + $taxValue;
+
     try {
         if (in_array($symbol, config('currency.currencies_with_right_symbols'))) {
             if ($discountedprice !== null && $discountedprice < $price) {
-                return "<span style='text-decoration: line-through; color:red;'>" . $price + $taxValue . $symbol . '</span> <b>' . $discountedprice + $taxValue . $symbol . '</b>';
+                return "<span style='text-decoration: line-through; color:red;'>" . $newPrice . $symbol . '</span> <b>' . $discountedprice + $taxValue . $symbol . '</b>';
             } else {
-                return '<b>' . $price + $taxValue . $symbol . '</b>';
+                return '<b>' . $newPrice . $symbol . '</b>';
             }
         } else {
             if ($discountedprice !== null && $discountedprice < $price) {
-                return "<span style='text-decoration: line-through; color:red;'>" . $symbol . $price + $taxValue . '</span> <b>' . $symbol . $discountedprice + $taxValue . '</b>';
+                return "<span style='text-decoration: line-through; color:red;'>" . $symbol . $newPrice . '</span> <b>' . $symbol . $discountedprice + $taxValue . '</b>';
             } else {
-                return '<b>' . $symbol . $price + $taxValue . '</b>';
+                return '<b>' . $symbol . $newPrice . '</b>';
             }
         }
     } catch (\Exception $th) {
-
         $discountedprice = (float) str_replace(',', '', $discountedprice);
         $price = (float) str_replace(',', '', $price);
         if (in_array($symbol, config('currency.currencies_with_right_symbols'))) {
             if ($discountedprice !== null && $discountedprice < $price) {
-                return "<span style='text-decoration: line-through; color:red;'>" . $price + $taxValue . $symbol . '</span> <b>' . $discountedprice + $taxValue . $symbol . '</b>';
+                return "<span style='text-decoration: line-through; color:red;'>" . $newPrice . $symbol . '</span> <b>' . $discountedprice + $taxValue . $symbol . '</b>';
             } else {
-                return '<b>' . $price + $taxValue . $symbol . '</b>';
+                return '<b>' . $newPrice . $symbol . '</b>';
             }
         } else {
             if ($discountedprice !== null && $discountedprice < $price) {
-                return "<span style='text-decoration: line-through; color:red;'>" . $symbol . $price + $taxValue . '</span> <b>' . $symbol . $discountedprice + $taxValue . '</b>';
+                return "<span style='text-decoration: line-through; color:red;'>" . $symbol . $newPrice . '</span> <b>' . $symbol . $discountedprice + $taxValue . '</b>';
             } else {
-                return '<b>' . $symbol . $price + $taxValue . '</b>';
+                return '<b>' . $symbol . $newPrice . '</b>';
             }
         }
     }
@@ -1451,5 +1452,19 @@ if (! function_exists('getFuncArgs')) {
         }
 
         return $filledParams;
+    }
+}
+if (! function_exists('deepMerge')) {
+    function deepMerge(array $array1, array $array2): array
+    {
+        foreach ($array2 as $key => $value) {
+            if (is_array($value) && isset($array1[$key]) && is_array($array1[$key])) {
+                $array1[$key] = deepMerge($array1[$key], $value);
+            } else {
+                $array1[$key] = $value;
+            }
+        }
+
+        return $array1;
     }
 }

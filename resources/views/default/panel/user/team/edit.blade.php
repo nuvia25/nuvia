@@ -31,7 +31,7 @@
                             <p class="fs-1 font-bold">@lang('Your Team Plan')</p>
                             <p>@lang("You have the Team plan which has a remaining balance of <strong class='font-bold font-weight-medium'>:word</strong> words and <strong class='font-bold font-weight-medium'>:image</strong> images.", ['word' => $remaining_words, 'image' => $remaining_images]) </p>
                             <div class="relative">
-                                <h3 class="absolute left-1/2 top-[calc(50%-5px)] m-0 -translate-x-1/2 text-center text-[14px] font-normal">
+                                <h3 class="absolute left-1/2 top-[calc(50%-5px)] m-0 -translate-x-1/2 text-center text-xs font-normal">
                                     <strong class="text-[2em] font-semibold leading-none max-sm:text-[1.5em]">
                                         @if ($remaining_words == -1)
                                             {{ __('Unlimited') }}
@@ -243,7 +243,7 @@
             const options = {
                 series: [{{ (int) $remaining_words }}, {{ (int) $total_words }}],
                 labels: [@json(__('Remaining')), @json(__('Used'))],
-                colors: ['#9A34CD', 'rgba(154,52,205,0.2)'],
+                colors: ['hsl(var(--accent))', 'hsl(var(--accent)/20%)'],
                 chart: {
                     type: 'donut',
                     height: 205,

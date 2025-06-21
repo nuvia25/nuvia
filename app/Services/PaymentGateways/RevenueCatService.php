@@ -31,6 +31,16 @@ class RevenueCatService
         return null;
     }
 
+    public static function getPlansPriceIdsForMigration(): null
+    {
+        return null;
+    }
+
+    public static function getUsersCustomerIdsForMigration(Subscriptions $subscription): null
+    {
+        return null;
+    }
+
     public static function getSubscriptionDaysLeft()
     {
         $userId = Auth::user()->id;

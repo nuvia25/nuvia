@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Extensions\MarketingBot\System\Enums\CampaignStatus;
+use App\Extensions\MarketingBot\System\Enums\CampaignType;
+use App\Extensions\MarketingBot\System\Models\MarketingCampaign;
+use App\Extensions\MarketingBot\System\Services\Whatsapp\WhatsappSenderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 
@@ -9,7 +13,24 @@ class TestController extends Controller
 {
     public function test(Request $request)
     {
-        return view('test');
+        $now = now();
+
+        $whatsappService = app(WhatsappSenderService::class);
+
+        $campaigns = MarketingCampaign::query()
+            ->where('type', CampaignType::whatsapp)
+//			->where('status', CampaignStatus::scheduled)
+//			->where('scheduled_at', '<=', $now)
+            ->get();
+
+        $campaigns->map(function (MarketingCampaign $campaign) use ($whatsappService) {
+            try {
+                $whatsappService
+                    ->setMarketingCampaign($campaign)
+                    ->send();
+            } catch (Exception $e) {
+            }
+        });
     }
 
     public function getYoutubeTranscript($videoUrl)

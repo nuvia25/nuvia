@@ -30,7 +30,11 @@ return [
     | ],
     */
 
-    'classGroups' => [],
+    'classGroups' => [
+        'border-radius' => [
+            ['rounded' => ['button', 'card', 'input', 'full']],
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------

@@ -103,7 +103,7 @@
                                         >
                                             <span>
                                                 {{ __('Pay') }}
-                                                {!! displayCurr(currency()->symbol, $plan->price, $taxValue, $newDiscountedPrice) !!}
+                                                {!! displayCurr(currency()->symbol, $plan->price, $taxValue, $newDiscountedPrice, tax_included: $plan->price_tax_included) !!}
                                                 {{ __('with') }}
                                             </span>
                                             <img

@@ -35,50 +35,50 @@
                 }
             @endphp
 
-
-
-            <div class="flex ">
-
+            <div class="flex">
 
                 @if ($options['tax'] == 1 && $country_tax_enabled)
                     <x-modal
-                            title="{{ __('Tax Setting') }}"
-                            disable-modal="{{ $app_is_demo }}"
-                            disable-modal-message="{{ __('This feature is disabled in Demo version.') }}"
+                        title="{{ __('Tax Setting') }}"
+                        disable-modal="{{ $app_is_demo }}"
+                        disable-modal-message="{{ __('This feature is disabled in Demo version.') }}"
                     >
                         <x-slot:trigger>
-                              {{ __('Tax Setting') }}
+                            {{ __('Tax Setting') }}
                         </x-slot:trigger>
                         <x-slot:modal>
                             <form
-                                    action="{{ route('dashboard.admin.finance.paymentGateways.settings.tax.save') }}"
-                                    method="POST"
+                                action="{{ route('dashboard.admin.finance.paymentGateways.settings.tax.save') }}"
+                                method="POST"
                             >
                                 @csrf
 
                                 <input
-                                        type="hidden"
-                                        name="code"
-                                        value="{{ $options['code'] }}"
+                                    type="hidden"
+                                    name="code"
+                                    value="{{ $options['code'] }}"
                                 />
-                                @if($options['code'] == 'cryptomus')
+                                @if ($options['code'] == 'cryptomus')
                                     <div>
                                         <label class="mb-2">@lang('Country')</label>
-                                        <select class="form-control mb-3 mt-2" name="country_code">
-                                            @foreach(\App\Services\CountryCodeService::countryCodes($without = []) as $code => $country)
-                                                <option value="{{ $code }}"> {{ $country. " ($code)" }}</option>
+                                        <select
+                                            class="form-control mb-3 mt-2"
+                                            name="country_code"
+                                        >
+                                            @foreach (\App\Services\CountryCodeService::countryCodes($without = []) as $code => $country)
+                                                <option value="{{ $code }}"> {{ $country . " ($code)" }}</option>
                                             @endforeach
                                         </select>
                                     </div>
                                 @endif
 
                                 <x-forms.input
-                                        id="tax"
-                                        name="tax"
-                                        value="{{ $settings->tax }}"
-                                        size="lg"
-                                        label="{{ __('Tax Rate (%)') }}"
-                                        required
+                                    id="tax"
+                                    name="tax"
+                                    value="{{ $settings->tax }}"
+                                    size="lg"
+                                    label="{{ __('Tax Rate (%)') }}"
+                                    required
                                 />
 
                                 <x-alert class="mt-3">
@@ -89,9 +89,9 @@
 
                                 <div class="mt-4 border-t pt-3">
                                     <x-button
-                                            @click.prevent="modalOpen = false"
-                                            variant="outline"
-                                            type="button"
+                                        @click.prevent="modalOpen = false"
+                                        variant="outline"
+                                        type="button"
                                     >
                                         {{ __('Cancel') }}
                                     </x-button>
@@ -105,25 +105,20 @@
 
                 @endif
 
-                    @if($options['code'] == 'cryptomus')
-                        <x-forms.input
-                                class="ms-2"
-                                id="country_tax_enabled"
-                                type="checkbox"
-                                name="country_tax_enabled"
-                                label="{{ __('Country tax') }}"
-                                :checked="$settings['country_tax_enabled'] == 1"
-                                switcher
-                        />
-                    @endif
+                @if ($options['code'] == 'cryptomus')
+                    <x-forms.input
+                        class="ms-2"
+                        id="country_tax_enabled"
+                        type="checkbox"
+                        name="country_tax_enabled"
+                        label="{{ __('Country tax') }}"
+                        :checked="$settings['country_tax_enabled'] == 1"
+                        switcher
+                    />
+                @endif
             </div>
 
-
         </div>
-
-
-
-
 
         @if ($options['mode'] == 1)
             <x-forms.input
@@ -308,40 +303,39 @@
             >{{ $settings->bank_account_details ?? "Bank Name:\nAccount Name:\nIBAN:\nBIC/Swift:\nRouting Number:\n" }}</x-forms.input>
         @endif
 
-		@if($options['code'] === 'stripe')
-			<div class="border rounded-lg p-3">
-				@if(isset($options['automate_tax']) && $options['automate_tax'])
-					<x-forms.input
-						id="automate_tax"
-						type="checkbox"
-						name="automate_tax"
-						label="{{ __('Automate taxes') }}"
-						:checked="$settings['automate_tax'] == 1"
-						switcher
-					/>
-				@endif
+        @if ($options['code'] === 'stripe')
+            <div class="rounded-lg border p-3">
+                @if (isset($options['automate_tax']) && $options['automate_tax'])
+                    <x-forms.input
+                        id="automate_tax"
+                        type="checkbox"
+                        name="automate_tax"
+                        label="{{ __('Automate taxes') }}"
+                        :checked="$settings['automate_tax'] == 1"
+                        switcher
+                    />
+                @endif
 
-				<x-alert class="mt-3">
-					<p>
-						{{ __('Automate taxes will automatically calculate taxes based on the user\'s country.') }}
-					</p>
-				</x-alert>
-			</div>
-		@endif
+                <x-alert class="mt-3">
+                    <p>
+                        {{ __('Automate taxes will automatically calculate taxes based on the user\'s country.') }}
+                    </p>
+                </x-alert>
+            </div>
+        @endif
 
-		@if($options['code'] === 'stripe' || $options['code'] === 'razorpay')
-			<x-forms.input
-				disabled
-				value="{{ url('webhooks').'/' . $options['code'] }}"
-				id="bank_account_details"
-				name="bank_account_details"
-				size="lg"
-				label="{{ __('Webhook') }}"
-				rows="7"
-			/>
-			<!-- bankTransfer fields end -->
-		@endif
-
+        @if ($options['code'] === 'stripe' || $options['code'] === 'razorpay')
+            <x-forms.input
+                id="bank_account_details"
+                disabled
+                value="{{ url('webhooks') . '/' . $options['code'] }}"
+                name="bank_account_details"
+                size="lg"
+                label="{{ __('Webhook') }}"
+                rows="7"
+            />
+            <!-- bankTransfer fields end -->
+        @endif
 
         @if ($app_is_demo)
             <x-button
@@ -369,30 +363,30 @@
         />
     </form>
 
-    @if($options['code'] == 'cryptomus' && $taxes->count() && $settings['country_tax_enabled'])
-        <div class="mt-4 lqd-table-outline rounded-xl border border-table-border pt-1 lqd-table-wrap w-full max-w-full overflow-x-auto">
-            <table class="lqd-table w-full text-start overflow-x-auto [-webkit-overflow-scrolling:touch] max-w-full">
-                <thead class="lqd-table-head border-b text-start text-4xs leading-tight uppercase tracking-wider font-medium text-label transition-border">
+    @if ($options['code'] == 'cryptomus' && $taxes->count() && $settings['country_tax_enabled'])
+        <div class="lqd-table-outline lqd-table-wrap mt-4 w-full max-w-full overflow-x-auto rounded-xl border border-card-border pt-1">
+            <table class="lqd-table w-full max-w-full overflow-x-auto text-start [-webkit-overflow-scrolling:touch]">
+                <thead class="lqd-table-head border-b text-start text-4xs font-medium uppercase leading-tight tracking-wider text-label transition-border">
                     <tr>
                         <th>country code</th>
                         <th>tax</th>
                         <th>action</th>
                     </tr>
                 </thead>
-                @foreach($taxes as $tax)
+                @foreach ($taxes as $tax)
                     <tbody class="[&_tr:not(:last-child)]:border-b">
-                        <tr class="group active">
+                        <tr class="active group">
                             <td>{{ $tax->country_code }}</td>
                             <td>{{ $tax->tax }}</td>
                             <td>
                                 <x-button
-                                        class="size-9"
-                                        hover-variant="danger"
-                                        size="none"
-                                        variant="ghost-shadow"
-                                        href="{{ route('dashboard.admin.finance.paymentGateways.settings.tax.delete', $tax->id) }}"
-                                        onclick="return confirm('{{ __('Are you sure?') }}')"
-                                        title="{{ __('Delete') }}"
+                                    class="size-9"
+                                    hover-variant="danger"
+                                    size="none"
+                                    variant="ghost-shadow"
+                                    href="{{ route('dashboard.admin.finance.paymentGateways.settings.tax.delete', $tax->id) }}"
+                                    onclick="return confirm('{{ __('Are you sure?') }}')"
+                                    title="{{ __('Delete') }}"
                                 >
                                     <x-tabler-x class="size-4" />
                                 </x-button>
@@ -432,7 +426,7 @@
 @endsection
 @push('script')
     <script>
-        $('#country_tax_enabled').on('change', function () {
+        $('#country_tax_enabled').on('change', function() {
             $.ajax({
                 type: 'POST',
                 url: '{{ route('dashboard.admin.finance.paymentGateways.country.tax.enabled', $options['code']) }}',

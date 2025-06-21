@@ -39,6 +39,7 @@
 			this.modalOpen = !this.modalOpen @endif
         }
     }"
+    :class="{ 'modal-open': modalOpen }"
 >
     @if (!empty($trigger))
         @if ($trigger->attributes['custom'] ?? false)

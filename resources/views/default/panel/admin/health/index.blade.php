@@ -41,13 +41,14 @@
                     }
                 @endphp
 
-                @if (count($checkResults?->storedCheckResults ?? []))
+
                     <dl class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+						@if (count($checkResults?->storedCheckResults ?? []))
                         @foreach ($checkResults->storedCheckResults as $result)
                             <x-card class:body="flex items-start gap-3">
                                 <div class="{{ backgroundColor($result->status) }} flex items-center justify-center rounded-full bg-opacity-25 p-1.5">
                                     <svg
-                                        class="size-5 {{ iconColor($result->status) }}"
+                                        class="{{ iconColor($result->status) }} size-5"
                                         xmlns="http://www.w3.org/2000/svg"
                                         viewBox="0 0 20 20"
                                         fill="currentColor"
@@ -104,8 +105,75 @@
                                 </div>
                             </x-card>
                         @endforeach
-                    </dl>
-                @endif
+
+						@php
+							$chronJobStatus = Spatie\Health\Enums\Status::failed()->value;
+
+							if (cache('crontab_check') && now()->subMinutes(3) < cache('crontab_check')) {
+								$chronJobStatus = Spatie\Health\Enums\Status::ok()->value;
+							}
+						@endphp
+							<x-card class:body="flex items-start gap-3">
+								<div class="{{ backgroundColor($chronJobStatus) }} flex items-center justify-center rounded-full bg-opacity-25 p-1.5">
+									<svg
+										class="{{ iconColor($chronJobStatus) }} size-5"
+										xmlns="http://www.w3.org/2000/svg"
+										viewBox="0 0 20 20"
+										fill="currentColor"
+									>
+										@if (icon($chronJobStatus) == 'check-circle')
+											<path
+												fill-rule="evenodd"
+												d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+												clip-rule="evenodd"
+											/>
+										@elseif(icon($chronJobStatus) == 'exclamation-circle')
+											<path
+												fill-rule="evenodd"
+												d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+												clip-rule="evenodd"
+											/>
+										@elseif(icon($chronJobStatus) == 'arrow-circle-right')
+											<path
+												fill-rule="evenodd"
+												d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z"
+												clip-rule="evenodd"
+											/>
+										@elseif(icon($chronJobStatus) == 'x-circle')
+											<path
+												fill-rule="evenodd"
+												d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+												clip-rule="evenodd"
+											/>
+										@else
+											<path
+												fill-rule="evenodd"
+												d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+												clip-rule="evenodd"
+											/>
+										@endif
+									</svg>
+								</div>
+
+								<div>
+									<dd class="mb-2 font-semibold text-gray-800 dark:text-gray-200 md:text-xl">
+										{{ __('Cron Jobs') }}
+									</dd>
+									<dt class="mt-0 text-sm font-medium text-gray-600 dark:text-gray-400">
+
+										@if(cache('crontab_check'))
+											{{  trans('Last time: ') . cache('crontab_check') }}
+										@else
+											Cron Jobs are disabled on your server. Click <a class="text-blue-600" href="https://docs.magicproject.ai/how-to-configure-cron-jobs-on-cpanel/ " target="_blank">here</a> to learn how to enable Cron Jobs.
+										@endif
+
+									</dt>
+								</div>
+							</x-card>
+
+						@endif
+
+					</dl>
                 @if ($app_is_not_demo)
                     <div class="mb-3 mt-4">
                         <x-button
@@ -114,7 +182,7 @@
                             size="lg"
                         >
                             <svg
-                                class="mr-2"
+                                class="me-2"
                                 xmlns="http://www.w3.org/2000/svg"
                                 width="18"
                                 height="18"
@@ -157,12 +225,7 @@
     echo '== ' . __('GENERAL') . '==' . PHP_EOL;
     echo __('Operating System') . ': ' . php_uname() . PHP_EOL;
     echo __('PHP Version') . ': ' . phpversion() . PHP_EOL;
-    echo __('Laravel Version') .
-        ': ' .
-        DB::connection()
-            ->getPdo()
-            ->getAttribute(PDO::ATTR_SERVER_VERSION) .
-        PHP_EOL;
+    echo __('Laravel Version') . ': ' . DB::connection()->getPdo()->getAttribute(PDO::ATTR_SERVER_VERSION) . PHP_EOL;
     echo __('Mermory Limit') . ': ' . ini_get('memory_limit') . PHP_EOL;
     echo __('Max Input Vars') . ': ' . ini_get('max_input_vars') . PHP_EOL;
     echo __('Post Max Size') . ': ' . ini_get('post_max_size') . PHP_EOL . PHP_EOL;
@@ -179,7 +242,7 @@
                                 variant="outline"
                             >
                                 <svg
-                                    class="mr-2"
+                                    class="me-2"
                                     xmlns="http://www.w3.org/2000/svg"
                                     width="18"
                                     height="18"
@@ -205,7 +268,7 @@
                                 href="{{ route('dashboard.admin.health.logs') }}"
                             >
                                 <svg
-                                    class="mr-2"
+                                    class="me-2"
                                     xmlns="http://www.w3.org/2000/svg"
                                     width="18"
                                     height="18"

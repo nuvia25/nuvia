@@ -19,10 +19,10 @@
             </h4>
         </div>
     </x-slot:head>
-    @foreach (cache('recent_activity') as $activity)
+    @forelse (cache('recent_activity') as $activity)
         <div class="flex justify-between gap-10">
             <div class="grid w-full grid-cols-12 items-center">
-                <div class="col-span-4 mr-3 flex items-center justify-between sm:col-span-3">
+                <div class="col-span-4 me-3 flex items-center justify-between sm:col-span-3">
                     <span>{{ $activity->created_at->format('g:i A') }}</span>
                     <span
                         class="{{ $loop->last ? '' : 'after:w-px after:bg-foreground/10 after:absolute after:start-1/2 after:-bottom-20 after:h-20' }} relative size-2 rounded-full bg-foreground/80"
@@ -35,8 +35,7 @@
                         alt=""
                     >
                     <div class="flex w-full flex-col">
-                        <span class="w-full truncate text-foreground/80"><strong
-                                class="text-foreground">{{ $activity->user?->name }}</strong> purchased
+                        <span class="w-full truncate text-foreground/80"><strong class="text-foreground">{{ $activity->user?->name }}</strong> purchased
                             <strong class="text-foreground">"{{ $activity->plan?->name }}"</strong></span>
                         <span class="text-foreground/80">{{ $activity->created_at->diffForHumans() }}</span>
                     </div>
@@ -44,5 +43,9 @@
             </div>
             <span class="size-2 shrink-0 self-center rounded-full bg-[#55B587]"></span>
         </div>
-    @endforeach
+    @empty
+        <h4 class="m-0">
+            @lang('No recent activity found.')
+        </h4>
+    @endforelse
 </x-card>

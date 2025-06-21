@@ -306,7 +306,7 @@
                                 label="{{ __('Select model') }}"
                             >
                                 <option value="">
-                                    {{ __('Select model') }}
+                                    {{ __('Default model') }}
                                 </option>
                                 @foreach ($models as $model)
                                     <option value="{{ $model->key }}">

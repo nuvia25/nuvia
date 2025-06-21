@@ -44,7 +44,10 @@
             $el.classList.toggle('dropdown-anchor-bottom', parentRect.bottom + dropdownRect.height > window.innerHeight && parentRect.top - dropdownRect.height > 0);
         })"
     >
-        <div {{ $attributes->twMergeFor('dropdown', $dropdown_content_base_class, $dropdown->attributes->get('class')) }}>
+        <div
+            {{ $attributes->twMergeFor('dropdown', $dropdown_content_base_class, $dropdown->attributes->get('class')) }}
+            {{ $dropdown->attributes->only('x-bind:class') }}
+        >
             {{ $dropdown }}
         </div>
     </div>

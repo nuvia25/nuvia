@@ -236,6 +236,8 @@ enum EntityEnum: string
 
     case KLING = 'kling';
 
+    case KLING_2_1 = 'klingV21';
+
     case KLING_IMAGE = 'klingImage';
 
     case LUMA_DREAM_MACHINE = 'luma-dream-machine';
@@ -431,6 +433,7 @@ enum EntityEnum: string
             self::FLUX_REALISM             => __('Flux Realism'),
             self::FLUX_SCHNELL             => __('Flux Schnell'),
             self::KLING                    => __('Kling 1.0'),
+            self::KLING_2_1                => __('Kling 2.1'),
             self::KLING_IMAGE              => __('Kling Image to Video'),
             self::LUMA_DREAM_MACHINE       => __('Luma Dream Machine'),
             self::HAIPER                   => __('Haiper'),
@@ -608,7 +611,7 @@ enum EntityEnum: string
             self::GROK_2_1212, self::GROK_2_VISION_1212 => EngineEnum::X_AI,
             // FAL AI
             self::VEO_2, self::VIDEO_UPSCALER, self::COGVIDEOX_5B, self::ANIMATEDIFF_V2V, self::FAST_ANIMATEDIFF_TURBO, self::FLUX_PRO, self::FLUX_PRO_1_1, self::FLUX_REALISM, self::FLUX_SCHNELL, self::IDEOGRAM,
-            self::KLING, self::KLING_IMAGE, self::LUMA_DREAM_MACHINE, self::HAIPER, self::MINIMAX => EngineEnum::FAL_AI,
+            self::KLING, self::KLING_2_1 ,self::KLING_IMAGE, self::LUMA_DREAM_MACHINE, self::HAIPER, self::MINIMAX => EngineEnum::FAL_AI,
             // AI/ML api minimax engine
             self::MUSIC_01 => EngineEnum::AI_ML_MINIMAX,
             // Open Router
@@ -756,6 +759,7 @@ enum EntityEnum: string
             self::FLUX_REALISM             => FalAI\FluxRealismDriver::class,
             self::FLUX_SCHNELL             => FalAI\FluxSchnellDriver::class,
             self::KLING                    => FalAI\KlingDriver::class,
+            self::KLING_2_1                => FalAI\KlingV21Driver::class,
             self::KLING_IMAGE              => FalAI\KlingImageDriver::class,
             self::LUMA_DREAM_MACHINE       => FalAI\LumaDreamMachineDriver::class,
             self::HAIPER                   => FalAI\HaiperDriver::class,
@@ -892,7 +896,7 @@ enum EntityEnum: string
             self::GROK_2_1212, self::GROK_2_VISION_1212 => 0.001,
             // FAL AI
             self::VEO_2, self::FLUX_PRO, self::FLUX_PRO_1_1, self::FLUX_REALISM, self::FLUX_SCHNELL, self::IDEOGRAM,
-            self::KLING, self::KLING_IMAGE, self::LUMA_DREAM_MACHINE, self::HAIPER, self::MINIMAX => 0.05,
+            self::KLING, self::KLING_2_1, self::KLING_IMAGE, self::LUMA_DREAM_MACHINE, self::HAIPER, self::MINIMAX => 0.05,
             self::VIDEO_UPSCALER, self::COGVIDEOX_5B, self::ANIMATEDIFF_V2V, self::FAST_ANIMATEDIFF_TURBO => 0.05,
             // AI/ML api minimax engine
             self::MUSIC_01	=> 0.05,

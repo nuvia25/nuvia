@@ -3,6 +3,7 @@
         @twMerge(
             'header-search relative group transition-all',
             $attributes->get('class')),
+        'header-search-not-in-content' => !$inContent,
         'header-search-in-content' => $inContent,
         'max-lg:invisible max-lg:fixed max-lg:bottom-16 max-lg:left-0 max-lg:z-[99] max-lg:m-0 max-lg:me-0 max-lg:!w-full max-lg:origin-bottom max-lg:-translate-y-2 max-lg:scale-95 max-lg:opacity-0 max-lg:[&.lqd-is-active]:visible max-lg:[&.lqd-is-active]:translate-y-0 max-lg:[&.lqd-is-active]:scale-100 max-lg:[&.lqd-is-active]:opacity-100' => !$inContent,
     ])
@@ -18,20 +19,24 @@
 
         @if ($inContent)
             <div class="relative">
-                <div class="header-search-border pointer-events-none absolute -inset-1 overflow-hidden rounded-full bg-heading-foreground/5">
+                <div
+                    class="header-search-border pointer-events-none absolute -inset-1 overflow-hidden rounded-[calc(var(--input-rounded)*var(--input-rounded-multiplier)+0.25rem)] bg-heading-foreground/5">
                     <div class="header-search-border-play absolute left-1/2 top-1/2 aspect-square min-h-full min-w-full -translate-x-1/2 -translate-y-1/2 rounded-[inherit]">
                         <div class="header-search-border-play-inner absolute min-h-full min-w-full opacity-0"></div>
                     </div>
                 </div>
         @endif
+        @php
+            $input_classname = 'header-search-input';
+
+            if (!$inContent) {
+                $input_classname .= ' ps-10 max-lg:rounded-md';
+            }
+
+            $input_classname = @twMerge('border-none bg-heading-foreground/5 transition-colors', $input_classname, $attributes->get('class:input'));
+        @endphp
         <x-forms.input
-            @class([
-                'header-search-input',
-                'ps-10 max-lg:rounded-md' => !$inContent,
-                @twMerge(
-                    'rounded-full border-clay bg-clay transition-colors',
-                    $attributes->get('class:input')),
-            ])
+            :class="$input_classname"
             :container-class="@twMerge('peer', $attributes->get('class:input-container'))"
             type="text"
             onkeydown="return event.key != 'Enter';"

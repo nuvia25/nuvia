@@ -43,6 +43,8 @@ class SmtpController extends Controller
 
         Setting::forgetCache();
 
+        Helper::octaneReload();
+
         return back()->with(['message' => 'Updated Successfully.', 'type' => 'success']);
     }
 

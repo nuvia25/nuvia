@@ -50,7 +50,7 @@
                 </div>
 
                 <div class="lqd-progress relative h-2 w-full overflow-hidden rounded-full bg-foreground/5">
-                    <div class="lqd-progress-bar absolute h-2 w-[calc((var(--current-step)+1)/4*100%)] rounded-full bg-gradient-to-br from-[#82E2F4] to-[#8A8AED]"></div>
+                    <div class="lqd-progress-bar absolute h-2 w-[calc((var(--current-step)+1)/4*100%)] rounded-full bg-gradient-to-br from-gradient-from to-gradient-to"></div>
                 </div>
             </x-card>
 

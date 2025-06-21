@@ -35,6 +35,7 @@ class ElevenlabsService
                 'voice_id'    => $voice['voice_id'],
                 'name'        => $voice['name'],
                 'preview_url' => $voice['preview_url'],
+                'category'    => $voice['category'],
             ];
         });
     }

@@ -25,17 +25,16 @@
             variant="link"
             href="{{ route('dashboard.admin.users.dashboard') }}"
         >
-            <span class="text-nowrap font-bold text-foreground"> {{ __('Manage Users') }} </span>
-            <x-tabler-chevron-right class="ms-auto size-4" />
+            <span class="text-nowrap font-bold"> {{ __('Manage Users') }} </span>
+            <x-tabler-chevron-right class="size-4 rtl:rotate-180" />
         </x-button>
     </x-slot:head>
     <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-4">
             <div class="flex justify-between">
-                <span class="text-base font-medium"><strong
-                        class="mr-2 text-xl font-bold">{{ cache('online_user') }}</strong>Online
+                <span class="text-base font-medium"><strong class="me-2 text-xl font-bold">{{ cache('online_user') }}</strong>Online
                     Users</span>
-                <span class="text-[14px] font-bold text-foreground">{{ $online_user_percentage }}%</span>
+                <span class="text-xs font-bold">{{ $online_user_percentage }}%</span>
             </div>
             <div class="flex w-full rounded-7xl border p-4">
                 <div class="relative h-2.5 w-full rounded-7xl bg-foreground/10">
@@ -46,32 +45,32 @@
                 </div>
             </div>
         </div>
-        <ul class="flex flex-col gap-2.5">
-            <li class="flex items-center justify-between border-b border-card-border py-2">
+        <ul class="flex flex-col">
+            <li class="flex items-center justify-between border-b border-card-border py-2.5">
                 <div class="flex items-center gap-2.5">
                     <span class="size-2.5 rounded-sm bg-[#818B99]"></span>
-                    <p class="mb-0 text-base font-medium text-foreground">{{ __('Total Users') }}</p>
+                    <p class="mb-0 text-base font-medium">{{ __('Total Users') }}</p>
                 </div>
                 <x-money-with-unit :value="cache('total_user', 0)" />
             </li>
-            <li class="flex items-center justify-between border-b border-card-border py-2">
+            <li class="flex items-center justify-between border-b border-card-border py-2.5">
                 <div class="flex items-center gap-2.5">
                     <span class="size-2.5 rounded-sm bg-[#20C69F]"></span>
-                    <p class="mb-0 text-base font-medium text-foreground">{{ __('Free Users') }}</p>
+                    <p class="mb-0 text-base font-medium">{{ __('Free Users') }}</p>
                 </div>
                 <x-money-with-unit :value="cache('free_user', 0)" />
             </li>
-            <li class="flex items-center justify-between border-b border-card-border py-2">
+            <li class="flex items-center justify-between border-b border-card-border py-2.5">
                 <div class="flex items-center gap-2.5">
                     <span class="size-2.5 rounded-sm bg-primary"></span>
-                    <p class="mb-0 text-base font-medium text-foreground">{{ __('Paid Users') }}</p>
+                    <p class="mb-0 text-base font-medium">{{ __('Paid Users') }}</p>
                 </div>
                 <x-money-with-unit :value="cache('paid_user', 0)" />
             </li>
-            <li class="flex items-center justify-between border-b border-card-border py-2">
+            <li class="flex items-center justify-between py-2.5">
                 <div class="flex items-center gap-2.5">
                     <span class="size-2.5 rounded-sm bg-[#93C5FD]"></span>
-                    <p class="mb-0 text-base font-medium text-foreground">{{ __('Trial Users') }}</p>
+                    <p class="mb-0 text-base font-medium">{{ __('Trial Users') }}</p>
                 </div>
                 <x-money-with-unit :value="cache('trial_user', 0)" />
             </li>

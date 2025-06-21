@@ -43,12 +43,10 @@
         ],
     ];
 
-    $premium_features = \App\Models\OpenAIGenerator::query()
-        ->where('active', 1)
-        ->where('premium', 1)
-        ->get()
-        ->pluck('title')
-        ->toArray();
+    $premium_features = \App\Models\OpenAIGenerator::query()->where('active', 1)
+    ->where('premium', 1)
+    ->limit(5)
+    ->get()->pluck('title')->toArray();
     $user_is_premium = false;
     $plan = auth()->user()?->relationPlan;
     if ($plan) {
@@ -61,29 +59,19 @@
     $style_string = '';
 
     if (setting('announcement_background_color')) {
-        $style_string .=
-            '.lqd-card.lqd-announcement-card { background-color: ' . setting('announcement_background_color') . ';}';
+        $style_string .= '.lqd-card.lqd-announcement-card { background-color: ' . setting('announcement_background_color') . ';}';
     }
 
     if (setting('announcement_background_image')) {
-        $style_string .=
-            '.lqd-card.lqd-announcement-card { background-image: url(' .
-            setting('announcement_background_image') .
-            '); }';
+        $style_string .= '.lqd-card.lqd-announcement-card { background-image: url(' . setting('announcement_background_image') . '); }';
     }
 
     if (setting('announcement_background_color_dark')) {
-        $style_string .=
-            '.theme-dark .lqd-card.lqd-announcement-card { background-color: ' .
-            setting('announcement_background_color_dark') .
-            ';}';
+        $style_string .= '.theme-dark .lqd-card.lqd-announcement-card { background-color: ' . setting('announcement_background_color_dark') . ';}';
     }
 
     if (setting('announcement_background_image_dark')) {
-        $style_string .=
-            '.theme-dark .lqd-card.lqd-announcement-card { background-image: url(' .
-            setting('announcement_background_image_dark') .
-            '); }';
+        $style_string .= '.theme-dark .lqd-card.lqd-announcement-card { background-image: url(' . setting('announcement_background_image_dark') . '); }';
     }
 
     $favoriteOpenAis = cache('favorite_openai');
@@ -111,7 +99,7 @@
             <li>
                 <x-button
                     @class([
-                        'lqd-filter-btn inline-flex rounded-full px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5',
+                        'lqd-filter-btn inline-flex px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5',
                         'active' => $loop->first,
                     ])
                     variant="ghost"
@@ -223,13 +211,13 @@
                     in-content
                 />
                 <x-button
-                    class="group text-[12px] font-medium text-heading-foreground"
+                    class="group text-[12px] font-medium text-foreground"
                     variant="link"
                     href="{{ $setting->feature_ai_advanced_editor ? LaravelLocalization::localizeUrl(route('dashboard.user.generator.index')) : LaravelLocalization::localizeUrl(route('dashboard.user.openai.list')) }}"
                 >
                     @lang('Create a Blank Document')
                     <span
-                        class="inline-flex size-9 items-center justify-center rounded-full bg-background shadow transition-all group-hover:scale-110 group-hover:bg-heading-foreground group-hover:text-header-background"
+                        class="inline-flex size-9 items-center justify-center rounded-button bg-background shadow transition-all group-hover:scale-110 group-hover:bg-heading-foreground group-hover:text-header-background"
                     >
                         <x-tabler-plus class="size-4" />
                     </span>
@@ -264,7 +252,7 @@
                 class:body="flex flex-col only:grow-0 py-8 xl:px-20 static"
             >
                 <figure
-                    class="pointer-events-none absolute start-0 top-0 z-0 h-full w-full overflow-hidden"
+                    class="pointer-events-none absolute start-0 top-0 z-0 h-full w-full overflow-hidden transition-opacity dark:opacity-60"
                     aria-hidden="true"
                 >
                     <img
@@ -280,54 +268,56 @@
                     <p class="mb-8 text-xs font-medium opacity-60">
                         @lang('Upgrade your plan to unlock new AI capabilities.')
                     </p>
-                    <ul class="mb-11 space-y-4 self-center text-xs font-medium text-heading-foreground">
-                        {{--						Mr. Hakan wanted me to add this as static for now. --}}
-                        @foreach (['Unlimited Credits', 'Access to All Templates', 'External Chatbots', 'o1-mini and DeepSeek R1', 'Premium Support'] as $feature)
+                    <svg
+                        width="0"
+                        height="0"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <defs>
+                            <linearGradient
+                                id="premium-icon-gradient"
+                                x1="0.546875"
+                                y1="3.69866"
+                                x2="12.7738"
+                                y2="14.7613"
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop stop-color="hsl(var(--gradient-from))" />
+                                <stop
+                                    offset="0.502"
+                                    stop-color="hsl(var(--gradient-via))"
+                                />
+                                <stop
+                                    offset="1"
+                                    stop-color="hsl(var(--gradient-to))"
+                                />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <ul class="mb-11 space-y-4 self-center text-xs font-medium">
+                        @foreach ([
+								setting('premium_advantages_1_label', 'Unlimited Credits'),
+								setting('premium_advantages_2_label', 'Access to All Templates'),
+								setting('premium_advantages_3_label', 'External Chatbots'),
+								setting('premium_advantages_4_label', 'o1-mini and DeepSeek R1'),
+								setting('premium_advantages_5_label', 'Premium Support')
+						] as $feature)
                             <li class="flex items-center gap-3.5">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 16 16"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M2.09635 7.37072C1.80296 7.37154 1.51579 7.45542 1.26807 7.61264C1.02035 7.76986 0.822208 7.994 0.696564 8.25914C0.570919 8.52427 0.522908 8.81956 0.558084 9.11084C0.59326 9.40212 0.710186 9.67749 0.895335 9.9051L4.84228 14.7401C4.98301 14.9148 5.1634 15.0535 5.36847 15.1445C5.57353 15.2355 5.79736 15.2763 6.02136 15.2635C6.50043 15.2377 6.93295 14.9815 7.20871 14.5601L15.4075 1.35593C15.4089 1.35373 15.4103 1.35154 15.4117 1.34939C15.4886 1.23127 15.4637 0.997192 15.3049 0.850142C15.2613 0.809761 15.2099 0.778736 15.1538 0.75898C15.0977 0.739223 15.0382 0.731153 14.9789 0.735266C14.9196 0.739379 14.8618 0.755589 14.809 0.782896C14.7562 0.810204 14.7095 0.848031 14.6719 0.894048C14.669 0.897666 14.6659 0.90123 14.6628 0.904739L6.39421 10.247C6.36275 10.2826 6.32454 10.3115 6.28179 10.3322C6.23905 10.3528 6.19263 10.3648 6.14522 10.3674C6.09782 10.3699 6.05038 10.363 6.00565 10.3471C5.96093 10.3312 5.91982 10.3065 5.88471 10.2746L3.14051 7.77735C2.8555 7.51608 2.48299 7.37102 2.09635 7.37072Z"
-                                        fill="url(#paint0_linear_9208_560_{{ $loop->index }})"
-                                    />
-                                    <defs>
-                                        <linearGradient
-                                            id="paint0_linear_9208_560_{{ $loop->index }}"
-                                            x1="0.546875"
-                                            y1="3.69866"
-                                            x2="12.7738"
-                                            y2="14.7613"
-                                            gradientUnits="userSpaceOnUse"
-                                        >
-                                            <stop stop-color="#82E2F4" />
-                                            <stop
-                                                offset="0.502"
-                                                stop-color="#8A8AED"
-                                            />
-                                            <stop
-                                                offset="1"
-                                                stop-color="#6977DE"
-                                            />
-                                        </linearGradient>
-                                    </defs>
-                                </svg>
+                                {{-- blade-formatter-disable --}}
+								<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M2.09635 7.37072C1.80296 7.37154 1.51579 7.45542 1.26807 7.61264C1.02035 7.76986 0.822208 7.994 0.696564 8.25914C0.570919 8.52427 0.522908 8.81956 0.558084 9.11084C0.59326 9.40212 0.710186 9.67749 0.895335 9.9051L4.84228 14.7401C4.98301 14.9148 5.1634 15.0535 5.36847 15.1445C5.57353 15.2355 5.79736 15.2763 6.02136 15.2635C6.50043 15.2377 6.93295 14.9815 7.20871 14.5601L15.4075 1.35593C15.4089 1.35373 15.4103 1.35154 15.4117 1.34939C15.4886 1.23127 15.4637 0.997192 15.3049 0.850142C15.2613 0.809761 15.2099 0.778736 15.1538 0.75898C15.0977 0.739223 15.0382 0.731153 14.9789 0.735266C14.9196 0.739379 14.8618 0.755589 14.809 0.782896C14.7562 0.810204 14.7095 0.848031 14.6719 0.894048C14.669 0.897666 14.6659 0.90123 14.6628 0.904739L6.39421 10.247C6.36275 10.2826 6.32454 10.3115 6.28179 10.3322C6.23905 10.3528 6.19263 10.3648 6.14522 10.3674C6.09782 10.3699 6.05038 10.363 6.00565 10.3471C5.96093 10.3312 5.91982 10.3065 5.88471 10.2746L3.14051 7.77735C2.8555 7.51608 2.48299 7.37102 2.09635 7.37072Z" fill="url(#premium-icon-gradient)" /> </svg>
+								{{-- blade-formatter-enable --}}
                                 {{ __($feature) }}
                             </li>
                         @endforeach
                     </ul>
 
                     <x-button
-                        class="py-5 text-[18px] font-bold shadow-[0_14px_44px_rgba(0,0,0,0.07)] hover:shadow-2xl hover:shadow-primary/30 dark:hover:bg-primary"
+                        class="py-[18px] text-[18px] font-bold leading-6 shadow-[0_14px_44px_rgba(0,0,0,0.07)] hover:shadow-2xl hover:shadow-primary/30 dark:hover:bg-primary"
                         href="{{ LaravelLocalization::localizeUrl(route('dashboard.user.payment.subscription')) }}"
                         variant="ghost-shadow"
                     >
                         <span
-                            class="bg-gradient-to-r from-[#82E2F4] via-[#8A8AED] to-[#6977DE] bg-clip-text font-bold text-transparent group-hover:from-white group-hover:via-white group-hover:to-white/80"
+                            class="bg-gradient-to-r from-gradient-from via-gradient-via to-gradient-to bg-clip-text font-bold text-transparent group-hover:from-white group-hover:via-white group-hover:to-white/80"
                         >
                             @lang('Upgrade Your Plan')
                         </span>
@@ -405,25 +395,19 @@
 
                     <ol class="mb-12 flex flex-col gap-4 text-heading-foreground">
                         <li>
-                            <span
-                                class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary"
-                            >
+                            <span class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary">
                                 1
                             </span>
                             {!! __('You <strong>send your invitation link</strong> to your friends.') !!}
                         </li>
                         <li>
-                            <span
-                                class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary"
-                            >
+                            <span class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary">
                                 2
                             </span>
                             {!! __('<strong>They subscribe</strong> to a paid plan by using your refferral link.') !!}
                         </li>
                         <li>
-                            <span
-                                class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary"
-                            >
+                            <span class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary">
                                 3
                             </span>
                             @if ($is_onetime_commission)
@@ -455,7 +439,7 @@
                         </x-forms.input>
 
                         <x-button
-                            class="w-full rounded-xl"
+                            class="w-full"
                             id="send_invitation_button"
                             type="submit"
                             form="send_invitation_form"
@@ -485,19 +469,18 @@
             size="md"
         >
             <x-slot:head
-                class="border-0 pb-0 pt-5"
+                class="border-0 px-7 pb-0 pt-5"
             >
                 <h4 class="m-0 text-lg">
                     {{ __('Add New') }}
                 </h4>
             </x-slot:head>
 
-            <div class="flex w-full flex-wrap justify-between gap-y-4">
+            <div class="grid w-full grid-cols-1 justify-between gap-4 sm:grid-cols-2">
                 @if (\App\Helpers\Classes\MarketplaceHelper::isRegistered('chatbot') || $app_is_demo)
                     <x-card
-                        class="group w-full cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-[#F0E7FF] hover:to-[#F1F5FF] lg:w-[48%]"
-                        class:body="flex flex-col justify-between max-sm:gap-5 gap-16"
-                        size="sm"
+                        class="group relative w-full cursor-pointer overflow-hidden transition-all duration-300 before:absolute before:inset-0 before:bg-gradient-to-br before:from-gradient-from/20 before:to-gradient-via/20 before:opacity-0 before:transition-all hover:before:opacity-100"
+                        class:body="flex flex-col justify-between max-sm:gap-5 gap-16 z-1"
                     >
                         <svg
                             class="fill-foreground dark:group-hover:fill-background max-sm:mx-auto"
@@ -523,7 +506,9 @@
                                 d="M8.48306 22.674C8.89321 21.9741 9.79303 21.7393 10.4929 22.1494C12.6363 23.4057 14.2137 23.9121 15.6694 23.9062C17.1257 23.9002 18.6718 23.3808 20.7535 22.1518C21.4521 21.7395 22.3527 21.9714 22.7651 22.6699C23.1774 23.3685 22.9455 24.2691 22.2469 24.6815C19.9563 26.0338 17.8805 26.8347 15.6814 26.8437C13.4817 26.8525 11.3704 26.0686 9.00762 24.6839C8.30777 24.2736 8.07292 23.374 8.48306 22.674Z"
                             />
                         </svg>
-                        <h4 class="dark:group-hover:text-background max-sm:text-center">@lang('External Chatbot')</h4>
+                        <h4 class="m-0 dark:group-hover:text-background max-sm:text-center">
+                            @lang('External Chatbot')
+                        </h4>
                         <a
                             class="absolute inset-0"
                             href="{{ \App\Helpers\Classes\MarketplaceHelper::isRegistered('chatbot') ? route('dashboard.chatbot.index') : '#' }}"
@@ -533,9 +518,8 @@
 
                 @if (\App\Helpers\Classes\MarketplaceHelper::isRegistered('social-media') || $app_is_demo)
                     <x-card
-                        class="group w-full cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-[#F0E7FF] hover:to-[#F1F5FF] lg:w-[48%]"
-                        class:body="flex flex-col justify-between max-sm:gap-5 gap-16"
-                        size="sm"
+                        class="group relative w-full cursor-pointer overflow-hidden transition-all duration-300 before:absolute before:inset-0 before:bg-gradient-to-br before:from-gradient-from/20 before:to-gradient-via/20 before:opacity-0 before:transition-all hover:before:opacity-100"
+                        class:body="flex flex-col justify-between max-sm:gap-5 gap-16 z-1"
                     >
                         <svg
                             class="fill-foreground dark:group-hover:fill-background max-sm:mx-auto"
@@ -556,7 +540,9 @@
                                 d="M5.35566 14.7918H9.75C10.5094 14.7918 11.125 15.4074 11.125 16.1668V34.4996C11.125 35.259 10.5094 35.875 9.75 35.875L5.35574 35.8746C2.7311 35.9146 0.489448 33.9866 0.137411 31.384C0.129143 31.3228 0.125 31.2612 0.125 31.1996V19.6496C0.125 19.588 0.129143 19.5264 0.137411 19.4653C0.477055 16.9544 2.64255 14.7511 5.35566 14.7918ZM2.875 19.7519V31.0967C3.07547 32.28 4.11212 33.1462 5.32019 33.1248L5.3445 33.1244L8.375 33.1246V17.5418H5.32017C4.19749 17.522 3.08805 18.4761 2.875 19.7519Z"
                             />
                         </svg>
-                        <h4 class="dark:group-hover:text-background max-sm:text-center">@lang('Social Media Post')</h4>
+                        <h4 class="m-0 dark:group-hover:text-background max-sm:text-center">
+                            @lang('Social Media Post')
+                        </h4>
                         <a
                             class="absolute inset-0"
                             href="{{ \App\Helpers\Classes\MarketplaceHelper::isRegistered('social-media') ? route('dashboard.user.social-media.index') : '#' }}"
@@ -566,9 +552,8 @@
 
                 @if (\App\Helpers\Classes\MarketplaceHelper::isRegistered('openai-realtime-chat') || $app_is_demo)
                     <x-card
-                        class="group w-full cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-[#F0E7FF] hover:to-[#F1F5FF] lg:w-[48%]"
-                        class:body="flex flex-col justify-between max-sm:gap-5 gap-16"
-                        size="sm"
+                        class="group relative w-full cursor-pointer overflow-hidden transition-all duration-300 before:absolute before:inset-0 before:bg-gradient-to-br before:from-gradient-from/20 before:to-gradient-via/20 before:opacity-0 before:transition-all hover:before:opacity-100"
+                        class:body="flex flex-col justify-between max-sm:gap-5 gap-16 z-1"
                     >
                         <svg
                             class="fill-foreground dark:group-hover:fill-background max-sm:mx-auto"
@@ -599,7 +584,9 @@
                                 d="M13.9457 22.0834H17.7223C19.5425 22.0834 20.985 22.0834 22.1478 22.1784C23.3366 22.2755 24.3428 22.4782 25.2613 22.9462C26.751 23.7052 27.9622 24.9164 28.7211 26.406C29.1891 27.3245 29.3918 28.3307 29.489 29.5195C29.584 30.6824 29.584 32.1247 29.584 33.945V35C29.584 35.6904 29.0243 36.25 28.334 36.25H3.33398C2.64363 36.25 2.08398 35.6904 2.08398 35V33.945C2.08397 32.1249 2.08397 30.6824 2.17897 29.5195C2.2761 28.3307 2.47878 27.3245 2.94685 26.406C3.70583 24.9164 4.91693 23.7052 6.40655 22.9462C7.32518 22.4782 8.33125 22.2755 9.52024 22.1784C10.6829 22.0834 12.1254 22.0834 13.9457 22.0834ZM7.5415 25.1737C6.52232 25.693 5.69368 26.5217 5.17437 27.5409C4.9158 28.0484 4.75517 28.6889 4.67067 29.7232C4.58878 30.7252 4.58423 31.9932 4.584 33.75H27.084C27.0837 31.9932 27.0792 30.7252 26.9973 29.7232C26.9128 28.6889 26.7521 28.0484 26.4937 27.5409C25.9743 26.5217 25.1457 25.693 24.1265 25.1737M7.5415 25.1737C8.04898 24.9152 8.68944 24.7545 9.7238 24.67C10.7728 24.5844 12.1132 24.5834 14.0007 24.5834H17.6673C19.5548 24.5834 20.8951 24.5844 21.9441 24.67C22.9785 24.7545 23.619 24.9152 24.1265 25.1737"
                             />
                         </svg>
-                        <h4 class="dark:group-hover:text-background max-sm:text-center">@lang('Voice Chat')</h4>
+                        <h4 class="m-0 dark:group-hover:text-background max-sm:text-center">
+                            @lang('Voice Chat')
+                        </h4>
                         <a
                             class="absolute inset-0"
                             href="{{ \App\Helpers\Classes\MarketplaceHelper::isRegistered('openai-realtime-chat') ? route('dashboard.user.openai.chat.chat', ['ai_realtime_voice_chat']) : '#' }}"
@@ -608,8 +595,8 @@
                 @endif
 
                 <x-card
-                    class="group w-full cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-[#F0E7FF] hover:to-[#F1F5FF] lg:w-[48%]"
-                    class:body="flex flex-col justify-between max-sm:gap-5 gap-16"
+                    class="group relative w-full cursor-pointer overflow-hidden transition-all duration-300 before:absolute before:inset-0 before:bg-gradient-to-br before:from-gradient-from/20 before:to-gradient-via/20 before:opacity-0 before:transition-all hover:before:opacity-100"
+                    class:body="flex flex-col justify-between max-sm:gap-5 gap-16 z-1"
                     size="sm"
                 >
                     <svg
@@ -626,7 +613,9 @@
                             d="M24.6635 3.96639C24.3344 3.75377 23.9026 3.79943 23.6242 4.07909L4.58892 23.1979C4.15472 23.6341 4.10559 23.6958 4.07362 23.7473C4.02707 23.8224 3.99207 23.9042 3.96995 23.9902C3.95461 24.0499 3.94393 24.1292 3.92872 24.7455L3.86907 27.1625L6.35305 27.1665C6.99083 27.1675 7.07051 27.1582 7.12959 27.144C7.21681 27.123 7.30042 27.0883 7.3773 27.0411C7.42984 27.0088 7.49359 26.9581 7.94439 26.5054L26.8639 7.50281C26.9155 7.45095 26.9229 7.44332 26.9271 7.43876C27.1991 7.15174 27.2443 6.71358 27.0345 6.37553C27.0311 6.37015 27.0254 6.36118 26.9852 6.29987L26.9359 6.22462C26.3431 5.32054 25.569 4.55143 24.6635 3.96639ZM21.5573 2.02122C22.8059 0.767056 24.7592 0.555685 26.2464 1.5166C27.4941 2.32278 28.5597 3.38185 29.3751 4.62547L29.4314 4.71132C29.46 4.755 29.4874 4.79691 29.5125 4.83729C30.4206 6.3001 30.2291 8.19432 29.0445 9.44471C29.0118 9.47918 28.9765 9.51465 28.9398 9.55163L10.0113 28.5633C9.98632 28.5884 9.96139 28.6134 9.93651 28.6385C9.61063 28.9666 9.29159 29.2879 8.90493 29.5256C8.56626 29.7339 8.19679 29.8873 7.81013 29.98C7.36843 30.0861 6.91572 30.0847 6.45432 30.0834C6.41906 30.0833 6.38375 30.0831 6.34839 30.0831L2.37202 30.0767C1.97942 30.0761 1.60364 29.9172 1.32971 29.636C1.05576 29.3547 0.906776 28.975 0.91646 28.5825L1.01294 24.6735C1.01379 24.6395 1.01459 24.6054 1.01538 24.5715C1.02585 24.1241 1.03606 23.6878 1.14533 23.2632C1.24104 22.8914 1.39266 22.5361 1.59512 22.2097C1.82637 21.837 2.13465 21.5281 2.45003 21.2122C2.47399 21.1882 2.49799 21.1641 2.52201 21.1401L21.5573 2.02122Z"
                         />
                     </svg>
-                    <h4 class="dark:group-hover:text-background max-sm:text-center">@lang('Blog Post')</h4>
+                    <h4 class="m-0 dark:group-hover:text-background max-sm:text-center">
+                        @lang('Blog Post')
+                    </h4>
                     <a
                         class="absolute inset-0"
                         href="{{ route('dashboard.user.openai.articlewizard.new') }}"
@@ -656,7 +645,7 @@
                         href="{{ route('dashboard.user.openai.documents.all') }}"
                     >
                         <span class="text-nowrap font-bold text-foreground"> {{ __('View All') }} </span>
-                        <x-tabler-chevron-right class="ms-auto size-4" />
+                        <x-tabler-chevron-right class="size-4 rtl:rotate-180" />
                     </x-button>
                 </div>
             </x-slot:head>
@@ -666,9 +655,9 @@
                 data-view-mode="grid"
             >
                 <div class="lqd-docs-list grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-					@php
-						$folders = auth()->user()->folders()->get();
-					@endphp
+                    @php
+                        $folders = auth()->user()->folders()->get();
+                    @endphp
                     @foreach ($recently_launched as $entry)
                         @if ($entry->generator != null)
                             <x-documents.item
@@ -676,7 +665,7 @@
                                 style="extended"
                                 trim="100"
                                 hide-fav
-								:$folders
+                                :$folders
                             />
                         @endif
                     @endforeach
@@ -701,7 +690,7 @@
                         href="{{ route('dashboard.user.openai.list') }}"
                     >
                         <span class="text-nowrap font-bold text-foreground"> {{ __('View All') }} </span>
-                        <x-tabler-chevron-right class="ms-auto size-4" />
+                        <x-tabler-chevron-right class="size-4 rtl:rotate-180" />
                     </x-button>
                 </div>
             </x-slot:head>
@@ -720,23 +709,10 @@
 
                             if ($upgrade) {
                                 $href = LaravelLocalization::localizeUrl(route('dashboard.user.payment.subscription'));
-                            } elseif (
-                                isset($entry->slug) &&
-                                in_array($entry->slug, [
-                                    'ai_vision',
-                                    'ai_ai_chat_image',
-                                    'ai_code_generator',
-                                    'ai_youtube',
-                                    'ai_pdf',
-                                ])
-                            ) {
-                                $href = LaravelLocalization::localizeUrl(
-                                    route('dashboard.user.openai.generator.workbook', $entry->slug),
-                                );
+                            } elseif (isset($entry->slug) && in_array($entry->slug, ['ai_vision', 'ai_ai_chat_image', 'ai_code_generator', 'ai_youtube', 'ai_pdf'])) {
+                                $href = LaravelLocalization::localizeUrl(route('dashboard.user.openai.generator.workbook', $entry->slug));
                             } else {
-                                $href = LaravelLocalization::localizeUrl(
-                                    route('dashboard.user.openai.generator', $entry->slug),
-                                );
+                                $href = LaravelLocalization::localizeUrl(route('dashboard.user.openai.generator', $entry->slug));
                             }
                         @endphp
                         @if ($upgrade || $entry->active == 1)
@@ -745,8 +721,7 @@
                                 href="{{ $href }}"
                             >
                             @else
-                                <p
-                                    class="lqd-posts-item relative flex w-full flex-col flex-wrap items-start gap-3 border-b p-4 text-xs transition-all last:border-none">
+                                <p class="lqd-posts-item relative flex w-full flex-col flex-wrap items-start gap-3 border-b p-4 text-xs transition-all last:border-none">
                         @endif
                         <x-lqd-icon
                             size="lg"
@@ -765,9 +740,7 @@
                                 {{ __($entry->title) }}
                             </span>
                             <div class="lqd-posts-item-content-inner h-full">
-                                <span
-                                    class="lqd-fav-temp-item-desc line-clamp-4 max-w-full text-ellipsis italic opacity-45"
-                                >
+                                <span class="lqd-fav-temp-item-desc line-clamp-4 max-w-full text-ellipsis italic opacity-45">
                                     {{ str()->words(__($entry->description)) }}
                                 </span>
                             </div>
@@ -806,20 +779,23 @@
         >
             <div class="flex flex-col gap-8">
                 <div class="flex flex-col items-center gap-3">
-                    <div
-                        class="inline-grid size-36 items-center justify-center rounded-full bg-[#F9F9F9] dark:bg-foreground/5">
+                    <div class="inline-grid size-36 items-center justify-center rounded-full bg-foreground/[3%]">
                         <img
                             src="{{ asset('images/icons/submit-ticket.png') }}"
                             alt=""
                         >
                     </div>
                     <div class="flex flex-col items-center">
-                        <h3 class="text-center">@lang('Have a question?')</h3>
-                        <h3 class="text-center text-heading-foreground/50">@lang('We’re here to help you.')</h3>
+                        <h3 class="text-center">
+                            @lang('Have a question?')
+                            <span class="mt-1.5 block opacity-50">
+                                @lang('We’re here to help you.')
+                            </span>
+                        </h3>
                     </div>
                 </div>
                 <x-button
-                    class="mx-auto w-fit text-[14px] text-heading-foreground hover:bg-primary"
+                    class="mx-auto w-fit text-xs text-heading-foreground hover:bg-primary"
                     variant="ghost-shadow"
                     href="{{ route('dashboard.support.list') }}"
                 >
@@ -834,16 +810,8 @@
 
 @push('script')
     @if ($app_is_not_demo)
-        @includeFirst([
-            'onboarding::include.introduction',
-            'panel.admin.onboarding.include.introduction',
-            'vendor.empty',
-        ])
-        @includeFirst([
-            'onboarding-pro::include.introduction',
-            'panel.admin.onboarding-pro.include.introduction',
-            'vendor.empty',
-        ])
+        @includeFirst(['onboarding::include.introduction', 'panel.admin.onboarding.include.introduction', 'vendor.empty'])
+        @includeFirst(['onboarding-pro::include.introduction', 'panel.admin.onboarding-pro.include.introduction', 'vendor.empty'])
     @endif
     @if (Route::has('dashboard.user.dash_notify_seen'))
         <script>

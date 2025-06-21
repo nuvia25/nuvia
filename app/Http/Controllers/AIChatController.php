@@ -8,6 +8,7 @@ use App\Domains\Entity\Enums\EntityEnum;
 use App\Domains\Entity\Facades\Entity as EntityFacade;
 use App\Domains\Entity\Models\Entity;
 use App\Enums\BedrockEngine;
+use App\Extensions\ElevenLabsVoiceChat\System\Services\ElevenLabsVoiceChatService;
 use App\Helpers\Classes\ApiHelper;
 use App\Helpers\Classes\Helper;
 use App\Helpers\Classes\MarketplaceHelper;
@@ -215,6 +216,11 @@ class AIChatController extends Controller
             }
         }
 
+        $elevenlabsAgentId = null;
+        if ($slug === 'ai_realtime_voice_chat' && MarketplaceHelper::isRegistered('elevenlabs-voice-chat')) {
+            $elevenlabsAgentId = app(ElevenLabsVoiceChatService::class)?->fetchVoiceChatbot()?->agent_id;
+        }
+
         return view('panel.user.openai_chat.chat', compact(
             'generators',
             'category',
@@ -231,6 +237,7 @@ class AIChatController extends Controller
             'lastThreeMessage',
             'chat_completions',
             'models',
+            'elevenlabsAgentId'
         ));
     }
 
@@ -288,6 +295,11 @@ class AIChatController extends Controller
             $apikeyPart3 = base64_encode(random_int(1, 100));
         }
 
+        $elevenlabsAgentId = null;
+        if (setting('default_voice_chat_engine', 'openai') == 'elevenlabs' && MarketplaceHelper::isRegistered('elevenlabs-voice-chat')) {
+            $elevenlabsAgentId = app(ElevenLabsVoiceChatService::class)?->fetchVoiceChatbot()?->agent_id;
+        }
+
         $chatView = 'panel.user.openai_chat.components.chat_area_container';
         if ($website_url === 'chatpro' && MarketplaceHelper::isRegistered('ai-chat-pro')) {
             if (! auth()->check()) {
@@ -304,6 +316,7 @@ class AIChatController extends Controller
             'apikeyPart3',
             'generators',
             'website_url',
+            'elevenlabsAgentId'
         ))->render();
         $lastThreeMessageQuery = $chat->messages()->whereNot('input', null)->orderBy('created_at', 'desc')->take(2);
         $lastThreeMessage = $lastThreeMessageQuery->get()->toArray();
@@ -377,7 +390,7 @@ class AIChatController extends Controller
         $chat->save();
 
         $message = new UserOpenaiChatMessage;
-        $message->user_openai_chat_id = $chat->id;
+        $message->user_openai_chat_id = $chat?->id;
         $message->user_id = $user?->id;
         $message->response = 'First Initiation';
         if ($category->slug !== 'ai_vision' || $category->slug !== 'ai_pdf') {
@@ -443,6 +456,11 @@ class AIChatController extends Controller
             $chatView = 'ai-chat-pro::includes.chat_area_container';
         }
 
+        $elevenlabsAgentId = null;
+        if (setting('default_voice_chat_engine', 'openai') == 'elevenlabs' && MarketplaceHelper::isRegistered('elevenlabs-voice-chat')) {
+            $elevenlabsAgentId = app(ElevenLabsVoiceChatService::class)?->fetchVoiceChatbot()?->agent_id;
+        }
+
         $html = view($chatView, compact(
             'chat',
             'category',
@@ -450,7 +468,8 @@ class AIChatController extends Controller
             'apikeyPart2',
             'apikeyPart3',
             'generators',
-            'website_url'
+            'website_url',
+            'elevenlabsAgentId'
         ))->render();
         $html2 = view('panel.user.openai_chat.components.chat_sidebar_list', compact('list', 'chat', 'generators', 'website_url'))->render();
 
@@ -652,7 +671,7 @@ class AIChatController extends Controller
             $chat->save();
 
             $message = new UserOpenaiChatMessage;
-            $message->user_openai_chat_id = $chat->id;
+            $message->user_openai_chat_id = $chat?->id;
             $message->user_id = Auth::id();
             $message->response = 'First Initiation';
             if ($category->slug !== 'ai_vision' || $category->slug !== 'ai_pdf') {
@@ -742,7 +761,7 @@ class AIChatController extends Controller
             $chat->save();
 
             $message = new UserOpenaiChatMessage;
-            $message->user_openai_chat_id = $chat->id;
+            $message->user_openai_chat_id = $chat?->id;
             $message->user_id = Auth::id();
             $message->response = 'First Initiation';
             if ($category->slug !== 'ai_vision' || $category->slug !== 'ai_pdf') {
@@ -881,7 +900,7 @@ class AIChatController extends Controller
         $chat->save();
 
         $message = new UserOpenaiChatMessage;
-        $message->user_openai_chat_id = $chat->id;
+        $message->user_openai_chat_id = $chat?->id;
         $message->user_id = Auth::id();
         $message->response = 'First Initiation';
         $output = $category->first_message ?: 'How can I help you?';
@@ -2373,7 +2392,7 @@ class AIChatController extends Controller
         }
 
         $message = new UserOpenaiChatMessage;
-        $message->user_openai_chat_id = $chat->id;
+        $message->user_openai_chat_id = $chat?->id;
         $message->user_id = Auth::id();
         $message->input = $request->input;
         $message->response = $request->response;

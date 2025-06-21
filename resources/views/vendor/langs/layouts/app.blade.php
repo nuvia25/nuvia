@@ -100,8 +100,7 @@
                     success: function(data) {
                         toastr.success("{{ __('Saved. Redirecting...') }}");
                         setTimeout(function() {
-                            location.href = "/" + local +
-                                '/dashboard/admin/translations/home';
+                            location.href = '/dashboard/admin/translations/home?app_locale='+local;
                         }, 1000);
                     },
                     error: function(data) {

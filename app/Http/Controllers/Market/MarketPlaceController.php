@@ -5,14 +5,46 @@ namespace App\Http\Controllers\Market;
 use App\Domains\Marketplace\Repositories\Contracts\ExtensionRepositoryInterface;
 use App\Helpers\Classes\Helper;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Validation\ValidationException;
 
 class MarketPlaceController extends Controller
 {
     public function __construct(
         public ExtensionRepositoryInterface $extensionRepository
     ) {}
+
+    public function deleteCoupon(): RedirectResponse
+    {
+        $data = $this->extensionRepository->deleteCoupon();
+
+        return back()->with([
+            'type'    => 'success',
+            'message' => trans('Coupon removed successfully.'),
+            'status'  => 'success',
+        ]);
+    }
+
+    public function cartCoupon(Request $request): RedirectResponse
+    {
+        $request->validate(['coupon_code' => 'required|string|max:255']);
+
+        $data = $this->extensionRepository->storeCoupon($request['coupon_code']);
+
+        if ($data['status'] === 'success') {
+            return back()->with([
+                'type'    => 'success',
+                'message' => trans('Coupon applied successfully.'),
+                'status'  => 'success',
+            ]);
+        }
+
+        throw ValidationException::withMessages([
+            'coupon_code' => $data['message'],
+        ]);
+    }
 
     public function cart(Request $request)
     {

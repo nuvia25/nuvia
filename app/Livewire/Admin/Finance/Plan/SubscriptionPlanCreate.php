@@ -56,6 +56,7 @@ class SubscriptionPlanCreate extends Component
             'plan.price'                         => 'required_if:step,1|numeric|min:0',
             'plan.frequency'                     => 'required_if:step,1|string|max:190',
             'plan.is_team_plan'                  => 'required_if:step,1|nullable|boolean',
+            'plan.price_tax_included'            => 'required_if:step,1|nullable|boolean',
             'plan.plan_allow_seat'               => 'nullable|numeric|min:0',
             'plan.trial_days'                    => 'required_if:step,1|numeric|min:0',
             'plan.is_featured'                   => 'required_if:step,1|nullable|boolean',

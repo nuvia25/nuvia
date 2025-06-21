@@ -37,6 +37,7 @@ use Stripe\Checkout\Session;
 use Stripe\Exception\ApiErrorException;
 use Stripe\Exception\AuthenticationException;
 use Stripe\Exception\InvalidArgumentException;
+use Stripe\Exception\InvalidRequestException;
 use Stripe\PaymentIntent;
 use Stripe\Stripe;
 use Stripe\StripeClient;
@@ -144,6 +145,52 @@ class StripeService
         } while ($cursor !== null);
 
         return $existingCustomerIds;
+    }
+
+    public static function getPlansPriceIdsForMigration(): void
+    {
+        try {
+            $clientKey = self::getKey();
+            $stripe = new StripeClient($clientKey);
+            DB::beginTransaction();
+            $plans = Plan::query()->where('active', 1)->get();
+            foreach ($plans as $plan) {
+                $product = GatewayProducts::where(['plan_id' => $plan->id, 'gateway_code' => self::$GATEWAY_CODE])->first();
+                if (! $product) {
+                    continue;
+                }
+
+                $productId = $product->getAttribute('product_id');
+                $priceData = $stripe->prices->all([
+                    'product' => $productId,
+                ]);
+                if (isset($priceData?->data[0])) {
+                    $priceId = $priceData->data[0]?->id;
+                    $product->price_id = $priceId;
+                    $product->save();
+                }
+            }
+            DB::commit();
+        } catch (Exception|Throwable $ex) {
+            Log::error(self::$GATEWAY_CODE . '-> getPlansPriceIdsForMigration(): ' . $ex->getMessage());
+            DB::rollBack();
+        }
+    }
+
+    public static function getUsersCustomerIdsForMigration(Subscriptions $subscription): void
+    {
+        $clientKey = self::getKey();
+        $stripe = new StripeClient($clientKey);
+        $user = User::query()->where('old_sys_user_id', $subscription->user_id)->first();
+
+        if ($user && ! $user->stripe_id) {
+            $stripeSub = $stripe->subscriptions->retrieve($subscription->stripe_id);
+            if ($stripeSub) {
+                $customerId = $stripeSub->customer;
+                $user->stripe_id = $customerId;
+                $user->save();
+            }
+        }
     }
 
     public static function saveProduct(Plan $plan): void
@@ -713,38 +760,53 @@ class StripeService
             }
 
             if ($gateway['automate_tax'] === 1) {
-                Cashier::calculateTaxes();
 
-                $session = Session::create([
-                    'customer'             => $user->stripe_id,
-                    'payment_method_types' => ['card'],
-                    'line_items'           => [[
-                        'price_data' => [
-                            'currency'     => $currency,
-                            'product_data' => [
-                                'name' => $plan->name,
+                try {
+                    Cashier::calculateTaxes();
+
+                    $session = Session::create([
+                        'customer'             => $user->stripe_id,
+                        'payment_method_types' => ['card'],
+                        'line_items'           => [[
+                            'price_data' => [
+                                'currency'     => $currency,
+                                'product_data' => [
+                                    'name' => $plan->name,
+                                ],
+                                'unit_amount' => $plan->price * 100,
                             ],
-                            'unit_amount' => $plan->price * 100,
+                            'quantity' => 1,
+                        ]],
+                        'mode'          => 'payment',
+                        'automatic_tax' => [
+                            'enabled' => true,
                         ],
-                        'quantity' => 1,
-                    ]],
-                    'mode'          => 'payment',
-                    'automatic_tax' => [
-                        'enabled' => true,
-                    ],
-                    'metadata'      => [
-                        'product_id' => $product->product_id,
-                        'price_id'   => $product->price_id,
-                        'plan_id'    => $plan->id,
-                        'user_id'    => $user->id,
-                    ],
-                    'success_url' => url("webhooks/stripe/{$plan->id}/{$user->id}/success/prepaid?session_id={CHECKOUT_SESSION_ID}"),
-                    'cancel_url'  => url('webhooks/stripe/cancel/prepaid'),
-                ]);
+                        'metadata'      => [
+                            'product_id' => $product->product_id,
+                            'price_id'   => $product->price_id,
+                            'plan_id'    => $plan->id,
+                            'user_id'    => $user->id,
+                        ],
+                        'success_url' => url("webhooks/stripe/{$plan->id}/{$user->id}/success/prepaid?session_id={CHECKOUT_SESSION_ID}"),
+                        'cancel_url'  => url('webhooks/stripe/cancel/prepaid'),
+                    ]);
 
-                DB::commit();
+                    DB::commit();
 
-                return redirect($session->url);
+                    return redirect($session->url);
+                } catch (Exception|InvalidRequestException $exception) {
+
+                    $dataCode = data_get($exception->getJsonBody(), 'error.code', null);
+
+                    if ($dataCode === 'customer_tax_location_invalid' && Auth::check()) {
+                        return redirect()->route('dashboard.user.settings.index')->with([
+                            'message' => __('Please update your address to continue.'),
+                            'type'    => 'error',
+                        ]);
+                    }
+
+                    throw new Exception('An error occurred while creating the session: ' . $exception->getMessage());
+                }
             }
 
             $paymentIntent = PaymentIntent::create([
@@ -763,6 +825,7 @@ class StripeService
 
             return view('panel.user.finance.prepaid.' . self::$GATEWAY_CODE, compact('plan', 'newDiscountedPrice', 'taxValue', 'taxRate', 'gateway', 'paymentIntent', 'product'));
         } catch (Exception $th) {
+
             Log::error(self::$GATEWAY_CODE . '-> prepaid(): ' . $th->getMessage());
 
             return back()->with(['message' => Str::before($th->getMessage(), ':'), 'type' => 'error']);

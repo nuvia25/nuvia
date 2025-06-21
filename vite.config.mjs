@@ -139,11 +139,18 @@ function detectServerConfig( domain ) {
 	if ( process.env.NODE_ENV === 'development' ) {
 		return {
 			host: domain,
-			origin: process.env.APP_URL,
+			origin: process.env.VITE_APP_URL,
+			headers: {
+				'Access-Control-Allow-Origin': '*',
+			},
 			https: true,
 			port: 4443,
 			hmr: {
-				host: process.env.APP_URL,
+				host: process.env.VITE_APP_URL,
+			},
+			cors: {
+				origin: process.env.VITE_APP_ORIGIN ?? 'magicai.test',
+				credentials: true,
 			},
 		};
 	}

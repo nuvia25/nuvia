@@ -792,7 +792,7 @@ class InstallationHelper
                         'condition' => true,
                         'callback'  => function () {
                             try {
-                                $models = \App\Domains\Entity\Models\Entity::query()->get();
+                                $models = \App\Domains\Entity\Models\Entity::query()->whereNull('selected_title')->get();
 
                                 foreach ($models as $model) {
                                     $model->update(['selected_title' => $model->getAttribute('title')]);

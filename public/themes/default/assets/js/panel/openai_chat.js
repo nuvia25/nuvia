@@ -295,6 +295,33 @@ function wrapWords(node, options = {}) {
 	wrapWordsInner(node);
 }
 
+function unwrapWords(node) {
+	if (
+		node.nodeName === 'PRE' ||
+		node.nodeName === 'CODE' ||
+		node.nodeName === 'A' ||
+		node.nodeName === 'TR' ||
+		node.classList?.contains('katex')
+	) return;
+
+	if ( node.classList?.contains('done-signal') ) {
+		return node.remove();
+	}
+
+	if (node.nodeType === 3) {
+		return;
+	}
+
+	if (node.classList?.contains('animated-word')) {
+		const textNode = document.createTextNode(node.textContent);
+		node.parentNode.replaceChild(textNode, node);
+		return;
+	}
+
+	const childNodes = [ ...node.childNodes ];
+	childNodes.forEach(child => unwrapWords(child));
+}
+
 function getAiResponseString(withoutDone = true) {
 	const string = aiResponseTextArray
 		.join('')
@@ -592,6 +619,28 @@ const setAnimatingWordY = _.throttle(() => {
 	lastAiChatBubble.style.setProperty( '--animating-word-y', `${offsetTop}px`, );
 }, 175, { leading: false });
 
+function onWordAnimationFinish(word, dataIndex) {
+	const isDoneSignal = word.classList.contains('done-signal');
+
+	word.classList.add('animated');
+
+	if ( !isDoneSignal ) {
+		lastFinishedAnimatedWordIndex = Math.max(lastFinishedAnimatedWordIndex, dataIndex);
+	}
+
+	if (!aiResponseStreaming && isDoneSignal) {
+		lastAiChatBubble.classList.remove('animating-words');
+		switchGenerateButtonsStatus(false);
+		_.defer(() => {
+			unwrapWords(lastAiChatBubble.querySelector('.chat-content'));
+		});
+	}
+
+	setAnimatingWordY();
+
+	// handleConversationsAreaScroll();
+}
+
 function onAiResponse() {
 	const aiBubbleChatContent = lastAiChatBubble?.querySelector('.chat-content');
 	let wordsToAnimate = [];
@@ -643,7 +692,7 @@ function onAiResponse() {
 		const opacity = parseFloat(wordStyles.opacity);
 
 		if ( opacity !== 0 ) {
-			return word.classList.add('animated');
+			return onWordAnimationFinish(word, dataIndex);
 		}
 
 		word.animate([ { opacity: 1 } ], {
@@ -652,22 +701,7 @@ function onAiResponse() {
 			fill: 'both',
 			delay: delay,
 		}).onfinish = () => {
-			const isDoneSignal = word.classList.contains('done-signal');
-
-			word.classList.add('animated');
-
-			if ( !isDoneSignal ) {
-				lastFinishedAnimatedWordIndex = Math.max(lastFinishedAnimatedWordIndex, dataIndex);
-			}
-
-			if (!aiResponseStreaming && isDoneSignal) {
-				lastAiChatBubble.classList.remove('animating-words');
-				switchGenerateButtonsStatus(false);
-			}
-
-			setAnimatingWordY();
-
-			// handleConversationsAreaScroll();
+			onWordAnimationFinish(word, dataIndex);
 		};
 	});
 }

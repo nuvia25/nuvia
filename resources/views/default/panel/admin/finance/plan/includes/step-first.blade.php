@@ -144,6 +144,15 @@
 				tooltip="{{ __('Price') }}"
 				error="plan.price"
 			>
+
+				<x-form.checkbox
+					class="mb-2"
+					wire:model="plan.price_tax_included"
+					label="{{ __('Tax Included') }}"
+					tooltip="{{ __('When enabled, the price will be considered as tax Included. If disabled, the price will be considered as tax excluded.') }}"
+					switcher
+					checked="{{ $plan?->price_tax_included }}"
+				/>
 				<x-form.stepper
 					wire:model="plan.price"
 					type="number"
@@ -259,8 +268,8 @@
 					/>
 				</x-form.group>
 
-            </div>
-        </div>
+			</div>
+		</div>
 
 		<div class="col-12 col-sm-6 space-y-5">
 			<x-form.group no-group-label>
@@ -274,7 +283,7 @@
 				/>
 			</x-form.group>
 		</div>
-    </div>
+	</div>
 
 	<div class="row gap-y-7">
 		<div class="col-12">
@@ -286,9 +295,7 @@
 			<div class="form-label mt-5">
 				{{ __('Enabling this feature in a plan will require users to provide their own API keys instead of using the admin API key for continued functionality.') }}
 			</div>
-			<div
-				class="col-12 col-sm-6 space-y-5"
-			>
+			<div class="col-12 col-sm-6 space-y-5">
 				<x-form.group
 					class:container="mb-4"
 					no-group-label
@@ -372,7 +379,10 @@
 					</div>
 				</div>
 
-				<div x-data="{ value: @entangle('plan.hidden_url'), copied: false }" class="mt-4">
+				<div
+					class="mt-4"
+					x-data="{ value: @entangle('plan.hidden_url'), copied: false }"
+				>
 					<x-form.group
 						class="relative"
 						label="{{ __('Hidden Url') }}"
@@ -390,24 +400,38 @@
 
 							<!-- Copy Icon -->
 							<button
+								class="ms-2 p-2 text-gray-500 hover:text-gray-700 focus:outline-none"
 								@click="navigator.clipboard.writeText(value).then(() => { copied = true; setTimeout(() => copied = false, 2000); })"
-								class="ml-2 p-2 text-gray-500 hover:text-gray-700 focus:outline-none"
 								title="Copy to clipboard"
 							>
 								<!-- Copy Icon (SVG) -->
-								<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16h8M8 12h8M8 8h8M4 4v16c0 1.104.896 2 2 2h12a2 2 0 002-2V8l-6-6H6a2 2 0 00-2 2z"/>
+								<svg
+									class="h-6 w-6"
+									xmlns="http://www.w3.org/2000/svg"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M8 16h8M8 12h8M8 8h8M4 4v16c0 1.104.896 2 2 2h12a2 2 0 002-2V8l-6-6H6a2 2 0 00-2 2z"
+									/>
 								</svg>
 							</button>
 						</div>
 
 						<!-- Copied Notification -->
-						<span x-show="copied" x-transition class="text-green-500 text-sm mt-1 block">
-            {{ __('Copied!') }}
-        </span>
+						<span
+							class="mt-1 block text-sm text-green-500"
+							x-show="copied"
+							x-transition
+						>
+                            {{ __('Copied!') }}
+                        </span>
 					</x-form.group>
 				</div>
-
 
 			</div>
 		</div>

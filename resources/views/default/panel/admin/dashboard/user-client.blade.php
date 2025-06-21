@@ -23,7 +23,7 @@
             href="{{ route('dashboard.admin.clients.index') }}"
         >
             <span class="text-nowrap font-bold text-foreground"> {{ __('View User Clients') }} </span>
-            <x-tabler-chevron-right class="ms-auto size-4" />
+            <x-tabler-chevron-right class="size-4 rtl:rotate-180" />
         </x-button>
     </x-slot:head>
     @php
@@ -59,8 +59,7 @@
         </div>
 
         <div class="flex h-32">
-            <div
-                class="group flex shrink-0 grow basis-0 flex-col justify-center space-y-3 px-5 pt-9 text-xs text-heading-foreground sm:px-9 md:max-lg:px-2">
+            <div class="group flex shrink-0 grow basis-0 flex-col justify-center space-y-3 px-5 pt-9 text-xs text-heading-foreground sm:px-9 md:max-lg:px-2">
                 <div class="flex items-center gap-2 group-last:flex-row-reverse">
                     <span
                         class="h-[18px] w-1 rounded-full"
@@ -68,20 +67,18 @@
                     ></span>
                     {{ __('Desktop') }}
                 </div>
-                <div class="text-[28px] font-bold opacity-70">
+                <div class="font-heading text-[28px] font-bold text-heading-foreground/80">
                     {{ number_format($desktopPercent, 2) }}%
                 </div>
             </div>
             {{-- begin: criteria --}}
             <div class="relative flex w-px items-center justify-center bg-border">
-                <div
-                    class="inline-flex size-[50px] shrink-0 items-center justify-center rounded-full border bg-background text-sm font-medium shadow-sm">
+                <div class="inline-flex size-[50px] shrink-0 items-center justify-center rounded-full border bg-background text-sm font-medium shadow-sm">
                     @lang('vs')
                 </div>
             </div>
             {{-- end: criteria --}}
-            <div
-                class="group flex shrink-0 grow basis-0 flex-col justify-center space-y-3 px-5 pt-9 text-end text-xs text-heading-foreground sm:px-9 md:max-lg:px-2">
+            <div class="group flex shrink-0 grow basis-0 flex-col justify-center space-y-3 px-5 pt-9 text-end text-xs text-heading-foreground sm:px-9 md:max-lg:px-2">
                 <div class="flex items-center gap-2 group-last:flex-row-reverse">
                     <span
                         class="h-[18px] w-1 rounded-full"
@@ -89,7 +86,7 @@
                     ></span>
                     {{ __('Mobile') }}
                 </div>
-                <div class="text-[28px] font-bold opacity-70">
+                <div class="font-heading text-[28px] font-bold text-heading-foreground/80">
                     {{ number_format($mobilePercent, 2) }}%
                 </div>
             </div>

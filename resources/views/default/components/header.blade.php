@@ -1,4 +1,6 @@
-<header class="lqd-header relative flex h-[--header-height] border-b border-header-border bg-header-background text-xs font-medium transition-colors max-lg:h-[65px]">
+<header
+    class="lqd-header relative flex h-[--header-height] border-b border-header-border bg-header-background text-xs font-medium transition-colors max-lg:h-[65px]"
+>
     <div @class([
         'lqd-header-container flex w-full grow gap-2 px-4 max-lg:w-full max-lg:max-w-none',
         'container' => !$attributes->get('layout-wide'),
@@ -11,7 +13,7 @@
         {{-- Mobile nav toggle and logo --}}
         <div class="mobile-nav-logo flex items-center gap-3 lg:hidden">
             <button
-                class="lqd-mobile-nav-toggle size-10 flex items-center justify-center"
+                class="lqd-mobile-nav-toggle flex size-10 items-center justify-center"
                 type="button"
                 x-init
                 @click.prevent="$store.mobileNav.toggleNav()"
@@ -34,7 +36,8 @@
         @includeFirst(['focus-mode::header', 'components.includes.ai-tools', 'vendor.empty'])
 
         {{-- Search form --}}
-        <div class="header-search-container flex items-center peer-[&.header-title-container]/title:grow peer-[&.header-title-container]/title:justify-center">
+        <div
+            class="header-search-container flex items-center peer-[&.header-title-container]/title:grow peer-[&.header-title-container]/title:justify-center">
             <x-header-search />
         </div>
 
@@ -46,6 +49,9 @@
             @else
                 <div class="flex items-center max-xl:gap-2 max-lg:hidden xl:gap-3">
                     @if (Auth::user()->isAdmin())
+                        @if ($app_is_not_demo)
+                            <x-update-available />
+                        @endif
                         <x-button
                             href="{{ route('dashboard.admin.index') }}"
                             variant="ghost-shadow"
@@ -54,14 +60,14 @@
                         </x-button>
                     @endif
 
-                    @if ($settings_two->liquid_license_type == 'Extended License')
+                    @if ($settings_two->liquid_license_type == 'Extended License' && $app_is_demo)
                         @if ($subscription = getSubscription())
                             <x-button
                                 class="max-xl:hidden"
                                 href="{{ route('dashboard.user.payment.subscription') }}"
                                 variant="ghost-shadow"
                             >
-                                {{ $subscription?->plan?->name }} -  {{ getSubscriptionDaysLeft() }}
+                                {{ $subscription?->plan?->name }} - {{ getSubscriptionDaysLeft() }}
                                 {{ __('Days Left') }}
                             </x-button>
                         @else
@@ -93,7 +99,33 @@
                     <x-light-dark-switch />
                 @endif
 
-                @includeFirst(['focus-mode::ai-tools-button', 'components.includes.ai-tools-button', 'vendor.empty'])
+                @includeFirst([
+                    'focus-mode::ai-tools-button',
+                    'components.includes.ai-tools-button',
+                    'vendor.empty',
+                ])
+
+                @if ($app_is_not_demo)
+                    {{-- Upgrade button --}}
+                    <x-modal type="page">
+                        <x-slot:trigger
+                            custom
+                        >
+                            <x-button
+                                class="lqd-header-upgrade-btn flex size-10 items-center justify-center border p-0 text-current dark:bg-white/[3%]"
+                                href="#"
+                                variant="link"
+                                title="{{ __('Premium Membership') }}"
+                                @click.prevent="toggleModal()"
+                            >
+                                <x-tabler-bolt stroke-width="1.5" />
+                            </x-button>
+                        </x-slot:trigger>
+                        <x-slot:modal>
+                            @includeIf('premium-support.index')
+                        </x-slot:modal>
+                    </x-modal>
+                @endif
 
                 @if (setting('notification_active', 0))
                     {{-- Notifications --}}
@@ -104,15 +136,6 @@
                 @if (count(explode(',', $settings_two->languages)) > 1)
                     <x-language-dropdown />
                 @endif
-
-                {{-- Upgrade button on mobile --}}
-                <x-button
-                    class="lqd-header-upgrade-btn size-10 flex items-center justify-center border p-0 text-current dark:bg-white/[3%] lg:hidden"
-                    variant="link"
-                    href="{{ route('dashboard.user.payment.subscription') }}"
-                >
-                    <x-tabler-bolt stroke-width="1.5" />
-                </x-button>
 
                 {{-- User menu --}}
                 <x-user-dropdown />

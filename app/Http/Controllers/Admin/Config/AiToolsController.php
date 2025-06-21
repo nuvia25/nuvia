@@ -78,6 +78,7 @@ class AiToolsController extends Controller
                 'default_ai_engine'               => $request->get('default_ai_engine'),
                 'default_photo_studio'            => $request->get('default_photo_studio'),
                 'default_aw_image_engine'         => $request->get('default_aw_image_engine'),
+                'default_voice_chat_engine'		     => $request->get('voice_chat_engine'),
                 'chat_setting_for_customer'       => $request->has('chat_setting_for_customer') ? 1 : 0,
                 'user_prompt_library'             => $request->has('user_prompt_library') ? 1 : 0,
                 'user_ai_image_prompt_library'    => $request->has('user_ai_image_prompt_library') ? 1 : 0,

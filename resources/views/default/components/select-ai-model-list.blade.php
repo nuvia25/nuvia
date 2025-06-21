@@ -157,12 +157,15 @@
                                         'inactive': {{ $driver->creditBalance() <= 0 && !$driver->isUnlimitedCredit() ? 'true' : 'false' }},
                                     }"
                                     @click.prevent="selectCard($event.currentTarget)"
-                                    ::data-selected="selectedCard?.getAttribute('data-model-value') === $el.getAttribute('data-model-value')"
+                                    ::data-selected="selectedCard?.getAttribute('data-model-value') === $el.getAttribute(
+                                        'data-model-value')"
                                     x-show="searchString === '' || $el.getAttribute('data-model-label').toLowerCase().includes(searchString.toLowerCase())"
                                 >
                                     <div class="w-full">
                                         <div class="mb-6 flex justify-between gap-1.5">
-                                            <figure class="inline-grid size-10 shrink-0 place-content-center rounded-full bg-heading-foreground/5">
+                                            <figure
+                                                class="inline-grid size-10 shrink-0 place-content-center rounded-full bg-heading-foreground/5"
+                                            >
                                                 <x-tabler-brand-openai
                                                     class="size-6"
                                                     stroke-width="1.5"
@@ -203,7 +206,7 @@
                             x-ref="modelsSelectElement"
                             x-model="selectedModelValue"
                         >
-                            <option value="">{{ __('Select Model') }}</option>
+                            <option value="">{{ __('Default Model') }}</option>
                             @foreach ($fullModels as $model)
                                 <option
                                     value="{{ $model?->value }}"

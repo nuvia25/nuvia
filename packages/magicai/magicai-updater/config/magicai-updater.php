@@ -1,6 +1,6 @@
 <?php
 
-$path = env('MAGICAI_USER_TYPE', '') === 'tester' ? 'update-test/' : 'updater-v2/';
+$path = env('MAGICAI_USER_TYPE', '') === 'tester' ? 'update-test/' : 'updater-v3/';
 
 return [
     'base_url'             => 'https://api.liquid-themes.com/magicai/' . $path,

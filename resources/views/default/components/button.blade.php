@@ -1,6 +1,6 @@
 @php
     $base_class =
-        'lqd-btn group inline-flex items-center justify-center gap-1.5 text-xs font-medium rounded-full transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/5 disabled:bg-foreground/10 disabled:text-foreground/35 disabled:pointer-events-none';
+        'lqd-btn group inline-flex items-center justify-center gap-1.5 text-xs font-medium rounded-button transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/5 disabled:bg-foreground/10 disabled:text-foreground/35 disabled:pointer-events-none';
 
     $variations = [
         'variant' => [
@@ -8,7 +8,7 @@
             'primary' =>
                 'lqd-btn-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-primary/10 focus-visible:bg-primary/90 focus-visible:shadow-primary/10',
             'secondary' => 'lqd-btn-secondary bg-secondary text-secondary-foreground',
-            'outline' => 'lqd-btn-outline outline outline-input-border -outline-offset-1 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-secondary',
+            'outline' => 'lqd-btn-outline outline outline-button-border -outline-offset-1 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-secondary',
             'danger' => 'lqd-btn-danger bg-red-500 text-white',
             'success' => 'lqd-btn-success bg-emerald-500 text-white hover:bg-emerald-400 focus-visible:bg-emerald-400',
             'ghost' => 'lqd-btn-ghost bg-transparent text-foreground hover:bg-foreground/10 focus-visible:bg-foreground/10',

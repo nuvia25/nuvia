@@ -58,6 +58,7 @@ enum Introduction: string implements Contracts\WithStringBackedEnum
     case ADMIN_MARKETPLACE = 'marketplace';
     case ADMIN_THEMES = 'themes';
     case ADMIN_USER_MANAGEMENT = 'user_management';
+    case MIGRATION = 'migration';
     case ADMIN_ANNOUNCEMENTS = 'announcements';
     case ADMIN_GOOGLE_ADSENSE = 'site_promo';
     case ADMIN_SUPPORT_REQUEST = 'support_requests';
@@ -135,6 +136,7 @@ enum Introduction: string implements Contracts\WithStringBackedEnum
             self::ADMIN_MARKETPLACE  	                  => __('Admin Marketplace'),
             self::ADMIN_THEMES  	  	                    => __('Admin Themes'),
             self::ADMIN_USER_MANAGEMENT                 => __('Admin User Management'),
+            self::MIGRATION                             => __('Migration'),
             self::ADMIN_ANNOUNCEMENTS  	                => __('Admin Announcements'),
             self::ADMIN_GOOGLE_ADSENSE                  => __('Admin Google Adsense'),
             self::ADMIN_SUPPORT_REQUEST                 => __('Admin Suport Request'),

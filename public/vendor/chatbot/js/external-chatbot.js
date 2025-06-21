@@ -214,6 +214,10 @@
             visibility: hidden;
         }
 
+        html[dir=rtl] #lqd-ext-chatbot-wrap[data-pos-x=left] {
+            align-items: end;
+        }
+
         #lqd-ext-chatbot-wrap[data-pos-x=right] {
             left: auto;
             right: var(--lqd-ext-chat-offset-x, 30px);
@@ -227,6 +231,10 @@
         #lqd-ext-chatbot-wrap[data-pos-x=right] #lqd-ext-chatbot-welcome-bubble {
             left: auto;
             right: 0;
+        }
+
+		html[dir=rtl] #lqd-ext-chatbot-wrap[data-pos-x=right] {
+            align-items: start;
         }
 
         #lqd-ext-chatbot-wrap[data-pos-y=top] {

@@ -36,9 +36,9 @@
                 :class="{ 'lqd-is-active': !$store.mobileNav.templatesCollapse }"
             >
                 <span
-                    class="relative mb-1 inline-flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full before:absolute before:left-0 before:top-0 before:h-full before:w-full before:animate-spin-grow before:rounded-full before:bg-gradient-to-r before:from-[#8d65e9] before:via-[#5391e4] before:to-[#6bcd94]"
+                    class="relative mb-1 inline-flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full before:absolute before:left-0 before:top-0 before:h-full before:w-full before:animate-spin-grow before:rounded-full before:bg-gradient-to-r before:from-gradient-from before:via-gradient-via before:to-gradient-to"
                 >
-                    <x-tabler-plus class="size-5 relative rotate-0 transition-transform duration-300 group-[.lqd-is-active]:rotate-[135deg]" />
+                    <x-tabler-plus class="relative size-5 rotate-0 transition-transform duration-300 group-[.lqd-is-active]:rotate-[135deg]" />
                 </span>
             </button>
         </li>
@@ -55,13 +55,13 @@
             <li class="relative">
                 <a
                     class="flex items-center gap-2 border-b border-l-0 border-r-0 border-t-0 border-solid border-[--tblr-border-color] p-3 py-2 text-inherit"
-                    @if (($aiWriter->type == 'text' || $aiWriter->type == 'code') && $aiWriter->slug != 'ai_webchat') href="{{  (route('dashboard.user.openai.generator.workbook', $aiWriter->slug)) }}"
+                    @if (($aiWriter->type == 'text' || $aiWriter->type == 'code') && $aiWriter->slug != 'ai_webchat') href="{{ route('dashboard.user.openai.generator.workbook', $aiWriter->slug) }}"
 					@elseif ($aiWriter->slug == 'ai_webchat' && \Illuminate\Support\Facades\Route::has('dashboard.user.openai.webchat.workbook'))
            	 		href="{{ route('dashboard.user.openai.webchat.workbook') }}"
-					@else href="{{  (route('dashboard.user.openai.generator', $aiWriter->slug)) }}" @endif
+					@else href="{{ route('dashboard.user.openai.generator', $aiWriter->slug) }}" @endif
                 >
                     <span
-                        class="size-9 [&_svg]:size-5 relative inline-flex items-center justify-center rounded-full transition-all duration-300"
+                        class="relative inline-flex size-9 items-center justify-center rounded-full transition-all duration-300 [&_svg]:size-5"
                         style="background: {{ $aiWriter->color }}"
                     >
                         <span class="inline-block transition-all duration-300">

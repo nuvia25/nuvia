@@ -88,6 +88,16 @@ class IyzicoService
             $plan->frequency !== FrequencyEnum::LIFETIME_YEARLY->value;
     }
 
+    public static function getPlansPriceIdsForMigration(): null
+    {
+        return null;
+    }
+
+    public static function getUsersCustomerIdsForMigration(Subscriptions $subscription): null
+    {
+        return null;
+    }
+
     public static function saveProduct($plan)
     {
         $gateway = Gateways::where('code', self::$GATEWAY_CODE)->where('is_active', 1)->first() ?? abort(404);

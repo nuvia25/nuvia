@@ -1,1 +1,3 @@
-portal
+*
+!public/
+!.gitignore

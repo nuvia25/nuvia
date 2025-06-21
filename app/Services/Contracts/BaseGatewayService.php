@@ -4,12 +4,17 @@ namespace App\Services\Contracts;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Laravel\Cashier\Subscription as Subscriptions;
 
 interface BaseGatewayService
 {
     public static function saveAllProducts();
 
     public static function saveProduct($plan);
+
+    public static function getPlansPriceIdsForMigration();
+
+    public static function getUsersCustomerIdsForMigration(Subscriptions $subscription);
 
     public static function subscribe($plan);
 

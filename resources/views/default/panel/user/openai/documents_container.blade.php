@@ -1,13 +1,13 @@
 @php
     //Replicating table styles from table component
-    $base_class = 'rounded-xl transition-colors';
+    $base_class = 'transition-colors';
 
     $variations = [
         'variant' => [
-            'solid' => 'rounded-xl bg-table-background pt-1 group-[&[data-view-mode=grid]]:bg-transparent',
-            'outline' => 'rounded-xl border border-table-border pt-1 group-[&[data-view-mode=grid]]:border-0',
-            'shadow' => ' rounded-xl shadow-table bg-table-background pt-1 group-[&[data-view-mode=grid]]:shadow-none group-[&[data-view-mode=grid]]:bg-transparent',
-            'outline-shadow' => 'rounded-xl border border-table-border pt-1 shadow-table bg-table-background',
+            'solid' => 'rounded-card bg-card-background pt-1 group-[&[data-view-mode=grid]]:bg-transparent',
+            'outline' => 'rounded-card border border-card-border pt-1 group-[&[data-view-mode=grid]]:border-0',
+            'shadow' => ' rounded-card shadow-card bg-card-background pt-1 group-[&[data-view-mode=grid]]:shadow-none group-[&[data-view-mode=grid]]:bg-transparent',
+            'outline-shadow' => 'rounded-card border border-card-border pt-1 shadow-card bg-card-background',
             'plain' => '',
         ],
     ];

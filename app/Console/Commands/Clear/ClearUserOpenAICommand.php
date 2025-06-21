@@ -31,6 +31,7 @@ class ClearUserOpenAICommand extends Command
 
         UserOpenai::query()
             ->whereNotIn('id', $idsToRetain)
+            ->where('openai_id', '!=', 36)
             ->orderByDesc('id')
             ->take(PHP_INT_MAX)
             ->delete();

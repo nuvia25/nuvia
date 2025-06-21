@@ -1,3 +1,10 @@
+@layer base {
+
+	.lqd-input {
+		border-radius: calc(var(--input-rounded) * var(--input-rounded-multiplier, 1));
+	}
+}
+
 @keyframes submit {
 	0% {
 		opacity: 0;
@@ -76,6 +83,50 @@ input::file-selector-button {
 	border: none;
 	padding: theme('size.1') theme('size.3');
 	margin-inline-end: theme('size.2');
+}
+
+.lqd-input {
+
+	&.ts-wrapper {
+
+		&.multi {
+
+			&.has-items {
+
+				.ts-control {
+					@apply flex flex-wrap gap-0.5 items-center p-0;
+
+					>div {
+						@apply bg-foreground/10 text-foreground rounded-full m-0 px-1.5 py-0.5;
+					}
+				}
+			}
+		}
+
+		&.plugin-remove_button {
+
+			.item {
+
+				.remove {
+					border-color: hsl(var(--foreground) / 15%) !important;
+					border-start-end-radius: 10px;
+					border-end-end-radius: 10px;
+				}
+			}
+		}
+
+		.ts-dropdown {
+			@apply bg-background border-border shadow-lg shadow-black/5 rounded-input;
+
+			.active {
+				@apply bg-primary/10 text-primary first:rounded-t-input last:rounded-b-input;
+			}
+		}
+	}
+
+	.ts-control {
+		@apply p-0 h-full border-none bg-transparent;
+	}
 }
 
 .lqd-input-checkbox-custom-wrap {

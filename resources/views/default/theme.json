@@ -11,8 +11,7 @@
 		},
 		"card": {
 			"variant": "outline",
-			"size": "md",
-			"roundness": "default"
+			"size": "md"
 		},
 		"table": {
 			"variant": "outline"
