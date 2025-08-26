@@ -1,0 +1,41 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.SSH_KEY }}
+
+      - name: Add known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy over SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PATH: ${{ secrets.SSH_PATH }}
+        run: |
+          ssh ${SSH_USER}@${SSH_HOST} << 'EOF'
+            set -e
+            cd ${SSH_PATH}
+            # Pull latest code
+            if [ -d .git ]; then git pull --rebase; else echo "Repo não inicializado no servidor"; fi
+            # Create .env if missing (expects to be managed server-side)
+            [ -f .env ] || cp .env.example .env
+            # Build and start production stack
+            make deploy
+          EOF

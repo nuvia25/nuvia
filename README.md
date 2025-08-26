@@ -1,6 +1,6 @@
-# MagicAI - Ambiente de Desenvolvimento com Docker
+# MagicAI - Ambiente de Desenvolvimento e Produção com Docker
 
-Este repositório contém uma aplicação Laravel 10. Este guia descreve como preparar e executar o ambiente de desenvolvimento usando Docker, Docker Compose e o Makefile fornecido.
+Este repositório contém uma aplicação Laravel 10. Este guia descreve como preparar e executar o ambiente de desenvolvimento e de produção usando Docker, Docker Compose e o Makefile fornecido.
 
 ## Requisitos
 - Docker (Engine + Compose Plugin)
@@ -29,10 +29,23 @@ A aplicação estará disponível em http://localhost (Nginx -> PHP-FPM). O MySQ
 
 ## Serviços (docker-compose.dev.yml)
 - app: Contém PHP-FPM 8.2, Composer, Node/NPM e Xdebug habilitável (target de desenvolvimento). Porta 9000 (FPM) e 5173 (Vite) expostas.
-- nginx: Servidor web Nginx servindo /public. Porta 80 exposta no host (APP_PORT pode customizar).
+- nginx: Servidor web Nginx servindo /public. Porta 80 exposta no host (APP_PORT pode customizar). Usa config em docker/nginx/dev.conf.
 - db: MySQL 8.0 com volume persistente. Use host db a partir da aplicação.
 - redis: Redis 7 (opcional). Use host redis.
 - mailpit: Captura e visualiza e-mails (http://localhost:8025 / SMTP 1025).
+
+## Produção (docker-compose.prod.yml)
+- app: Builda a imagem no target production (multistage). Não inclui Xdebug; Composer sem dev e assets buildados.
+- nginx: Faz proxy para PHP-FPM e serve HTTPS com certificados do Let's Encrypt. Usa docker/nginx/prod.conf. Expondo 80/443.
+- certbot: Contêiner que renova certificados automaticamente a cada 12h via webroot.
+- Banco de dados: externo (configure DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD no .env do servidor).
+
+Fluxo recomendado (primeiro deploy):
+1. Ajuste DNS do domínio para apontar para o servidor e crie .env no servidor com SERVER_NAME=seu.dominio.com e variáveis do DB externo.
+2. No servidor: make MODE=prod up (subirá nginx sem TLS e app). Em seguida solicite o certificado:
+   - make certbot-init MODE=prod domain=seu.dominio.com email=voce@dominio.com
+   - make MODE=prod restart
+3. Próximos deploys: make deploy (ou use o GitHub Actions).
 
 ## Makefile - Comandos úteis
 - make env-init: Copia .env.example para .env (se não existir) e lembra ajustes de Docker.
@@ -53,6 +66,15 @@ A aplicação estará disponível em http://localhost (Nginx -> PHP-FPM). O MySQ
 2. Rodar migrações/seeders: make migrate ou make seed
 3. Desenvolver assets: make npm-dev (com --host para permitir acesso externo)
 4. Rodar testes: make test
+
+## GitHub Actions - Deploy automático
+Crie os seguintes secrets no repositório:
+- SSH_HOST: host/IP do servidor
+- SSH_USER: usuário para SSH
+- SSH_KEY: chave privada (formato OpenSSH) com acesso ao servidor
+- SSH_PATH: caminho no servidor onde o repo está (ex: /var/www/nuvia)
+
+O workflow em .github/workflows/deploy.yml fará SSH, dará git pull e rodará make deploy (produção).
 
 ## Observações importantes
 - Variáveis de ambiente: O docker-compose fornece overrides para DB_HOST, REDIS_HOST e MAIL_HOST diretamente no serviço app. Isso normalmente tem precedência sobre .env dentro do container. Ainda assim, recomenda-se ajustar o seu .env conforme seção "Primeiros passos" para evitar confusão.
