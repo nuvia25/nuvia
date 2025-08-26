@@ -29,14 +29,43 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PATH: ${{ secrets.SSH_PATH }}
+          GIT_REPO: ${{ github.server_url }}/${{ github.repository }}.git
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          ssh ${SSH_USER}@${SSH_HOST} << 'EOF'
+          ssh ${SSH_USER}@${SSH_HOST} << EOF
             set -e
+            # Ensure target directory exists
+            mkdir -p ${SSH_PATH}
+            
+            # Bootstrap repository if missing
+            if [ ! -d "${SSH_PATH}/.git" ]; then
+              echo "Repo não inicializado no servidor. Clonando..."
+              # Prefer token if available to access private repos
+              if [ -n "${GITHUB_TOKEN}" ]; then
+                git clone "https://x-access-token:${GITHUB_TOKEN}@${GIT_REPO#https://}" "${SSH_PATH}"
+                (cd "${SSH_PATH}" && git remote set-url origin "https://${GIT_REPO#https://}") || true
+              else
+                git clone "${GIT_REPO}" "${SSH_PATH}"
+              fi
+            fi
+            
             cd ${SSH_PATH}
-            # Pull latest code
-            if [ -d .git ]; then git pull --rebase; else echo "Repo não inicializado no servidor"; fi
-            # Create .env if missing (expects to be managed server-side)
-            [ -f .env ] || cp .env.example .env
+            # Make git happy in CI/non-owner directories
+            git config --global --add safe.directory "${SSH_PATH}" || true
+            
+            # Update code to latest main
+            git fetch --all --prune
+            # If origin/main exists use it, otherwise fallback to rebase pull
+            if git rev-parse --verify origin/main >/dev/null 2>&1; then
+              git checkout -q main || true
+              git reset --hard origin/main
+            else
+              git pull --rebase || true
+            fi
+            
+            # Prepare environment file
+            [ -f .env ] || ( [ -f .env.example ] && cp .env.example .env ) || true
+            
             # Build and start production stack
             make deploy
           EOF
