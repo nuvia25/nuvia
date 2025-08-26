@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - main
+      - develop
 
 jobs:
   deploy:
@@ -32,6 +32,13 @@ jobs:
           GIT_REPO: ${{ github.server_url }}/${{ github.repository }}.git
           GITHUB_TOKEN: ${{ github.token }}
         run: |
+          # Validate required secrets and set default path when missing
+          : "${SSH_HOST:?Missing secret SSH_HOST}"
+          : "${SSH_USER:?Missing secret SSH_USER}"
+          if [ -z "${SSH_PATH}" ]; then
+            echo "Warning: SSH_PATH is empty. Falling back to /var/www/nuvia"
+            export SSH_PATH="/var/www/nuvia"
+          fi
           SSH_PATH="${SSH_PATH}" GIT_REPO="${GIT_REPO}" GITHUB_TOKEN="${GITHUB_TOKEN}" ssh ${SSH_USER}@${SSH_HOST} << 'EOF'
             set -e
             # Ensure target directory exists
