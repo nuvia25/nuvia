@@ -89,7 +89,18 @@ services:
       - "${APP_PORT:-80}:80"
     volumes:
       - ./:/var/www
-      - ./docker/nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/dev.conf.template:/etc/nginx/templates/dev.conf.template:ro
+    environment:
+      SERVER_NAME: ${SERVER_NAME:-localhost}
+    entrypoint: >
+      sh -c 'set -e; apk add --no-cache gettext >/dev/null 2>&1 || true;
+      SNAME="$$SERVER_NAME";
+      if printf %s "$$SNAME" | grep -Eq "://|,"; then echo "Erro: SERVER_NAME não deve conter protocolo (http/https) nem vírgulas. Use apenas hostnames separados por espaço." >&2; exit 1; fi;
+      SNAME=$$(printf %s "$$SNAME" | tr ",\n\t" "   " | xargs echo -n);
+      export SERVER_NAME="$$SNAME";
+      envsubst < /etc/nginx/templates/dev.conf.template > /etc/nginx/conf.d/default.conf;
+      if ! nginx -t; then echo "Nginx config inválida. Conteúdo da config:" >&2; cat /etc/nginx/conf.d/default.conf >&2; exit 1; fi;
+      exec nginx -g "daemon off;"'
     networks:
       - laravel-network
     depends_on:
