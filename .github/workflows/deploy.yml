@@ -1,114 +1,82 @@
-name: Deploy
+
+name: Production CI/CD
 
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - develop
+    branches: [ main ]
+  schedule:
+    # Daily at 04:00 UTC - runs SSL renewal job
+    - cron: '0 4 * * *'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: Production
+    if: github.event_name != 'schedule'
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
         with:
-          ssh-private-key: |
-            ${{ secrets.SSH_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
 
-      - name: Add known_hosts
+      - name: Deploy to production
         run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git && make deploy-prod"
 
-      - name: Deploy over SSH
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PATH: ${{ secrets.SSH_PATH }}
-          GIT_REPO: ${{ github.server_url }}/${{ github.repository }}.git
-          GITHUB_TOKEN: ${{ github.token }}
+      - name: Verify deployment
         run: |
-          # Validate required secrets and set default path when missing
-          : "${SSH_HOST:?Missing secret SSH_HOST}"
-          : "${SSH_USER:?Missing secret SSH_USER}"
-          if [ -z "${SSH_PATH}" ]; then
-            echo "Warning: SSH_PATH is empty. Falling back to /var/www/nuvia"
-            export SSH_PATH="/var/www/nuvia"
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && docker compose -f docker-compose.prod.yml ps"
+
+      - name: Test site connectivity
+        run: |
+          sleep 10
+          curl -f -k -m 10 https://${{ secrets.DOMAIN_NAME }} -o /dev/null && echo "✅ HTTPS OK" || \
+          curl -f -m 10 http://${{ secrets.DOMAIN_NAME }} -o /dev/null && echo "✅ HTTP OK" || \
+          echo "⚠️ Site não responde"
+
+      - name: Display SSL status
+        run: |
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && make ssl-status || echo 'SSL não configurado'"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_rsa ~/.ssh/id_ed25519
+
+  renew-ssl:
+    runs-on: ubuntu-latest
+    environment: Production
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+      - name: Run SSL renewal on server (Cloudflare DNS)
+        run: |
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && make ssl-renew"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_rsa ~/.ssh/id_ed25519
+
+  notify:
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    if: always() && github.event_name != 'schedule'
+    steps:
+      - name: Notify deployment status
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "✅ Deploy realizado com sucesso!"
+            echo "🌐 HTTP:  http://${{ secrets.DOMAIN_NAME }}"
+            echo "🔒 HTTPS: https://${{ secrets.DOMAIN_NAME }}"
+          else
+            echo "❌ Falha no deploy"
           fi
-          SSH_PATH="${SSH_PATH}" GIT_REPO="${GIT_REPO}" GITHUB_TOKEN="${GITHUB_TOKEN}" ssh ${SSH_USER}@${SSH_HOST} << 'EOF'
-            set -e
-            # Ensure target directory exists
-            mkdir -p "$SSH_PATH"
-            
-            # Bootstrap repository if missing
-            if [ ! -d "$SSH_PATH/.git" ]; then
-              echo "Repo não inicializado no servidor. Clonando..."
-              # Prefer token if available to access private repos
-              if [ -n "$GITHUB_TOKEN" ]; then
-                git clone "https://x-access-token:$GITHUB_TOKEN@${GIT_REPO#https://}" "$SSH_PATH"
-                (cd "$SSH_PATH" && git remote set-url origin "https://${GIT_REPO#https://}") || true
-              else
-                git clone "$GIT_REPO" "$SSH_PATH"
-              fi
-            fi
-            
-            cd "$SSH_PATH"
-            # Make git happy in CI/non-owner directories
-            git config --global --add safe.directory "$SSH_PATH" || true
-            
-            # Update code to latest main
-            git fetch --all --prune
-            # If origin/main exists use it, otherwise fallback to rebase pull
-            if git rev-parse --verify origin/main >/dev/null 2>&1; then
-              git checkout -q main || true
-              git reset --hard origin/main
-            else
-              git pull --rebase || true
-            fi
-            
-            # Prepare environment file
-            [ -f .env ] || ( [ -f .env.example ] && cp .env.example .env ) || true
-            
-            # Ensure Docker (Engine + Compose) is installed
-            set -e
-            if ! command -v curl >/dev/null 2>&1; then
-              if command -v apt-get >/dev/null 2>&1; then
-                sudo apt-get update -y && sudo apt-get install -y curl ca-certificates gnupg lsb-release || true
-              elif command -v yum >/dev/null 2>&1; then
-                sudo yum install -y curl ca-certificates || true
-              fi
-            fi
-            if ! command -v docker >/dev/null 2>&1; then
-              echo "Docker não encontrado. Instalando via get.docker.com..."
-              curl -fsSL https://get.docker.com | sh
-            fi
-            # Start docker service if stopped
-            (sudo systemctl enable --now docker || sudo service docker start || true) >/dev/null 2>&1
-            
-            # Determine compose command (prefer v2 plugin)
-            if docker compose version >/dev/null 2>&1; then
-              COMPOSE_CMD="sudo docker compose"
-            elif command -v docker-compose >/dev/null 2>&1; then
-              COMPOSE_CMD="sudo docker-compose"
-            else
-              # Try to install compose v2 plugin on Debian/Ubuntu
-              if command -v apt-get >/dev/null 2>&1; then
-                sudo apt-get update -y && sudo apt-get install -y docker-compose-plugin || true
-              fi
-              if docker compose version >/dev/null 2>&1; then
-                COMPOSE_CMD="sudo docker compose"
-              elif command -v docker-compose >/dev/null 2>&1; then
-                COMPOSE_CMD="sudo docker-compose"
-              else
-                echo "Erro: Docker Compose não está disponível mesmo após tentativa de instalação." >&2
-                exit 1
-              fi
-            fi
-            
-            # Build and start production stack
-            $COMPOSE_CMD -f docker-compose.prod.yml up -d --build
-          EOF

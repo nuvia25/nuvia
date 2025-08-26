@@ -151,5 +151,18 @@ deploy:
 	@$(COMPOSE_BIN) -f docker-compose.prod.yml pull || true
 	@$(COMPOSE_BIN) -f docker-compose.prod.yml up -d --build
 
+.PHONY: deploy-prod
+deploy-prod:
+	@$(COMPOSE_BIN) -f docker-compose.prod.yml pull || true
+	@$(COMPOSE_BIN) -f docker-compose.prod.yml up -d --build
+
+.PHONY: ssl-status
+ssl-status:
+	@$(COMPOSE_BIN) -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates || echo "Nenhum certificado encontrado"
+
+.PHONY: ssl-renew
+ssl-renew:
+	@$(COMPOSE_BIN) -f docker-compose.prod.yml run --rm --entrypoint certbot certbot renew --webroot -w /var/www/certbot --non-interactive --agree-tos || true
+
 # Comando padrão
 .DEFAULT_GOAL := help
