@@ -66,6 +66,10 @@ jobs:
             # Prepare environment file
             [ -f .env ] || ( [ -f .env.example ] && cp .env.example .env ) || true
             
-            # Build and start production stack
-            make deploy
+            # Build and start production stack (fallback without make)
+            if command -v make >/dev/null 2>&1; then
+              make deploy
+            else
+              docker compose -f docker-compose.prod.yml up -d --build
+            fi
           EOF
