@@ -166,3 +166,15 @@ ssl-renew:
 
 # Comando padrão
 .DEFAULT_GOAL := help
+
+# Atalho: prepara ambiente de desenvolvimento rapidamente
+.PHONY: dev-quickstart
+dev-quickstart:
+	@$(MAKE) env-init
+	@$(MAKE) build
+	@$(MAKE) up
+	@$(MAKE) permissions || true
+	@$(MAKE) key-generate || true
+	@$(MAKE) storage-link || true
+	@$(MAKE) npm-install || true
+	@echo "Ambiente de desenvolvimento pronto. Acesse http://localhost"

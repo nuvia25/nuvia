@@ -7,45 +7,56 @@ Este repositório contém uma aplicação Laravel 10. Este guia descreve como pr
 - Make (GNU Make)
 
 ## Primeiros passos
-1. Copie o arquivo de ambiente (se ainda não existir):
-   - make env-init
-2. Ajuste o .env para uso com Docker (recomendado):
-   - DB_HOST=db
-   - REDIS_HOST=redis (se for usar Redis)
-   - MAIL_HOST=mailpit
-   - Opcional: APP_URL=http://localhost
-3. Construa as imagens e suba os containers:
-   - make build
-   - make up
-4. Gere a chave da aplicação (se necessário) e crie o link do storage:
-   - make key-generate
-   - make storage-link
-5. Instale dependências do PHP e do Node e suba o Vite (assets):
-   - make composer-install
-   - make npm-install
-   - make npm-dev  # Vite em http://localhost:5173
+- Modo fácil (recomendado):
+  - make dev-quickstart
+  - A aplicação sobe em http://localhost
+
+- Passo a passo manual:
+  1. Copie o arquivo de ambiente (se ainda não existir):
+     - make env-init
+  2. Ajuste o .env para uso com Docker (recomendado):
+     - DB_HOST=db
+     - REDIS_HOST=redis (se for usar Redis)
+     - MAIL_HOST=mailpit
+     - Opcional: APP_URL=http://localhost
+  3. Construa as imagens e suba os containers:
+     - make build
+     - make up
+  4. Gere a chave da aplicação (se necessário) e crie o link do storage:
+     - make key-generate
+     - make storage-link
+  5. Instale dependências do PHP e do Node e suba o Vite (assets):
+     - make composer-install
+     - make npm-install
+     - make npm-dev  # Vite em http://localhost:5173
 
 A aplicação estará disponível em http://localhost (Nginx -> PHP-FPM). O MySQL expõe a porta configurada em DB_PORT (padrão 3306). Mailpit em http://localhost:8025 e SMTP em 1025.
 
 ## Serviços (docker-compose.dev.yml)
 - app: Contém PHP-FPM 8.2, Composer, Node/NPM e Xdebug habilitável (target de desenvolvimento). Porta 9000 (FPM) e 5173 (Vite) expostas.
-- nginx: Servidor web Nginx servindo /public. Porta 80 exposta no host (APP_PORT pode customizar). Usa config em docker/nginx/dev.conf.
+- nginx: Servidor web Nginx servindo /public. Porta 80 exposta no host (APP_PORT pode customizar). Usa template docker/nginx/dev.conf.template (renderizado via envsubst), aceitando SERVER_NAME do ambiente.
 - db: MySQL 8.0 com volume persistente. Use host db a partir da aplicação.
 - redis: Redis 7 (opcional). Use host redis.
 - mailpit: Captura e visualiza e-mails (http://localhost:8025 / SMTP 1025).
 
 ## Produção (docker-compose.prod.yml)
 - app: Builda a imagem no target production (multistage). Não inclui Xdebug; Composer sem dev e assets buildados.
-- nginx: Faz proxy para PHP-FPM e serve HTTPS com certificados do Let's Encrypt. Usa docker/nginx/prod.conf. Expondo 80/443.
-- certbot: Contêiner que renova certificados automaticamente a cada 12h via webroot.
+- nginx: Servidor Nginx HTTP‑only (porta 80) com configuração estática. Monta o arquivo docker/nginx/prod.http.conf.template diretamente em /etc/nginx/conf.d/default.conf (sem templating/envsubst), usando server_name _.
 - Banco de dados: externo (configure DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD no .env do servidor).
 
-Fluxo recomendado (primeiro deploy):
-1. Ajuste DNS do domínio para apontar para o servidor e crie .env no servidor com SERVER_NAME=seu.dominio.com e variáveis do DB externo.
-2. No servidor: make MODE=prod up (subirá nginx sem TLS e app). Em seguida solicite o certificado:
-   - make certbot-init MODE=prod domain=seu.dominio.com email=voce@dominio.com
-   - make MODE=prod restart
-3. Próximos deploys: make deploy (ou use o GitHub Actions).
+### Fluxo recomendado (deploy)
+1. Ajuste variáveis do banco no servidor (DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD) conforme sua infraestrutura.
+2. No servidor, construa e suba a stack (HTTP‑only):
+   - docker compose -f docker-compose.prod.yml up -d --build
+
+### Próximos deploys
+- Via Make: `make deploy` ou `make deploy-prod`.
+- Via GitHub Actions: workflow `.github/workflows/deploy.yml`.
+
+### Verificação pós-deploy
+- docker compose -f docker-compose.prod.yml ps
+- docker compose -f docker-compose.prod.yml logs -f nginx
+- docker compose -f docker-compose.prod.yml logs -f app
 
 ## Makefile - Comandos úteis
 - make env-init: Copia .env.example para .env (se não existir) e lembra ajustes de Docker.
@@ -71,10 +82,15 @@ Fluxo recomendado (primeiro deploy):
 Crie os seguintes secrets no repositório:
 - SSH_HOST: host/IP do servidor
 - SSH_USER: usuário para SSH
-- SSH_KEY: chave privada (formato OpenSSH) com acesso ao servidor
-- SSH_PATH: caminho no servidor onde o repo está (ex: /var/www/nuvia)
+- SSH_PRIVATE_KEY: chave privada (formato OpenSSH) com acesso ao servidor
+- KNOWN_HOSTS: saída de `ssh-keyscan -H seu-servidor` para verificação de host
+- APP_PATH: caminho no servidor onde o repo está (ex: /var/www/nuvia)
+- GH_TOKEN: token com permissão de leitura do repositório (para git pull via HTTPS)
+- SERVER_NAME: opcional. Hostname público (sem http/https). Se vazio, o workflow testa via IP (SSH_HOST).
 
-O workflow em .github/workflows/deploy.yml fará SSH, dará git pull e rodará make deploy (produção).
+O workflow em .github/workflows/deploy.yml fará SSH, dará git pull e rodará `make deploy-prod`. O pipeline testa conectividade HTTP.
+
+Obs.: Em produção, o Nginx roda apenas em HTTP (porta 80). Não há configuração de HTTPS/Certbot neste stack.
 
 ## Observações importantes
 - Variáveis de ambiente: O docker-compose fornece overrides para DB_HOST, REDIS_HOST e MAIL_HOST diretamente no serviço app. Isso normalmente tem precedência sobre .env dentro do container. Ainda assim, recomenda-se ajustar o seu .env conforme seção "Primeiros passos" para evitar confusão.

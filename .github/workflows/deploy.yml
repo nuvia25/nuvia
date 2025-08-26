@@ -2,18 +2,15 @@
 name: Production CI/CD
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
-  schedule:
-    # Daily at 04:00 UTC - runs SSL renewal job
-    - cron: '0 4 * * *'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: Production
-    if: github.event_name != 'schedule'
+    env:
+      SERVER_NAME: ${{ secrets.SERVER_NAME }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,57 +23,21 @@ jobs:
 
       - name: Deploy to production
         run: |
-          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git && make deploy-prod"
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git && SERVER_NAME='${{ secrets.SERVER_NAME }}' make deploy-prod"
 
       - name: Verify deployment
         run: |
           ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && docker compose -f docker-compose.prod.yml ps"
 
-      - name: Test site connectivity
+      - name: Test site connectivity (HTTP only)
         run: |
           sleep 10
-          curl -f -k -m 10 https://${{ secrets.DOMAIN_NAME }} -o /dev/null && echo "✅ HTTPS OK" || \
-          curl -f -m 10 http://${{ secrets.DOMAIN_NAME }} -o /dev/null && echo "✅ HTTP OK" || \
-          echo "⚠️ Site não responde"
+          URL='${{ secrets.SERVER_NAME }}'
+          if [ -z "$URL" ]; then URL='${{ secrets.SSH_HOST }}'; fi
+          echo "Testando HTTP em: http://$URL"
+          curl -f -m 20 "http://$URL" -o /dev/null && echo "✅ HTTP OK" || echo "⚠️ Site não responde via HTTP"
 
-      - name: Display SSL status
-        run: |
-          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && make ssl-status || echo 'SSL não configurado'"
 
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/id_rsa ~/.ssh/id_ed25519
-
-  renew-ssl:
-    runs-on: ubuntu-latest
-    environment: Production
-    if: github.event_name == 'schedule'
-    steps:
-      - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: ${{ secrets.KNOWN_HOSTS }}
-
-      - name: Run SSL renewal on server (Cloudflare DNS)
-        run: |
-          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && make ssl-renew"
-
-      - name: Cleanup SSH key
-        if: always()
-        run: rm -f ~/.ssh/id_rsa ~/.ssh/id_ed25519
-
-  notify:
-    needs: [deploy]
-    runs-on: ubuntu-latest
-    if: always() && github.event_name != 'schedule'
-    steps:
-      - name: Notify deployment status
-        run: |
-          if [ "${{ needs.deploy.result }}" == "success" ]; then
-            echo "✅ Deploy realizado com sucesso!"
-            echo "🌐 HTTP:  http://${{ secrets.DOMAIN_NAME }}"
-            echo "🔒 HTTPS: https://${{ secrets.DOMAIN_NAME }}"
-          else
-            echo "❌ Falha no deploy"
-          fi

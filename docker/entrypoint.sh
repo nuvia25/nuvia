@@ -1,14 +1,16 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
-if [ ! -d "/var/www/vendor" ] || [ -z "$(ls -A /var/www/vendor)" ]; then
-    composer install --no-interaction --no-scripts --prefer-dist
+# Ensure LF line endings and executable are handled by Dockerfile.
 
-    php artisan config:clear
-    php artisan route:clear
-    php artisan view:clear
+if [ ! -d "/var/www/vendor" ] || [ -z "$(ls -A /var/www/vendor 2>/dev/null)" ]; then
+    composer install --no-interaction --no-scripts --prefer-dist
+    php artisan config:clear || true
+    php artisan route:clear || true
+    php artisan view:clear || true
 fi
 
-php artisan migrate
+php artisan migrate --force || true
 
-exec php-fpm
+# Run php-fpm in foreground
+exec php-fpm -F

@@ -33,7 +33,11 @@ COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY . /var/www
 
-RUN chmod +x /usr/local/bin/entrypoint.sh && \
+# Normalize script line endings, ensure executable, and validate shebang/exec at build time
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh && \
+    chmod +x /usr/local/bin/entrypoint.sh && \
+    head -n1 /usr/local/bin/entrypoint.sh | grep -q "^#!\/bin\/sh" && \
+    test -x /usr/local/bin/entrypoint.sh && \
     chown -R $user:$user /var/www && \
     chmod -R 755 /var/www/storage /var/www/bootstrap/cache && \
     mkdir -p /var/log/php-fpm && \
