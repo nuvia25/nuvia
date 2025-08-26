@@ -87,35 +87,33 @@
                     </div>
                 </div>
             @endif
-				<div class="col-md-12">
-					<div class="mb-3">
-						<x-card
-							class="w-full"
-							size="sm"
-						>
-							<x-forms.input
-								id="openai_file_search"
-								type="checkbox"
-								switcher
-								type="checkbox"
-								:checked="setting('openai_file_search', 0) == 1"
-								label="{{ __('Enable OpenAI File Search API for (AI File Chat)') }}"
-							>
-								<x-badge
-									class="ms-2 text-2xs"
-									variant="secondary"
-								>
-									@lang('New')
-								</x-badge>
-							</x-forms.input>
-						</x-card>
-					</div>
-				</div>
+            <div class="col-md-12">
+                <div class="mb-3">
+                    <x-card
+                        class="w-full"
+                        size="sm"
+                    >
+                        <x-forms.input
+                            id="openai_file_search"
+                            type="checkbox"
+                            switcher
+                            type="checkbox"
+                            :checked="setting('openai_file_search', 0) == 1"
+                            label="{{ __('Enable OpenAI File Search API for (AI File Chat)') }}"
+                        >
+                            <x-badge
+                                class="ms-2 text-2xs"
+                                variant="secondary"
+                            >
+                                @lang('New')
+                            </x-badge>
+                        </x-forms.input>
+                    </x-card>
+                </div>
+            </div>
 
-
-				@includeIf('openai-realtime-chat::setting')
-				@include('panel.admin.settings.particles.gpt-image-1')
-
+            @includeIf('openai-realtime-chat::setting')
+            @include('panel.admin.settings.particles.gpt-image-1')
 
             <div class="col-md-12">
                 <div class="mb-3">
@@ -136,28 +134,35 @@
                                 />
                             </div>
                         </div>
-						@php
-							$openaiImageDrivers = \App\Domains\Entity\EntityStats::image()
-								->filterByEngine(\App\Domains\Engine\Enums\EngineEnum::OPEN_AI)
-								->list();
+                        @php
+                            $openaiImageDrivers = \App\Domains\Entity\EntityStats::image()->filterByEngine(\App\Domains\Engine\Enums\EngineEnum::OPEN_AI)->list();
 
-							$openaiImageDrivers = $openaiImageDrivers->reject(fn ($value) => $value instanceof \App\Domains\Entity\Drivers\OpenAI\GptImage1Driver);
+                            $openaiImageDrivers = $openaiImageDrivers->reject(fn($value) => $value instanceof \App\Domains\Entity\Drivers\OpenAI\GptImage1Driver);
 
-							$current_dall_e_model = EntityEnum::fromSlug($settings_two->dalle ?? EntityEnum::DALL_E_2->slug())->slug();
-						@endphp
-						<x-model-select-list-with-change-alert :listLabel="'OpenAI Default Dall-E Model'" :listId="'dalle_default_model'" currentModel="{{ $current_dall_e_model }}" :drivers="$openaiImageDrivers" />
+                            $current_dall_e_model = EntityEnum::fromSlug($settings_two->dalle ?? EntityEnum::DALL_E_2->slug())->slug();
+                        @endphp
+                        <x-model-select-list-with-change-alert
+                            :listLabel="'OpenAI Default Dall-E Model'"
+                            :listId="'dalle_default_model'"
+                            currentModel="{{ $current_dall_e_model }}"
+                            :drivers="$openaiImageDrivers"
+                        />
                     </x-card>
                 </div>
             </div>
             <div class="col-md-12">
                 @php
-					$openaiWordDrivers = \App\Domains\Entity\EntityStats::word()
-						->filterByEngine(\App\Domains\Engine\Enums\EngineEnum::OPEN_AI)
-						->list();
+                    $openaiWordDrivers = \App\Domains\Entity\EntityStats::word()->filterByEngine(\App\Domains\Engine\Enums\EngineEnum::OPEN_AI)->list();
 
-					$current_model = EntityEnum::fromSlug($setting->openai_default_model ?? EntityEnum::GPT_4_O->slug())->slug();
+                    $current_model = EntityEnum::fromSlug($setting->openai_default_model ?? EntityEnum::GPT_4_O->slug())->slug();
                 @endphp
-				<x-model-select-list-with-change-alert :listLabel="'OpenAI Default Word Model'" :listId="'openai_default_model'" currentModel="{{ $current_model }}" :fineModelOptions="true" :drivers="$openaiWordDrivers" />
+                <x-model-select-list-with-change-alert
+                    :listLabel="'OpenAI Default Word Model'"
+                    :listId="'openai_default_model'"
+                    currentModel="{{ $current_model }}"
+                    :fineModelOptions="true"
+                    :drivers="$openaiWordDrivers"
+                />
             </div>
             <div class="col-md-6">
                 <div class="mb-3">
@@ -413,7 +418,7 @@
                     type="button"
                 >
                     <svg
-                        class="mr-2"
+                        class="me-2"
                         xmlns="http://www.w3.org/2000/svg"
                         width="18"
                         height="18"

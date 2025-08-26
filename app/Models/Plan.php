@@ -23,20 +23,7 @@ class Plan extends Model
 {
     use HasFactory;
 
-    private ?array $mergedAiFeatures = null;
-
-    private function getMergedAiFeatures(): array
-    {
-        if ($this->mergedAiFeatures === null) {
-            $this->mergedAiFeatures = array_merge(
-                (array) $this->open_ai_items,
-                (array) $this->plan_ai_tools,
-                (array) $this->plan_features,
-            );
-        }
-
-        return $this->mergedAiFeatures;
-    }
+    protected $table = 'plans';
 
     protected $fillable = [
         'active',
@@ -54,6 +41,7 @@ class Plan extends Model
         'type',
         'user_api',
         'is_team_plan',
+        'price_tax_included',
         'plan_allow_seat',
         'trial_days',
         'open_ai_items',
@@ -66,7 +54,24 @@ class Plan extends Model
         'hidden',
         'max_subscribe',
         'last_date',
+        'created_at',
+        'updated_at',
     ];
+
+    private ?array $mergedAiFeatures = null;
+
+    private function getMergedAiFeatures(): array
+    {
+        if ($this->mergedAiFeatures === null) {
+            $this->mergedAiFeatures = array_merge(
+                (array) $this->open_ai_items,
+                (array) $this->plan_ai_tools,
+                (array) $this->plan_features,
+            );
+        }
+
+        return $this->mergedAiFeatures;
+    }
 
     protected $attributes = [
         'currency'             => 'USD',
@@ -339,6 +344,7 @@ class Plan extends Model
             'plan_type'                     => PlanType::ALL->value,
             'features'                      => [],
             'is_team_plan'                  => false,
+            'price_tax_included'            => true,
             'user_api'                      => false,
             'plan_allow_seat'               => 0,
             'trial_days'                    => 0,

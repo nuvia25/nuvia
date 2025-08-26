@@ -138,7 +138,7 @@
                         @foreach ($filter_buttons as $button)
                             <x-button
                                 @class([
-                                    'lqd-filter-btn inline-flex rounded-full px-2.5 py-0.5 transition-colors hover:bg-foreground/5 [&.active]:bg-foreground/5 hover:translate-y-0 text-2xs leading-tight',
+                                    'lqd-filter-btn inline-flex px-2.5 py-0.5 transition-colors hover:bg-foreground/5 [&.active]:bg-foreground/5 hover:translate-y-0 text-2xs leading-tight',
                                     // 'active' => $filter == $button['filter'],
                                 ])
                                 tag="button"

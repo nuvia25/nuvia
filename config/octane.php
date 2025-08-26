@@ -105,8 +105,8 @@ return [
         OperationTerminated::class => [
             FlushOnce::class,
             FlushTemporaryContainerInstances::class,
-            // DisconnectFromDatabases::class,
-            // CollectGarbage::class,
+            DisconnectFromDatabases::class,
+            CollectGarbage::class,
         ],
 
         WorkerErrorOccurred::class => [
@@ -135,7 +135,7 @@ return [
     ],
 
     'flush' => [
-        //
+
     ],
 
     /*
@@ -206,7 +206,7 @@ return [
     |
     */
 
-    'garbage' => 50,
+    'garbage' => 30,
 
     /*
     |--------------------------------------------------------------------------

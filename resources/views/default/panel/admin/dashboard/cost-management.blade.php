@@ -22,26 +22,36 @@
 
     <x-card
         class="mt-4"
-        class:body="flex items-center justify-between flex-nowrap py-5"
+        class:body="flex items-center justify-between flex-nowrap py-4"
         size="sm"
     >
         <div class="flex grow flex-col items-start gap-px">
-            <p class="mb-0 text-base font-medium text-heading-foreground">@lang('Cost Per User')</p>
-            <p class="mb-0 text-base font-semibold text-heading-foreground/50 sm:text-[22px]">
-                {{ currency()->symbol . cache('cost_per_user', 0.0) }}</p>
-            <p class="mb-0 text-base text-heading-foreground/50">@lang('Average')</p>
+            <p class="mb-0 text-sm font-medium text-heading-foreground">
+                @lang('Cost Per User')
+            </p>
+            <p class="mb-0 text-base font-semibold opacity-70 sm:text-[22px]">
+                {{ currency()->symbol . cache('cost_per_user', 0.0) }}
+            </p>
+            <p class="mb-0 text-2xs font-medium opacity-70">
+                @lang('Average')
+            </p>
         </div>
         <span class="h-28 w-px bg-border"></span>
         <div class="flex grow flex-col items-end gap-px">
-            <p class="mb-0 text-base font-medium text-heading-foreground">@lang('Income Per User')</p>
-            <p class="mb-0 text-base font-semibold text-heading-foreground/50 sm:text-[22px]">
-                {{ currency()->symbol . cache('income_per_user', 0.0) }}</p>
-            <p class="mb-0 text-base text-heading-foreground/50">@lang('Net Profit')
-                {{ cache('net_profit', 0.0) }}</p>
+            <p class="mb-0 text-sm font-medium text-heading-foreground">
+                @lang('Income Per User')
+            </p>
+            <p class="mb-0 text-base font-semibold opacity-70 sm:text-[22px]">
+                {{ currency()->symbol . cache('income_per_user', 0.0) }}
+            </p>
+            <p class="mb-0 text-2xs font-medium opacity-70">
+                @lang('Net Profit')
+                {{ cache('net_profit', 0.0) }}
+            </p>
         </div>
     </x-card>
 
-    <div class="flex h-full flex-col justify-center gap-11">
+    <div class="my-8 flex h-full flex-col justify-center gap-11">
         <div class="relative w-full">
             <ul class="flex h-2 w-full flex-nowrap items-center overflow-hidden rounded-7xl">
                 <li class="h-full w-full bg-[#DC524C]"></li>
@@ -51,7 +61,7 @@
             </ul>
             <div
                 class="absolute top-1/2 flex -translate-y-1/2 bg-card-background px-2"
-                style="left: {{ min(0, max(100, cache('net_profit'))) }}%"
+                style="left: {{ max(0, min(99, cache('net_profit'))) }}%"
             >
                 <span class="h-5 w-1.5 rounded-[55px] bg-foreground/30"></span>
             </div>

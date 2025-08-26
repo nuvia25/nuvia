@@ -1,10 +1,15 @@
 @php
     $premium_features = [
-        'VIP Support',
-        'Access to All Extensions - <span class="font-bold text-[#6977DE]">worth $900+</span>',
-        'Access to All Themes - <span class="font-bold text-[#6977DE]">worth $390</span>',
-        '5 Hours of Customization',
-        'Direct access to Our Development Team',
+        'VIP Support' => 'Get instant help whenever you need it.',
+        'Access to All Current & Future Extensions <span class="font-bold text-[#6977DE]">worth $900+</span>' => 'Always stay ahead with the latest features.' ,
+        'Access to All Current & Future Themes <span class="font-bold text-[#6977DE]">worth $390</span>'=> 'Always stay ahead with the latest designs.' ,
+        '10 Hours of Custom Development Every Month' => 'Tailored improvements, at no extra cost.' ,
+        'Direct Communication with Our Development Team' => 'No middlemen, just solutions.' ,
+        'Exclusive Extensions Not Available to Others' => 'Stay ahead of competition, reserved for VIPs only.' ,
+        'Complimentary Logo Design' => 'A custom logo to elevate your brand.' ,
+        'Personalized Onboarding Assistance' => 'We’ll help you get up and running smoothly.' ,
+        'Free Setup & Configuration Services' => 'Let us handle the technical details for you.' ,
+        'Get the Mobile App Free in Your 4th Month!' => 'Enjoy a free mobile app after your third month of subscription.' ,
     ];
 @endphp
 
@@ -70,7 +75,7 @@
 
                 <x-card
                     class="relative col-span-full flex items-center border-4 border-heading-foreground/5 lg:col-span-5"
-                    class:body="static rounded-[inherit] only:grow-0 lg:p-10 w-full"
+                    class:body="static -mt-15 rounded-[inherit] only:grow-0 lg:p-10 lg:pt-0 w-full"
                 >
                     <x-outline-glow
                         class="[--glow-color-primary:238deg_71%_79%] [--glow-color-secondary:166deg_74%_45%] [--outline-glow-iteration:200] [--outline-glow-w:4px]"
@@ -90,7 +95,7 @@
                         </span>
                     </h1>
                     <ul class="mb-11 space-y-4 self-center text-xs font-medium text-heading-foreground">
-                        @foreach ($premium_features as $feature)
+                        @foreach ($premium_features as $feature => $tooltip)
                             <li>
                                 <svg
                                     class="me-3.5 inline align-middle"
@@ -125,7 +130,7 @@
                                         </linearGradient>
                                     </defs>
                                 </svg>
-                                {!! $feature !!}
+								{!! $feature !!} <x-info-tooltip :text="$tooltip"/>
                             </li>
                         @endforeach
                     </ul>

@@ -7,12 +7,14 @@
     let checking = false;
 
     function hideLoadingIndicators() {
+        const gpt_openai_generator_button = document.querySelector('#gpt_openai_generator_button');
 
-		console.log(imageGenerator);
-		document.getElementById("gpt_openai_generator_button").disabled = false;
-		document.getElementById("gpt_openai_generator_button").innerHTML = "Regenerate";
-		document.getElementById("openai_generator_button").disabled = false;
-		document.getElementById("openai_generator_button").innerHTML = "Regenerate";
+        if (gpt_openai_generator_button) {
+            gpt_openai_generator_button.disabled = false;
+            gpt_openai_generator_button.innerHTML = "Regenerate";
+        }
+        document.getElementById("openai_generator_button").disabled = false;
+        document.getElementById("openai_generator_button").innerHTML = "Regenerate";
         Alpine.store('appLoadingIndicator').hide();
         document.querySelector('#workbook_regenerate')?.classList?.remove('hidden');
     }
@@ -93,10 +95,10 @@
     }
 
     function sendOpenaiGeneratorForm(ev) {
-
-
         ev?.preventDefault();
         ev?.stopPropagation();
+
+        const gpt_openai_generator_button = document.querySelector('#gpt_openai_generator_button');
 
         @if ($openai->type == 'video')
             if (resizedImage == undefined) {
@@ -116,9 +118,10 @@
         document.getElementById("openai_generator_button").disabled = true;
         document.getElementById("openai_generator_button").innerHTML = magicai_localize.please_wait;
 
-
-        document.getElementById("gpt_openai_generator_button").disabled = true;
-        document.getElementById("gpt_openai_generator_button").innerHTML = magicai_localize.please_wait;
+        if (gpt_openai_generator_button) {
+            gpt_openai_generator_button.disabled = true;
+            gpt_openai_generator_button.innerHTML = magicai_localize.please_wait;
+        }
 
 
         Alpine.store('appLoadingIndicator').show();
@@ -168,11 +171,11 @@
                 //     formData.append('size', $("#size_3").val());
                 // }
 
-				if(imageGenerator === 'gpt-image-1') {
-					formData.append("stable_description", $("#gpt_1_description").val());
-				}
+                if (imageGenerator === 'gpt-image-1') {
+                    formData.append("stable_description", $("#gpt_1_description").val());
+                }
 
-            }else {
+            } else {
                 formData.append('type', stablediffusionType);
                 formData.append('negative_prompt', $("#negative_prompt").val());
                 formData.append('style_preset', $("#style_preset").val());
@@ -356,10 +359,14 @@
                 }, 750);
             },
             error: function(data) {
+                const gpt_openai_generator_button = document.querySelector('#gpt_openai_generator_button');
                 document.getElementById("openai_generator_button").disabled = false;
                 document.getElementById("openai_generator_button").innerHTML = "Genarate";
-                document.getElementById("gpt_openai_generator_button").disabled = false;
-                document.getElementById("gpt_openai_generator_button").innerHTML = "Genarate";
+
+                if (gpt_openai_generator_button) {
+                    gpt_openai_generator_button.disabled = false;
+                    gpt_openai_generator_button.innerHTML = "Genarate";
+                }
                 Alpine.store('appLoadingIndicator').hide();
                 document.querySelector('#workbook_regenerate')?.classList?.add('hidden');
                 if (data.responseJSON.errors) {

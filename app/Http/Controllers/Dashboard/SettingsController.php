@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Entity\Enums\EntityEnum;
 use App\Extensions\ChatbotVoice\System\Models\ExtVoiceChatbot;
+use App\Extensions\ElevenLabsVoiceChat\System\Models\VoiceChatBot;
 use App\Helpers\Classes\ApiHelper;
 use App\Helpers\Classes\Helper;
 use App\Helpers\Classes\MarketplaceHelper;
@@ -347,7 +348,7 @@ class SettingsController extends Controller
             'Accept'            => 'application/json',
             'anthropic-version' => '2023-06-01',
         ])->post('https://api.anthropic.com/v1/messages', [
-            'model'      => setting('anthropic_default_model'),
+            'model'      => EntityEnum::fromSlug(setting('anthropic_default_model', EntityEnum::ANTHROPIC_CLAUDE_3_5_HAIKU->slug()))?->value,
             'max_tokens' => (int) setting('anthropic_max_output_length'),
             'messages'   => [
                 [
@@ -934,6 +935,10 @@ class SettingsController extends Controller
                 $settings_two->elevenlabs_api_key = $request->elevenlabs_api_key;
                 if (MarketplaceHelper::isRegistered('chatbot-voice')) {
                     ExtVoiceChatbot::query()->delete();
+                }
+
+                if (MarketplaceHelper::isRegistered('elevenlabs-voice-chat')) {
+                    VoiceChatBot::query()->delete();
                 }
             }
 

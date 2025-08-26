@@ -4,6 +4,11 @@ namespace App\Helpers\Classes;
 
 class Localization
 {
+    public static function countyCodes()
+    {
+        return config('localization.countries');
+    }
+
     public static function getSupportedLocales(): array
     {
         return config('localization.supportedLocales');

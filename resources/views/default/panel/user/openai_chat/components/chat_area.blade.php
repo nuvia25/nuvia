@@ -94,6 +94,7 @@
                 @php
                     $output = $message->output;
                     $output = str_replace(['<br>', '<br/>', '<br >', '<br />'], "\n", $output);
+                    $output = str_replace('/http', 'http', $output);
                 @endphp
                 <pre
                     class="chat-content prose relative w-full max-w-none !whitespace-pre-wrap px-6 py-3.5 indent-0 font-[inherit] text-xs font-normal text-current [word-break:break-word] empty:hidden [&_*]:text-current">{{ $output }}</pre>
@@ -135,6 +136,7 @@
             @php
                 $output = __('You have no message... Please start typing.');
                 $output = str_replace(['<br>', '<br/>', '<br >', '<br />'], "\n", $output);
+                $output = str_replace('/http', 'http', $output);
             @endphp
             <pre
                 class="chat-content prose relative w-full max-w-none !whitespace-pre-wrap px-6 py-3.5 indent-0 font-[inherit] text-xs font-normal text-current [word-break:break-word] empty:hidden [&_*]:text-current">{{ $output }}</pre>

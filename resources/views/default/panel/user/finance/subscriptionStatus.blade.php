@@ -54,7 +54,7 @@
         @lang('Your Plan')
     </h3>
 
-    <p class="mb-3 font-medium leading-relaxed text-heading-foreground/60">
+    <p class="mb-3 font-medium leading-relaxed text-foreground/70">
         @if (auth()->user()->activePlan() !== null)
             {{ __('You have currently') }}
             <strong class="text-heading-foreground">{{ getSubscriptionName() }}</strong>
@@ -67,11 +67,11 @@
 
         @if ($setting->feature_ai_image)
             {{ __('Total') }}
-            <strong class="text-heading-foreground">
+            <strong class="text-foreground">
                 @formatNumber($wordModels->checkIfThereUnlimited() ? __('Unlimited') : $wordModels->totalCredits())
             </strong>
             {{ __('word and') }}
-            <strong class="text-heading-foreground">
+            <strong class="text-foreground">
                 @formatNumber($imageModels->checkIfThereUnlimited() ? __('Unlimited') : $imageModels->totalCredits())
 
             </strong>
@@ -117,7 +117,7 @@
             class="hover:bg-primary"
             data-name="{{ \App\Enums\Introduction::SELECT_PLAN }}"
             variant="ghost-shadow"
-            href="{{  (route('dashboard.user.payment.subscription')) }}"
+            href="{{ route('dashboard.user.payment.subscription') }}"
         >
             <x-tabler-plus class="size-4" />
             {{ __('Select a Plan') }}
@@ -127,7 +127,7 @@
             <x-button
                 variant="danger"
                 onclick="return confirm('Are you sure to cancel your plan? You will lose your remaining usage.');"
-                href="{{  (route('dashboard.user.payment.cancelActiveSubscription')) }}"
+                href="{{ route('dashboard.user.payment.cancelActiveSubscription') }}"
             >
                 <x-tabler-circle-minus class="size-4" />
                 {{ __('Cancel My Plan') }}
@@ -158,7 +158,7 @@
             const options = {
                 series: [remainingPercentage, usedPercentage],
                 labels: [@json(__('Remaining')), @json(__('Used'))],
-                colors: ['#9A34CD', 'rgba(154,52,205,0.2)'],
+                colors: ['hsl(var(--accent))', 'hsl(var(--accent)/20%)'],
                 tooltip: {
                     style: {
                         color: '#ffffff',

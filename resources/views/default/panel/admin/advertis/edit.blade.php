@@ -6,48 +6,95 @@
         <div class="container-xl">
             <h2>{{ __('Advertis Edit') }}</h2>
             <div class="card">
-                <div id="table-default-2" class="card-table table-responsive">
-                    <form class="p-4 w-1/2 m-auto" method="POST"
-                        action="{{ route('dashboard.admin.advertis.update', $advertis) }}">
+                <div
+                    class="card-table table-responsive"
+                    id="table-default-2"
+                >
+                    <form
+                        class="m-auto w-1/2 p-4"
+                        method="POST"
+                        action="{{ route('dashboard.admin.advertis.update', $advertis) }}"
+                    >
                         @csrf
                         @method('PUT')
                         <div class="flex flex-col gap-4">
-                            <div class="w-full gap-2 flex flex-col">
-                                <label for="name" class="m-1">Key</label>
-                                <input type="text" name="key" value="{{ $advertis->key }}" disabled
-                                    class="w-full pl-3 h-10 bg-gray-400 focus:border-blue-300 rounded border-none">
+                            <div class="flex w-full flex-col gap-2">
+                                <label
+                                    class="m-1"
+                                    for="name"
+                                >Key</label>
+                                <input
+                                    class="h-10 w-full rounded border-none bg-gray-400 ps-3 focus:border-blue-300"
+                                    type="text"
+                                    name="key"
+                                    value="{{ $advertis->key }}"
+                                    disabled
+                                >
                             </div>
-                            <div class="w-full gap-2 flex flex-col">
-                                <label for="name" class="m-1">Title</label>
-                                <input type="text" name="title" value="{{ old('title', $advertis->title) }}"
-                                    class="w-full pl-3 h-10 bg-gray-400 focus:border-blue-300 rounded border-none">
+                            <div class="flex w-full flex-col gap-2">
+                                <label
+                                    class="m-1"
+                                    for="name"
+                                >Title</label>
+                                <input
+                                    class="h-10 w-full rounded border-none bg-gray-400 ps-3 focus:border-blue-300"
+                                    type="text"
+                                    name="title"
+                                    value="{{ old('title', $advertis->title) }}"
+                                >
                             </div>
                         </div>
                         <div class="flex flex-col gap-4">
-                            <div class="w-full gap-2 flex flex-col">
-                                <label for="name" class="m-1">Mobile Tracking Code</label>
-                                <textarea name="tracking_code[mobile]" class="w-full bg-gray-400 h-40 p-2 focus:border-blue-300 rounded border-none">{{ old('tracking_code.mobile', data_get($advertis, 'tracking_code.mobile')) }}</textarea>
+                            <div class="flex w-full flex-col gap-2">
+                                <label
+                                    class="m-1"
+                                    for="name"
+                                >Mobile Tracking Code</label>
+                                <textarea
+                                    class="h-40 w-full rounded border-none bg-gray-400 p-2 focus:border-blue-300"
+                                    name="tracking_code[mobile]"
+                                >{{ old('tracking_code.mobile', data_get($advertis, 'tracking_code.mobile')) }}</textarea>
                             </div>
-                            <div class="w-full gap-2 flex flex-col">
-                                <label for="name" class="m-1">Tablet Tracking Code</label>
-                                <textarea name="tracking_code[tablet]" class="w-full bg-gray-400 h-40 p-2 focus:border-blue-300 rounded border-none">{{ old('tracking_code.tablet', data_get($advertis, 'tracking_code.tablet')) }}</textarea>
+                            <div class="flex w-full flex-col gap-2">
+                                <label
+                                    class="m-1"
+                                    for="name"
+                                >Tablet Tracking Code</label>
+                                <textarea
+                                    class="h-40 w-full rounded border-none bg-gray-400 p-2 focus:border-blue-300"
+                                    name="tracking_code[tablet]"
+                                >{{ old('tracking_code.tablet', data_get($advertis, 'tracking_code.tablet')) }}</textarea>
                             </div>
-                            <div class="w-full gap-2 flex flex-col">
-                                <label for="name" class="m-1">Desktop Tracking Code</label>
-                                <textarea name="tracking_code[desktop]" class="w-full bg-gray-400 h-40 p-2 focus:border-blue-300 rounded border-none">{{ old('tracking_code.desktop', data_get($advertis, 'tracking_code.desktop')) }}</textarea>
+                            <div class="flex w-full flex-col gap-2">
+                                <label
+                                    class="m-1"
+                                    for="name"
+                                >Desktop Tracking Code</label>
+                                <textarea
+                                    class="h-40 w-full rounded border-none bg-gray-400 p-2 focus:border-blue-300"
+                                    name="tracking_code[desktop]"
+                                >{{ old('tracking_code.desktop', data_get($advertis, 'tracking_code.desktop')) }}</textarea>
                             </div>
                         </div>
 
-                        <div class="flex mt-4">
+                        <div class="mt-4 flex">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="status" id="advertis-status"
-                                    @checked($advertis->status == true)>
-                                <label class="form-check-label" for="advertis-status">Advertis Status</label>
+                                <input
+                                    class="form-check-input"
+                                    id="advertis-status"
+                                    type="checkbox"
+                                    name="status"
+                                    @checked($advertis->status == true)
+                                >
+                                <label
+                                    class="form-check-label"
+                                    for="advertis-status"
+                                >Advertis Status</label>
                             </div>
                         </div>
 
                         <div class="flex">
-                            <button class="p-2 rounded border-none w-full bg-blue-600 text-white text-center font-semibold">
+                            <button class="w-full rounded border-none bg-blue-600 p-2 text-center font-semibold text-white">
                                 Save
                             </button>
                         </div>

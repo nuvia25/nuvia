@@ -17,7 +17,7 @@
                 action="#"
             >
                 <x-forms.input
-                    class="navbar-search-input peer rounded-full border-clay bg-clay ps-10"
+                    class="navbar-search-input peer ps-10"
                     id="chat_search_word"
                     data-category-id="{{ $category->id }}"
                     type="search"
@@ -29,9 +29,9 @@
                 <x-tabler-search class="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 opacity-80" />
             </form>
             <x-button
-                class="lqd-chat-clear-all aspect-square min-w-10 shrink-0"
+                class="lqd-chat-clear-all aspect-square min-w-10 shrink-0 bg-foreground/5 text-foreground"
                 size="sm"
-                variant="danger"
+                hover-variant="danger"
                 href="javascript:void(0);"
                 onclick="{!! $disable_actions
                     ? 'return toastr.info(\'{{ __('This feature is disabled in Demo version.') }}\')'

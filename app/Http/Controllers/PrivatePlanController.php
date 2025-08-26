@@ -35,7 +35,7 @@ class PrivatePlanController extends Controller
         $plans = Plan::query()
             ->where('active', 1)
             ->where('hidden', true)
-            ->where('hidden_url', $request->fullUrl())
+            ->where('hidden_url', 'like', '%' . $request->getRequestUri())
             ->get();
 
         if (! is_null($plans->first())) {

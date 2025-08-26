@@ -50,11 +50,11 @@
                         @lang('Free Customization')
                     </h6>
                     <h2 class="mb-5 text-[52px] leading-[0.94em]">
-                        @lang('5 Hours of Free Development.')
+                        @lang('10 Hours of Free Development.')
                     </h2>
                     <p class="text-[19px] leading-[1.42em]">
                         <span class="text-white">
-                            @lang('Unlock 5 hours of complimentary customization from our expert development team.')
+                            @lang('Unlock 10 hours of complimentary customization from our expert development team.')
                         </span>
                         @lang('Tailor MagicAI to your exact needs with personalized tweaks and enhancements, ensuring it aligns perfectly with your vision.')
                     </p>

@@ -4,7 +4,7 @@
 		focus:border-secondary focus:outline-0 focus:ring focus:ring-secondary
 		dark:focus:ring-foreground/10
 		sm:text-2xs';
-    $input_checkbox_base_class = 'lqd-input peer rounded border-input-border
+    $input_checkbox_base_class = 'lqd-input peer border-input-border
 		focus:ring focus:ring-secondary
 		dark:focus:ring-foreground/10';
     $input_checkbox_custom_wrapper_base_class = 'lqd-input-checkbox-custom-wrap inline-flex items-center justify-center size-[18px] shrink-0 rounded-full bg-foreground/10 text-heading-foreground bg-center bg-no-repeat
@@ -14,12 +14,11 @@
 
     $variations = [
         'size' => [
-            'none' => 'lqd-input-size-none rounded-lg',
-            'sm' => 'lqd-input-sm h-9 rounded-md',
-            'md' => 'lqd-input-md h-10 rounded-lg',
-            'lg' => 'lqd-input-lg h-11 rounded-xl',
-            'xl' => 'lqd-input-xl h-14 rounded-2xl px-6',
-            '2xl' => 'lqd-input-2xl h-16 rounded-full px-8',
+            'none' => 'lqd-input-size-none',
+            'sm' => 'lqd-input-sm h-9',
+            'md' => 'lqd-input-md h-10',
+            'lg' => 'lqd-input-lg h-11',
+            'xl' => 'lqd-input-xl h-14 px-6',
         ],
     ];
 
@@ -28,7 +27,7 @@
     }
 
     if ($switcher) {
-        $input_checkbox_base_class .= ' lqd-input-switcher border-2 border-input-border rounded-full cursor-pointer appearance-none [background-size:1.3rem] bg-left bg-no-repeat transition-all
+        $input_checkbox_base_class .= ' lqd-input-switcher border-2 border-input-border [--input-rounded-multiplier:5] cursor-pointer appearance-none [background-size:1.3rem] bg-left bg-no-repeat transition-all
 			checked:bg-right checked:bg-heading-foreground checked:border-heading-foreground
 			dark:checked:bg-label dark:checked:border-label';
 
@@ -77,7 +76,6 @@
 			this.$refs.input.dispatchEvent(new Event("change"));
 		}
 	}' @endif
-    @if ($type === 'select' && $addNew) x-data="{ 'newOptions': [] }" @endif
 >
     {{-- Label --}}
     @if (!empty($label) || ($type === 'checkbox' || $type === 'radio'))
@@ -159,68 +157,7 @@
             @if ($attributes->has('x-model')) x-model="{{ $attributes->get('x-model') }}" @endif
         >
             {{ $slot }}
-            @if ($addNew)
-                <template
-                    x-for="option in newOptions"
-                    :key="option"
-                >
-                    <option
-                        x-text="option"
-                        x-bind:value="option"
-                    ></option>
-                </template>
-            @endif
         </select>
-        @if ($attributes->has('multiple'))
-            <small class="mt-1 block">
-                {{ __('Hold cmd(on mac) or ctrl(on pc) to select multiple items.') }}
-            </small>
-        @endif
-        @if ($addNew)
-            <x-modal
-                class:modal-backdrop="backdrop-blur-sm bg-foreground/15"
-                title="{{ __('New value') }}"
-            >
-                <x-slot:trigger
-                    class="mt-3"
-                    variant="primary"
-                >
-                    <x-tabler-plus
-                        class="size-3"
-                        stroke-width="3"
-                    />
-                    {{ __('Add New') }}
-                </x-slot:trigger>
-
-                <x-slot:modal
-                    x-data="{}"
-                >
-                    <x-forms.input
-                        id="new_{{ $id }}"
-                        @keyup.enter="$refs.submitBtn.click(); modalOpen = false"
-                        name="new_{{ $name }}"
-                        size="lg"
-                        x-ref="new_{{ $id }}"
-                    />
-                    <div class="mt-4 border-t pt-3">
-                        <x-button
-                            @click.prevent="modalOpen = false"
-                            variant="outline"
-                        >
-                            {{ __('Cancel') }}
-                        </x-button>
-                        <x-button
-                            tag="button"
-                            variant="primary"
-                            x-ref="submitBtn"
-                            @click="newOptions.push($refs.new_{{ $id }}.value); $refs.new_{{ $id }}.value = '';"
-                        >
-                            {{ __('Add') }}
-                        </x-button>
-                    </div>
-                </x-slot:modal>
-            </x-modal>
-        @endif
     @endif
 
     {{-- Textarea input --}}
@@ -340,3 +277,74 @@
 </div>
 @endif
 </div>
+
+{{-- Initiate Select2 for select elements with multiple attribute --}}
+@if ($type === 'select' && $attributes->has('multiple'))
+    @pushOnce('script')
+        <link
+            href="{{ custom_theme_url('/assets/libs/tom-select/dist/css/tom-select.min.css') }}"
+            rel="stylesheet"
+        />
+        <script src="{{ custom_theme_url('/assets/libs/tom-select/dist/js/tom-select.complete.min.js') }}"></script>
+
+        <script>
+            (() => {
+                document.addEventListener('alpine:init', () => {
+                    _.defer(() => {
+
+                        const allSelectElements = document.querySelectorAll('select[multiple]');
+
+                        allSelectElements.forEach(el => {
+                            el.style.display = 'none';
+                            const elId = el.id;
+
+                            const tomSelect = new TomSelect(el, {
+                                create: {{ $addNew ? 'true' : 'false' }} && elId === '{{ $id }}',
+                                plugins: {
+                                    remove_button: {
+                                        title: '{{ __('Remove this item') }}',
+                                    }
+                                },
+                            });
+
+							const buttonsWrapper = document.createElement('div');
+							buttonsWrapper.classList.add('flex', 'flex-wrap', 'items-center', 'gap-2.5', 'mt-1');
+
+                            const selectAllBtn = document.createElement('button');
+							selectAllBtn.classList.add('text-[12px]', 'underline', 'font-medium');
+                            selectAllBtn.setAttribute('type', 'button');
+                            selectAllBtn.innerText = '{{ __('Select All') }}';
+
+                            const deselectAllBtn = document.createElement('button');
+							deselectAllBtn.classList.add('text-[12px]', 'underline', 'font-medium', 'hidden');
+                            deselectAllBtn.setAttribute('type', 'button');
+                            deselectAllBtn.innerText = '{{ __('Clear Selection') }}';
+
+							selectAllBtn.addEventListener('click', () => {
+								let values = Object.keys(tomSelect.options);
+								tomSelect.addItems(values);
+							});
+							deselectAllBtn.addEventListener('click', () => {
+								tomSelect.clear();
+							});
+
+                            tomSelect.wrapper.insertAdjacentElement('afterend', buttonsWrapper);
+
+                            buttonsWrapper.appendChild(selectAllBtn);
+                            buttonsWrapper.appendChild(deselectAllBtn);
+
+							tomSelect.on('change', () => {
+								const total = Object.keys(tomSelect.options).length;
+								const currentValues = tomSelect.getValue();
+
+								selectAllBtn.classList.toggle('hidden', currentValues.length === total);
+								deselectAllBtn.classList.toggle('hidden', !currentValues.length);
+							})
+                        })
+                    })
+                })
+            })
+            ();
+        </script>
+    @endPushOnce
+@endif

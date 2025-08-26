@@ -22,6 +22,37 @@ class ExtensionRepository implements ExtensionRepositoryInterface
 
     public const API_URL = 'https://liquidlabs.uk/market/api/';
 
+    public function deleteCoupon(): array
+    {
+        $response = $this->request(
+            'get',
+            'cart/coupon' . DIRECTORY_SEPARATOR . $this->domainKey() . '/delete'
+        );
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
+        return ['status' => 'error', 'message' => trans('An error occurred while applying the coupon.')];
+    }
+
+    public function storeCoupon(string $couponCode): array
+    {
+        $response = $this->request(
+            'post',
+            'cart/coupon' . DIRECTORY_SEPARATOR . $this->domainKey(),
+            [
+                'coupon_code' => $couponCode,
+            ]
+        );
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
+        return ['status' => 'error', 'message' => trans('An error occurred while applying the coupon.')];
+    }
+
     public function licensed(array $data): array
     {
         return collect($data)->filter(function ($extension) {

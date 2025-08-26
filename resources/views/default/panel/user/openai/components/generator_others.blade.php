@@ -97,11 +97,11 @@
                                 type="select"
                                 required
                             >
-								@foreach ($question?->selectListValues ?? [] as $input)
-									<option value="{{ $input }}">
-										{{ $input }}
-									</option>
-								@endforeach
+                                @foreach ($question?->selectListValues ?? [] as $input)
+                                    <option value="{{ $input }}">
+                                        {{ $input }}
+                                    </option>
+                                @endforeach
                             </x-forms.input>
                         @elseif($question?->type == 'file')
                             <x-forms.input
@@ -116,7 +116,7 @@
                                 placeholder="{{ __($question?->question) }}"
                                 required
                                 x-ref="file"
-                                @change="if ( $refs.fileName ) { $refs.fileName.innerText = $refs.file.files[0].name }"
+                                @change="if ( $refs.fileName ) { $refs.fileName.innerText = $refs.file.files[0]?.name ?? '' }"
                                 @drop.prevent="if ( $refs.fileName ) { $refs.fileName.innerText = event.dataTransfer.files[0].name; } $refs.file.files = event.dataTransfer.files"
                             />
                         @endif

@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Validation\ValidationException;
 use MagicAI\Updater\Facades\Updater;
 
 class UpdaterController
@@ -37,7 +38,7 @@ class UpdaterController
         ]);
     }
 
-    public function backup(Request $request)
+    public function backup(Request $request): \Illuminate\Contracts\View\Factory|\Illuminate\Foundation\Application|View|\Illuminate\View\View|RedirectResponse|\Illuminate\Contracts\Foundation\Application
     {
         $data = Updater::backupView();
 
@@ -48,27 +49,34 @@ class UpdaterController
             ]);
         }
 
-        if ($request->isMethod('post')) {
+        if ($request->isMethod('get') && ! Updater::isLastBackupRecent()) {
+            return redirect()->route('updater.index')->with([
+                'message' => trans('The backup file could not be found. Please try again.'),
+                'type'    => 'success',
+            ]);
+        }
+
+        if ($request->isMethod('post') && ! Updater::isLastBackupRecent()) {
             Updater::backup();
         }
 
         return view('magicai-updater::index', [
             'permission' => true,
             'data'       => Updater::backupView(),
-            'fileName'   => Updater::backupFileNameGetFromCache(),
+            'fileName'   => Updater::findLastBackup(),
         ]);
     }
 
-    public function upgrade(Request $request)
+    public function upgrade(Request $request): \Illuminate\Foundation\Application|\Illuminate\Http\Response|\Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\Routing\ResponseFactory
     {
-        $backupFileName = Updater::backupFileNameGetFromCache();
+        $backupFileName = Updater::findLastBackup();
 
         if (file_exists(base_path($backupFileName))) {
 
             Updater::updateNewVersion($backupFileName);
 
             return response([
-                'message' => 'The backup file could not be found. Please try again.',
+                'message' => trans('Upgrade completed successfully.'),
                 'type'    => 'success',
             ], 200);
         }
@@ -77,6 +85,56 @@ class UpdaterController
             'message' => 'The backup file could not be found. Please try again.',
             'type'    => 'success',
         ], 422);
+    }
+
+    public function downloadStep(): \Illuminate\Contracts\View\Factory|\Illuminate\Foundation\Application|View|\Illuminate\View\View|RedirectResponse|\Illuminate\Contracts\Foundation\Application
+    {
+        $data = Updater::downloadView();
+
+        $backupFileName = Updater::findLastBackup();
+
+        if (! file_exists(base_path($backupFileName))) {
+            return redirect()->route('updater.index')->with([
+                'message' => 'The backup file could not be found. Please try again.',
+                'type'    => 'error',
+            ]);
+        }
+
+        if ($data['updated']) {
+            return redirect()->route('updater.index')->with([
+                'message' => 'MagicAI is already up to date.',
+                'type'    => 'success',
+            ]);
+        }
+
+        if (! $data['isDownload']) {
+            Updater::downloadNewVersion();
+        }
+
+        return view('magicai-updater::index', [
+            'permission' => true,
+            'data'       => $data,
+            'fileName'   => 'new-version' . Updater::getDownloadVersion() . '.zip',
+        ]);
+    }
+
+    public function download(Request $request): RedirectResponse
+    {
+        $backupFileName = Updater::findLastBackup();
+
+        if (file_exists(base_path($backupFileName))) {
+
+            Updater::downloadNewVersion();
+
+            return to_route('updater.download-step')->with([
+                'type'    => 'success',
+                'message' => 'The download file has been successfully downloaded.',
+            ]);
+        }
+
+        throw ValidationException::withMessages([
+            'message' => 'The backup file could not be found. Please try again.',
+        ]);
     }
 
     public function versionCheck(): JsonResponse

@@ -2,6 +2,7 @@
 
 namespace MagicAI\Updater\Traits;
 
+use Exception;
 use Illuminate\Support\Facades\Http;
 use MagicAI\Updater\Exceptions\InvalidURLException;
 use RuntimeException;
@@ -23,16 +24,25 @@ trait HasDownloader
         // The full path where the zip file will be saved
         $this->path = base_path($filename);
 
-        // Download the file from the URL
-        $response = Http::timeout(1200)
-            ->withOptions([
-                'sink' => $this->path,
-            ])
-            ->get($url);
+        try {
 
-        // If the request is unsuccessful, throw an exception
-        if (! $response->successful()) {
-            throw new RuntimeException('Failed to download the zip file: ' . $response->status());
+            // Download the file from the URL
+            $response = Http::timeout(1800)
+                ->withOptions([
+                    'sink' => $this->path,
+                ])
+                ->throw(function ($request, $exception) {
+
+                    throw new RuntimeException('Failed to download the zip file');
+                })
+                ->get($url);
+
+            // If the request is unsuccessful, throw an exception
+            if (! $response->successful()) {
+                throw new RuntimeException('Failed to download the zip file');
+            }
+        } catch (Exception|RuntimeException $exception) {
+            throw new RuntimeException('Failed to download the zip file');
         }
 
         // Save the file content to the base_path() directory

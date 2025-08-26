@@ -146,6 +146,21 @@
 	border-inline-end: var(--border-w) solid;
 	border-color: inherit;
 	border-radius: 0 var(--roundness) 0 0;
+
+	.lqd-card & {
+
+		&:before {
+			content: '';
+			position: absolute;
+			top: 0;
+			bottom: calc(var(--roundness) * -1);
+			width: var(--roundness);
+			inset-inline-start: calc(var(--border-w) * -1);
+			background: hsl(var(--card-background));
+			border-start-end-radius: calc(var(--border-radius) - var(--border-w));
+			@apply transition-colors;
+		}
+	}
 }
 
 .lqd-cutout-2 .lqd-cutout-2-border-bs {
@@ -158,6 +173,24 @@
 	border-bottom: var(--border-w) solid;
 	border-inline-start: var(--border-w) solid;
 	border-color: inherit;
+	background-color: hsl(var(--background));
+	@apply transition-colors;
+
+	.lqd-card & {
+
+		&:before {
+			content: '';
+			position: absolute;
+			top: 0;
+			bottom: calc(var(--border-w) * -1);
+			width: var(--roundness);
+			inset-inline-start: calc(var(--border-w) * -1);
+			background: hsl(var(--card-background));
+			border-start-end-radius: calc(var(--border-radius) - var(--border-w));
+			z-index: -1;
+			@apply transition-colors;
+		}
+	}
 }
 
 .lqd-cutout-2 .lqd-cutout-2-border-be {

@@ -6,6 +6,10 @@ use Closure;
 
 interface ExtensionRepositoryInterface extends PortalRepositoryInterface
 {
+    public function storeCoupon(string $couponCode): array;
+
+    public function deleteCoupon(): array;
+
     public function licensed(array $data);
 
     public function extensions(): array;

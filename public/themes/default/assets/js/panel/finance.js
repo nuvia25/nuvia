@@ -31,12 +31,11 @@ function prepaidSave( plan_id ) {
 	formData.append( 'price', $( "#price" ).val() );
 	formData.append( 'is_featured', $( "#is_featured" ).val() );
 	formData.append( 'is_team_plan', $( "#is_team_plan" ).val() );
+	formData.append('price_tax_included', $("#price_tax_included").val());
 	formData.append( 'plan_allow_seat', $( "#plan_allow_seat" ).val() );
 	formData.append( 'plan_type', $( "#plan_type" ).val() );
 	formData.append( 'features', $( "#features" ).val() );
 	formData.append( 'description', $( "#description" ).val() );
-
-
 	formData.append( 'type', 'prepaid' );
 
 	$.ajax( {
@@ -99,6 +98,7 @@ function subscriptionSave( plan_id ) {
 	formData.append( 'frequency', $( "#frequency" ).val() );
 	formData.append( 'is_featured', $( "#is_featured" ).val() );
 	formData.append( 'is_team_plan', $( "#is_team_plan" ).val() );
+	formData.append('price_tax_included', $("#price_tax_included").val());
 	formData.append( 'plan_allow_seat', $( "#plan_allow_seat" ).val() );
 	// formData.append( 'stripe_product_id', $( "#stripe_product_id" ).val() );
 	formData.append( 'ai_name', $( "#ai_name" ).val() );

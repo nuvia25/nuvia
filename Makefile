@@ -1,18 +1,21 @@
 # Definição de variáveis
 ENV_FILE := .env
-DOCKER_COMPOSE := docker compose --env-file $(ENV_FILE) -f docker-compose.dev.yml
+# Permite sobrepor o binário de compose via variável de ambiente (COMPOSE_BIN).
+COMPOSE_BIN ?= docker compose
+# Modo: dev (padrão) ou prod. Use: make MODE=prod up
+MODE ?= dev
+COMPOSE_FILE := docker-compose.$(MODE).yml
+DOCKER_COMPOSE := $(COMPOSE_BIN) --env-file $(ENV_FILE) -f $(COMPOSE_FILE)
 DOCKER_COMPOSE_EXEC := $(DOCKER_COMPOSE) exec app
 
-.PHONY: prepare
+.PHONY: build
 build:
-	@which docker >/dev/null 2>&1 || (echo "Docker não está em execução!" && exit 1 )
-	sudo rm -rf node_modules
-	sudo rm -rf vendor
-	$(DOCKER_COMPOSE) build --no-cache
+	@which docker >/dev/null 2>&1 || (echo "Docker não está instalado!" && exit 1)
+	$(DOCKER_COMPOSE) build
 
 .PHONY: up
 up:
-	@test -f $(ENV_FILE) || (echo "Arquivo $(ENV_FILE) não encontrado!" && exit 1)
+	@test -f $(ENV_FILE) || (echo "Arquivo $(ENV_FILE) não encontrado! Rode: make env-init" && exit 1)
 	$(DOCKER_COMPOSE) up -d
 
 .PHONY: down
@@ -27,53 +30,126 @@ prune:
 restart:
 	$(DOCKER_COMPOSE) restart
 
+.PHONY: ps
+ps:
+	$(DOCKER_COMPOSE) ps
+
+.PHONY: logs
+logs:
+	$(DOCKER_COMPOSE) logs -f
+
 .PHONY: sh
 sh:
-	$(DOCKER_COMPOSE) exec -it app /bin/bash
+	$(DOCKER_COMPOSE) exec app /bin/bash || $(DOCKER_COMPOSE) exec app sh
 
-.PHONY: app_logs
-app_logs:
-	$(DOCKER_COMPOSE) logs -f app
+.PHONY: exec-app
+exec-app:
+	$(DOCKER_COMPOSE) exec app /bin/bash
 
-.PHONY: nginx_logs
-nginx_logs:
-	$(DOCKER_COMPOSE) logs -f nginx
+.PHONY: exec-db
+exec-db:
+	$(DOCKER_COMPOSE) exec db sh
 
-.PHONY: db_migrate
-db_migrate:
+.PHONY: exec-nginx
+exec-nginx:
+	$(DOCKER_COMPOSE) exec nginx sh
+
+.PHONY: artisan
+artisan:
+	@if [ -z "$(cmd)" ]; then echo "Uso: make artisan cmd='migrate'"; exit 1; fi
+	$(DOCKER_COMPOSE_EXEC) php artisan $(cmd)
+
+.PHONY: migrate
+migrate:
 	$(DOCKER_COMPOSE_EXEC) php artisan migrate
 
-.PHONY: db_fresh
-db_fresh:
+.PHONY: migrate-fresh
+migrate-fresh:
 	$(DOCKER_COMPOSE_EXEC) php artisan migrate:fresh
 
-.PHONY: db_seed
-db_seed:
+.PHONY: seed
+seed:
 	$(DOCKER_COMPOSE_EXEC) php artisan db:seed
 
+.PHONY: composer-install
+composer-install:
+	$(DOCKER_COMPOSE_EXEC) composer install
+
+.PHONY: composer-update
+composer-update:
+	$(DOCKER_COMPOSE_EXEC) composer update
+
+.PHONY: npm-install
+npm-install:
+	$(DOCKER_COMPOSE_EXEC) npm ci || $(DOCKER_COMPOSE_EXEC) npm install
+
+.PHONY: npm-build
+npm-build:
+	$(DOCKER_COMPOSE_EXEC) npm run build
+
+.PHONY: npm-dev
+npm-dev:
+	$(DOCKER_COMPOSE_EXEC) npm run dev -- --host
+
+.PHONY: key-generate
+key-generate:
+	$(DOCKER_COMPOSE_EXEC) php artisan key:generate
+
+.PHONY: permissions
+permissions:
+	$(DOCKER_COMPOSE_EXEC) sh -lc 'mkdir -p storage/framework/{cache,sessions,views,testing,cache/data} bootstrap/cache; chown -R laravel:laravel storage bootstrap/cache || chown -R www-data:www-data storage bootstrap/cache || true; find storage -type d -exec chmod 775 {} \; ; find storage -type f -exec chmod 664 {} \; ; chmod -R ug+rwX bootstrap/cache'
+
+
+.PHONY: storage-link
+storage-link:
+	$(DOCKER_COMPOSE_EXEC) php artisan storage:link
+
+.PHONY: test
+test:
+	$(DOCKER_COMPOSE_EXEC) php vendor/bin/pest --colors=always
+
+.PHONY: env-init
+env-init:
+	@test -f $(ENV_FILE) || cp .env.example $(ENV_FILE)
+	@echo "Ajuste seu .env para Docker (DB_HOST=db, REDIS_HOST=redis, MAIL_HOST=mailpit) se necessário."
 
 .PHONY: help
 help:
-	@echo "Uso do Makefile:"
-	@echo "  make build              - Constrói os containers"
-	@echo "  make up                 - Inicia os containers em segundo plano"
-	@echo "  make down               - Para os containers"
-	@echo "  make restart            - Reinicia os containers"
-	@echo "  make logs               - Exibe logs dos containers"
-	@echo "  make exec-app           - Acessa o bash do container da aplicação"
-	@echo "  make exec-db            - Acessa o bash do container do banco de dados"
-	@echo "  make exec-nginx         - Acessa o shell do container Nginx"
-	@echo "  make artisan cmd=...    - Executa comando Artisan (ex: make artisan cmd='migrate')"
-	@echo "  make migrate            - Executa as migrações"
-	@echo "  make migrate-fresh      - Recria e executa as migrações"
-	@echo "  make seed               - Executa os seeders"
-	@echo "  make composer-install   - Instala dependências do Composer"
-	@echo "  make composer-update    - Atualiza dependências do Composer"
-	@echo "  make npm-install        - Instala dependências do NPM"
-	@echo "  make npm-build          - Compila assets"
-	@echo "  make ps                 - Exibe status dos containers"
-	@echo "  make clean              - Remove todos os containers e volumes"
-	@echo "  make help               - Exibe esta ajuda"
+	@echo "Uso do Makefile (MODE=dev|prod):"
+	@echo "  make env-init                 - Copia .env.example para .env (se não existir)"
+	@echo "  make build [MODE=dev|prod]    - Constrói as imagens"
+	@echo "  make up [MODE=dev|prod]       - Sobe os containers em segundo plano"
+	@echo "  make down [MODE=dev|prod]     - Para os containers"
+	@echo "  make restart [MODE=dev|prod]  - Reinicia os containers"
+	@echo "  make ps [MODE=dev|prod]       - Mostra status dos containers"
+	@echo "  make logs [MODE=dev|prod]     - Segue os logs de todos os serviços"
+	@echo "  make exec-app                 - Abre shell no container da aplicação"
+	@echo "  make exec-db                  - Abre shell no container do banco (dev)"
+	@echo "  make exec-nginx               - Abre shell no container do Nginx"
+	@echo "  make artisan cmd=...          - Executa comando Artisan"
+	@echo "  make migrate                  - Executa as migrações"
+	@echo "  make npm-install              - Instala dependências do NPM"
+	@echo "  make npm-dev                  - Sobe o Vite dev server (porta 5173)"
+	@echo "  make npm-build                - Compila assets"
+	@echo "  make key-generate             - Gera APP_KEY"
+	@echo "  make storage-link             - Cria link simbólico do storage"
+	@echo "  make prune                    - Remove tudo (imagens/volumes/órfãos)"
+	@echo "  make certbot-init domain=example.com email=me@example.com - Emite certificado inicial (prod)"
+	@echo "  make deploy                   - Build + Up em produção (usa docker-compose.prod.yml)"
+	@echo "  make help                     - Exibe esta ajuda"
+
+# Inicializar/Emitir certificado inicial em produção (necessita DNS apontado)
+.PHONY: certbot-init
+depends_prod_nginx :=
+certbot-init:
+	@if [ -z "$(domain)" ] || [ -z "$(email)" ]; then echo "Uso: make certbot-init MODE=prod domain=seu.dominio.com email=voce@dominio.com"; exit 1; fi
+	@$(COMPOSE_BIN) -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot -d $(domain) --email $(email) --agree-tos --no-eff-email || true
+	@echo "Certificado solicitado. Reinicie o nginx: make MODE=prod restart"
+
+.PHONY: deploy
+deploy:
+	@$(COMPOSE_BIN) -f docker-compose.prod.yml pull || true
+	@$(COMPOSE_BIN) -f docker-compose.prod.yml up -d --build
 
 # Comando padrão
 .DEFAULT_GOAL := help

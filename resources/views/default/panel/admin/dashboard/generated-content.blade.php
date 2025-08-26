@@ -8,46 +8,31 @@
             'type' => 'text',
             'label' => 'Text',
             'color' => '#3C82F6',
-            'percent' => round(
-                ($generatedContent->filter(fn($entity) => $entity->generator?->type == 'text')->count() / $all) * 100,
-                0,
-            ),
+            'percent' => round(($generatedContent->filter(fn($entity) => $entity->generator?->type == 'text')->count() / $all) * 100, 0),
         ],
         [
             'type' => 'image',
             'label' => 'Image',
             'color' => '#9F77F8',
-            'percent' => round(
-                ($generatedContent->filter(fn($entity) => $entity->generator?->type == 'image')->count() / $all) * 100,
-                0,
-            ),
+            'percent' => round(($generatedContent->filter(fn($entity) => $entity->generator?->type == 'image')->count() / $all) * 100, 0),
         ],
         [
             'type' => 'audio',
             'label' => 'Audio',
             'color' => '#60A5FA',
-            'percent' => round(
-                ($generatedContent->filter(fn($entity) => $entity->generator?->type == 'audio')->count() / $all) * 100,
-                0,
-            ),
+            'percent' => round(($generatedContent->filter(fn($entity) => $entity->generator?->type == 'audio')->count() / $all) * 100, 0),
         ],
         [
             'type' => 'video',
             'label' => 'Video',
             'color' => '#20C69F',
-            'percent' => round(
-                ($generatedContent->filter(fn($entity) => $entity->generator?->type == 'video')->count() / $all) * 100,
-                0,
-            ),
+            'percent' => round(($generatedContent->filter(fn($entity) => $entity->generator?->type == 'video')->count() / $all) * 100, 0),
         ],
         [
             'type' => 'code',
             'label' => 'Code',
             'color' => '#E0B43E',
-            'percent' => round(
-                ($generatedContent->filter(fn($entity) => $entity->generator?->type == 'code')->count() / $all) * 100,
-                0,
-            ),
+            'percent' => round(($generatedContent->filter(fn($entity) => $entity->generator?->type == 'code')->count() / $all) * 100, 0),
         ],
     ];
 
@@ -86,8 +71,7 @@
             <div class="flex h-3 w-full flex-nowrap gap-0.5 overflow-hidden rounded-7xl">
                 @foreach ($contents as $content)
                     @if ($content['percent'] != 0)
-                        <span
-                            style="width: {{ $content['percent'] }}%; background-color: {{ $content['color'] }};"></span>
+                        <span style="width: {{ $content['percent'] }}%; background-color: {{ $content['color'] }};"></span>
                     @endif
                 @endforeach
             </div>

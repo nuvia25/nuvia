@@ -13,6 +13,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        $schedule->command('app:crontab-check')->everyMinute();
+
         $customSchedulerPath = app_path('Console/CustomScheduler.php');
 
         if (file_exists($customSchedulerPath)) {
@@ -35,6 +37,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('app:clear-job-table')->daily();
 
         $schedule->command('app:clear-user-activity')->daily();
+
+        $schedule->command('app:test-command')->everyMinute();
     }
 
     // $schedule->command(RunHealthChecksCommand::class)->everyFiveMinutes();

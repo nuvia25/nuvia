@@ -3,6 +3,7 @@
 namespace App\Domains\Marketplace\Services;
 
 use App\Domains\Marketplace\Repositories\Contracts\ExtensionRepositoryInterface;
+use App\Models\Gateways;
 use App\Services\Extension\ExtensionService;
 use Database\Seeders\MenuSeeder;
 use Exception;
@@ -24,6 +25,20 @@ class ExtensionInstallService
     public function install(string $slug): array
     {
         $extension = $this->repository->findBySlugInDb($slug);
+
+        if ($slug === 'checkout-registration') {
+            $gateway = Gateways::query()
+                ->where('is_active', '0')
+                ->where('code', 'stripe')
+                ->first();
+
+            if ($gateway) {
+                return [
+                    'status'  => false,
+                    'message' => trans('This extension is not available for installation. Please activate the Stripe payment gateway first.'),
+                ];
+            }
+        }
 
         $responseExtension = $this->repository->find($extension->getAttribute('slug'));
 

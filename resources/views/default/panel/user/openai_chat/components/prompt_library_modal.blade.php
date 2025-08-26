@@ -100,7 +100,7 @@
                             @foreach ($prompt_filters as $value => $label)
                                 <li>
                                     <x-button
-                                        class="lqd-filter-btn inline-flex rounded-full px-2.5 py-1 text-2xs font-semibold leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-secondary [&.active]:text-secondary-foreground"
+                                        class="lqd-filter-btn inline-flex px-2.5 py-1 text-2xs font-semibold leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-secondary [&.active]:text-secondary-foreground"
                                         tag="button"
                                         type="button"
                                         name="filter"

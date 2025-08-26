@@ -15,8 +15,7 @@
             </x-lqd-icon>
             <h4 class="m-0 flex items-center gap-1 text-base font-medium">
                 {{ __('Session vs Bounce Rate') }}
-                <x-tabler-info-circle
-                    class="size-6 fill-[#41444A4D] stroke-background dark:fill-foreground"></x-tabler-info-circle>
+                <x-tabler-info-circle class="size-6 fill-[#41444A4D] stroke-background dark:fill-foreground"></x-tabler-info-circle>
             </h4>
         </div>
     </x-slot:head>
@@ -37,7 +36,7 @@
                     />
                     @lang('Bounce Rate')
                 </div>
-                <span class="text-[15px] font-medium leading-5 text-foreground/50">6%</span>
+                <span class="text-sm font-medium leading-5 text-foreground/50">6%</span>
             </li>
             <li class="flex items-center justify-between border-b pb-4">
                 <div class="flex items-center gap-2.5 font-medium text-foreground">
@@ -47,7 +46,7 @@
                     />
                     @lang('Total Sessions')
                 </div>
-                <span class="text-[15px] font-medium leading-5 text-foreground/50">11.5k</span>
+                <span class="text-sm font-medium leading-5 text-foreground/50">11.5k</span>
             </li>
             <li class="flex items-center justify-between border-b pb-4">
                 <div class="flex items-center gap-2.5 font-medium text-foreground">
@@ -57,7 +56,7 @@
                     />
                     @lang('Averate Views Per Session')
                 </div>
-                <span class="text-[15px] font-medium leading-5 text-foreground/50">234</span>
+                <span class="text-sm font-medium leading-5 text-foreground/50">234</span>
             </li>
         </ul>
     </div>

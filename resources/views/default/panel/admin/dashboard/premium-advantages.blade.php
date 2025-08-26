@@ -2,15 +2,14 @@
     <x-card
         class="relative flex items-center border-4"
         class:body="static rounded-[inherit] only:grow-0 lg:p-10 w-full"
-    	id="{{ 'admin-card-' . ($widget?->name?->value ?? 'premium-advantages') }}"
+        id="{{ 'admin-card-' . ($widget?->name?->value ?? 'premium-advantages') }}"
     >
         <x-outline-glow
             class="[--glow-color-primary:238deg_71%_79%] [--glow-color-secondary:166deg_74%_45%] [--outline-glow-iteration:2] [--outline-glow-w:4px]"
             effect="3"
         />
 
-        <div
-            class="mb-6 inline-grid size-14 place-content-center rounded-xl bg-gradient-to-br from-[#82E2F4] via-[#8A8AED] to-[#6977DE] text-white">
+        <div class="mb-6 absolute right-8 inline-grid size-14 place-content-center rounded-xl bg-gradient-to-br from-gradient-from via-gradient-via to-gradient-to text-white">
             <x-tabler-diamond
                 class="size-10"
                 stroke-width="1.5"
@@ -19,8 +18,8 @@
         <h3 class="mb-6">
             @lang('Premium Advantages')
         </h3>
-        <ul class="mb-11 space-y-4 self-center text-xs font-medium text-heading-foreground">
-            @foreach ($premium_features as $feature)
+        <ul class="mb-11 space-y-4 self-center text-xs font-medium">
+            @foreach ($premium_features as $feature => $tooltip)
                 <li class="flex items-center gap-3.5">
                     <svg
                         width="16"
@@ -42,19 +41,19 @@
                                 y2="14.7613"
                                 gradientUnits="userSpaceOnUse"
                             >
-                                <stop stop-color="#82E2F4" />
+                                <stop stop-color="hsl(var(--gradient-from))" />
                                 <stop
                                     offset="0.502"
-                                    stop-color="#8A8AED"
+                                    stop-color="hsl(var(--gradient-via))"
                                 />
                                 <stop
                                     offset="1"
-                                    stop-color="#6977DE"
+                                    stop-color="hsl(var(--gradient-to))"
                                 />
                             </linearGradient>
                         </defs>
                     </svg>
-                    {{ $feature }}
+                    {!! $feature !!} <x-info-tooltip :text="$tooltip"/>
                 </li>
             @endforeach
         </ul>

@@ -19,6 +19,7 @@ class MarketplaceServiceProvider extends ServiceProvider
      */
     public array $bindings = [
         ExtensionRepositoryInterface::class => ExtensionRepository::class,
+        'migration'                         => \App\Extensions\Migration\System\MigrationServiceProvider::class,
     ];
 
     /**
@@ -73,15 +74,19 @@ class MarketplaceServiceProvider extends ServiceProvider
         'ai-chat-pro'            => \App\Extensions\AIChatPro\System\AIChatProServiceProvider::class,
         'announcement'           => \App\Extensions\Announcement\System\AnnouncementServiceProvider::class,
         'ai-realtime-image'      => \App\Extensions\AIRealtimeImage\System\AIRealtimeImageServiceProvider::class,
-        'chatbot-multi-channel'  => \App\Extensions\ChatbotMultiChannel\System\ChatbotMultiChannelServiceProvider::class,
         'azure-openai'           => \App\Extensions\AzureOpenai\System\AzureOpenaiServiceProvider::class,
-        'chatbot-voice'			       => \App\Extensions\ChatbotVoice\System\ChatbotVoiceServiceProvider::class,
+        'chatbot-voice'          => \App\Extensions\ChatbotVoice\System\ChatbotVoiceServiceProvider::class,
         'chatbot-telegram'       => \App\Extensions\ChatbotTelegram\System\ChatbotTelegramServiceProvider::class,
         'chatbot-whatsapp'       => \App\Extensions\ChatbotWhatsapp\System\ChatbotWhatsappServiceProvider::class,
+        'marketing-bot'          => \App\Extensions\MarketingBot\System\MarketingBotServiceProvider::class,
+        'migration'              => \App\Extensions\Migration\System\MigrationServiceProvider::class,
+        'live-customizer'        => \App\Extensions\LiveCustomizer\System\LiveCustomizerServiceProvider::class,
+        'elevenlabs-voice-chat'  => \App\Extensions\ElevenLabsVoiceChat\System\ElevenLabsVoiceChatServiceProvider::class,
     ];
 
     public function register(): void
     {
+
         $this->extensionProviderRegister();
     }
 

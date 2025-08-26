@@ -4,8 +4,8 @@ namespace App\Services\Dashboard;
 
 use App\Domains\Engine\Concerns\HasCache;
 use App\Extensions\Announcement\System\Models\Announcement;
-use App\Extensions\Chatbot\System\Models\Chatbot;
 use App\Helpers\Classes\MarketplaceHelper;
+use App\Models\Favourite;
 use App\Models\UserOpenai;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -119,7 +119,7 @@ class UserDashboardService
 
         $this->cache('favorite_chatbots', function () {
             if (MarketplaceHelper::isRegistered('chatbot')) {
-                return Chatbot::where('is_favorite', true)->take(4)->get();
+                return Favourite::where('type', 'chat')->with('openaiGeneratorChatCategory')->take(4)->get();
             }
 
             return null;

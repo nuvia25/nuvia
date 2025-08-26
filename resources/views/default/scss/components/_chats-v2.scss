@@ -223,7 +223,7 @@
 		}
 
 		.lqd-dropdown-dropdown {
-			@apply end-0 start-0 rounded-none max-lg:h-[calc(var(--chats-container-height))] max-md:max-h-none lg:pointer-events-auto lg:bg-background lg:visible lg:fixed lg:start-0 lg:top-0 lg:z-10 lg:h-screen lg:max-h-none lg:w-[405px] lg:-translate-x-full lg:translate-y-0 lg:opacity-100 lg:duration-200;
+			@apply end-0 start-0 rounded-none max-lg:h-[calc(var(--chats-container-height))] max-md:max-h-none lg:pointer-events-auto lg:bg-background lg:visible lg:fixed lg:start-0 lg:top-[var(--ad-h,0px)] lg:z-10 lg:h-screen lg:max-h-none lg:w-[405px] lg:-translate-x-full lg:translate-y-0 lg:opacity-100 lg:duration-200;
 		}
 
 		.lqd-dropdown-dropdown-content {

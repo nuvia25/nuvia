@@ -53,12 +53,13 @@
 	.apexcharts-legend-series[rel='2'],
 	.apexcharts-legend-series[rel='3'],
 	.apexcharts-legend-series[rel='4'],
-	.apexcharts-series + .apexcharts-datalabels,
-	.apexcharts-series + .apexcharts-datalabels + .apexcharts-datalabels,
-	.apexcharts-series + .apexcharts-datalabels + .apexcharts-datalabels + .apexcharts-datalabels,
-	.apexcharts-series + .apexcharts-datalabels + .apexcharts-datalabels + .apexcharts-datalabels + .apexcharts-datalabels {
+	.apexcharts-series+.apexcharts-datalabels,
+	.apexcharts-series+.apexcharts-datalabels+.apexcharts-datalabels,
+	.apexcharts-series+.apexcharts-datalabels+.apexcharts-datalabels+.apexcharts-datalabels,
+	.apexcharts-series+.apexcharts-datalabels+.apexcharts-datalabels+.apexcharts-datalabels+.apexcharts-datalabels {
 		display: none !important;
 	}
+
 	.apexcharts-series[rel='1'],
 	.apexcharts-series[rel='2'],
 	.apexcharts-series[rel='3'],
@@ -73,10 +74,12 @@
 	foreignObject {
 		overflow: visible;
 	}
+
 	.apexcharts-legend {
 		padding: 0;
 		overflow: visible;
 	}
+
 	.apexcharts-legend-series {
 		display: flex;
 		align-items: center;
@@ -92,6 +95,35 @@
 				font-weight: 700;
 				margin-inline-start: auto;
 			}
+		}
+	}
+}
+
+#popular-ai-tools {
+
+	.apexcharts-legend,
+	.apexcharts-svg,
+	.apexcharts-svg>foreignObject {
+		@apply lg:overflow-visible
+	}
+
+	.apexcharts-legend {
+
+		@media (screen('lg')) {
+			top: 50% !important;
+			bottom: auto !important;
+			transform: translateY(-50%) !important;
+		}
+	}
+
+	.apexcharts-legend-series {
+		@apply lg:py-4 lg:border-b lg:last:border-b-0 lg:text-sm lg:font-medium;
+	}
+
+	.apexcharts-legend-marker {
+		@media (screen('lg')) {
+			width: 10px !important;
+			height: 10px !important;
 		}
 	}
 }

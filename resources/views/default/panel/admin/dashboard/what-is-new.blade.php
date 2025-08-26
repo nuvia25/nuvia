@@ -9,51 +9,51 @@
     >
         <h2 class="font-bold">@lang("What's New")</h2>
     </x-slot:head>
-    <div class="flex flex-wrap gap-6 sm:flex-nowrap sm:gap-4 md:max-lg:gap-2 2xl:gap-8">
+    <div class="grid grid-cols-2 gap-6 sm:gap-4 xl:grid-cols-3 2xl:gap-8">
         <x-card
             class="relative grow cursor-pointer"
-            class:body="flex flex-col md:max-lg:gap-4 md:max-lg:gap-4 gap-6 items-center sm:items-start"
+            class:body="flex flex-col gap-6"
             size="sm"
         >
+            <h2 class="sm:text-[30px]">{{ cache('tickets') ?? 0 }}</h2>
+            <div class="flex flex-col gap-3">
+                <x-tabler-lifebuoy class="size-6"></x-tabler-lifebuoy>
+                <p class="text-lg font-medium">@lang('Tickets')</p>
+            </div>
             <a
                 class="absolute inset-0"
                 href="{{ route('dashboard.support.list') }}"
             ></a>
-            <h2 class="sm:text-[30px] md:max-lg:text-[20px]">{{ cache('tickets') ?? 0 }}</h2>
-            <div class="flex flex-col gap-3 max-sm:items-center">
-                <x-tabler-lifebuoy class="size-6"></x-tabler-lifebuoy>
-                <p class="text-lg font-medium md:max-lg:text-[12px]">@lang('Tickets')</p>
-            </div>
         </x-card>
         <x-card
             class="relative grow cursor-pointer"
-            class:body="flex flex-col md:max-lg:gap-4 gap-6 items-center sm:items-start"
+            class:body="flex flex-col gap-6"
             size="sm"
         >
+            <h2 class="sm:text-[30px]">{{ cache('transactions') ?? 0 }}</h2>
+            <div class="flex flex-col gap-3">
+                <x-tabler-coins class="size-6"></x-tabler-coins>
+                <p class="text-lg font-medium">@lang('Transactions')</p>
+            </div>
             <a
                 class="absolute inset-0"
                 href="{{ route('dashboard.admin.users.index') }}"
             ></a>
-            <h2 class="sm:text-[30px] md:max-lg:text-[20px]">{{ cache('transactions') ?? 0 }}</h2>
-            <div class="flex flex-col gap-3 max-sm:items-center">
-                <x-tabler-coins class="size-6"></x-tabler-coins>
-                <p class="text-lg font-medium md:max-lg:text-[12px] md:max-lg:text-[12px]">@lang('Transactions')</p>
-            </div>
         </x-card>
         <x-card
             class="relative grow cursor-pointer"
-            class:body="flex flex-col md:max-lg:gap-4 gap-6 items-center sm:items-start"
+            class:body="flex flex-col gap-6"
             size="sm"
         >
+            <h2 class="sm:text-[30px]">{{ cache('documents') ?? 0 }}</h2>
+            <div class="flex flex-col gap-3">
+                <x-tabler-clipboard-text class="size-6"></x-tabler-clipboard-text>
+                <p class="text-lg font-medium">@lang('Documents')</p>
+            </div>
             <a
                 class="absolute inset-0"
                 href="{{ route('dashboard.user.openai.documents.all') }}"
             ></a>
-            <h2 class="sm:text-[30px] md:max-lg:text-[20px]">{{ cache('documents') ?? 0 }}</h2>
-            <div class="flex flex-col gap-3 max-sm:items-center">
-                <x-tabler-clipboard-text class="size-6"></x-tabler-clipboard-text>
-                <p class="text-lg font-medium md:max-lg:text-[12px]">@lang('Documents')</p>
-            </div>
         </x-card>
     </div>
     <x-card

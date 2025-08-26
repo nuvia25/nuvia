@@ -37,64 +37,67 @@ const elevenLabsConversationalAI = ( agentId, botUuid ) => ( {
 	},
 	// add event listeners
 	addEventListeners() {
-		this.startConversationBtn.addEventListener( 'click', () => this.startConversation() );
+		this.startConversationBtn.addEventListener( 'click', () => {
+			this.startConversation();
+		} );
 		this.stopConversationBtn.addEventListener( 'click', () => this.stopConversation() );
 	},
 	// start conversation
 	async startConversation() {
-		const result = await this.checkVoiceBalance(true);
-		if (result.shouldStop) {
-			this.audioRecorder?.stop();
-			this.stopAudioStream();
-			await this.stopConversation();
-			alert(result.errorMsg);
+		// disable the btn to prevent double click
+		this.startConversationBtn.setAttribute( 'disabled', true );
+		this.startConversationBtn.querySelector( 'span' ).textContent = 'starting...';
+
+		const result = await this.checkVoiceBalance( true );
+		if ( result.shouldStop ) {
+			this.startConversationBtn.removeAttribute( 'disabled' );
+			this.startConversationBtn.querySelector( 'span' ).textContent = 'Voice Chat';
+
+			alert( result.errorMsg );
 			return;
-		} else {
-			try {
-				// disable the btn to prevent double click
-				this.startConversationBtn.setAttribute('disabled', true);
-				this.startConversationBtn.querySelector('span').textContent = 'starting...';
+		}
 
-				// request microphone permission
-				const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
-				this.audioStream = stream;
-				this.conversation = await Conversation.startSession({
-					agentId: this.agentId,
-					onConnect: async () => {
-						this.updateUIByStatus('calling');
+		try {
+			// request microphone permission
+			const stream = await navigator.mediaDevices.getUserMedia( { audio: true, video: false } );
+			this.audioStream = stream;
+			this.conversation = await Conversation.startSession( {
+				agentId: this.agentId,
+				onConnect: async () => {
+					this.updateUIByStatus( 'calling' );
 
-						await this.audioRecorder?.start(stream);
-						this.startDotVisualizer();
-					},
-					onDisconnect: () => {
-						this.disconnectHandle(this.conversation?.connection);
-						this.updateUIByStatus();
-						this.storeConversation(this.conversation.getId());
-						this.audioRecorder?.stop();
-						this.stopAudioStream();
-					},
-					onModeChange: mode => {
-						this.chatbotStatus.textContent = mode.mode === 'speaking' ? 'speaking' : 'listening';
-						const result2 = this.checkVoiceBalance();
-						if (result2.shouldStop) {
+					await this.audioRecorder?.start( stream );
+					this.startDotVisualizer();
+				},
+				onDisconnect: () => {
+					this.disconnectHandle( this.conversation?.connection );
+					this.updateUIByStatus();
+					this.storeConversation( this.conversation.getId() );
+					this.audioRecorder?.stop();
+					this.stopAudioStream();
+				},
+				onModeChange: mode => {
+					this.chatbotStatus.textContent = mode.mode === 'speaking' ? 'speaking' : 'listening';
+					this.checkVoiceBalance().then(result2 => {
+						if ( result2.shouldStop ) {
+							console.log(result2.shouldStop);
 							this.updateUIByStatus();
-							this.audioRecothis.updateUIByStatus();
-							rder?.stop();
+							this.audioRecorder?.stop();
 							this.stopAudioStream();
 							this.stopConversation();
-							alert(result2.errorMsg);
+							alert( result2.errorMsg );
 							return;
 						}
-					},
-					onError: error => {
-						console.error('Error:', error);
-					}
-				})
-			} catch (error) {
-				this.updateUIByStatus();
-				alert('Something went wrong with voice agent');
-				console.error(error);
-			}
+					});
+				},
+				onError: error => {
+					console.error( 'Error:', error );
+				}
+			} )
+		} catch ( error ) {
+			this.updateUIByStatus();
+			alert( 'Something went wrong with voice agent' );
+			console.error( error );
 		}
 	},
 	// stop conversation
@@ -151,7 +154,7 @@ const elevenLabsConversationalAI = ( agentId, botUuid ) => ( {
 				this.audioVisEl.style.opacity = 1;
 			}
 
-			this.startConversationBtn.setAttribute( 'disabled', 'false' );
+			this.startConversationBtn.removeAttribute( 'disabled' );
 			this.startConversationBtn.querySelector( 'span' ).textContent = 'Voice Chat';
 		} else if ( status == 'calling' ) {
 			this.startConversationBtn.style.display = 'none';
@@ -159,42 +162,42 @@ const elevenLabsConversationalAI = ( agentId, botUuid ) => ( {
 		}
 	},
 	stopAudioStream() {
-		if (this.audioStream) {
-			this.audioStream.getTracks().forEach(track => track.stop());
+		if ( this.audioStream ) {
+			this.audioStream.getTracks().forEach( track => track.stop() );
 			this.audioStream = null;
 		}
 	},
-	checkVoiceBalance(onStart = false) {
-		return new Promise(async (resolve) => {
+	checkVoiceBalance( onStart = false ) {
+		return new Promise( async ( resolve ) => {
 			try {
-				const response = await fetch('/chatbot-voice/checkVoiceBalance', {
+				const response = await fetch( '/chatbot-voice/checkVoiceBalance', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
 						'X-Requested-With': 'XMLHttpRequest',
-						'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content // if Laravel CSRF protection is on
+						'X-CSRF-TOKEN': document.querySelector( 'meta[name="csrf-token"]' )?.content // if Laravel CSRF protection is on
 					},
-					body: JSON.stringify({
+					body: JSON.stringify( {
 						onStart: onStart,
 						uuId: this.uuId
-					})
-				});
+					} )
+				} );
 
-				if (!response.ok) {
-					resolve({ shouldStop: true, errorMsg: 'An error occurred.' });
+				if ( !response.ok ) {
+					resolve( { shouldStop: true, errorMsg: 'An error occurred.' } );
 					return;
 				}
 
 				const data = await response.json();
 				const shouldStop = data.status === 'error';
 				const errorMsg = data.message || '';
-				resolve({ shouldStop, errorMsg });
+				resolve( { shouldStop, errorMsg } );
 
-			} catch (error) {
-				console.error('checkBalance fetch failed:', error);
-				resolve({ shouldStop: true, errorMsg: 'An error occurred.' });
+			} catch ( error ) {
+				console.error( 'checkBalance fetch failed:', error );
+				resolve( { shouldStop: true, errorMsg: 'An error occurred.' } );
 			}
-		});
+		} );
 	},
 	handleAudioRecordingBuffer( data ) { },
 	startDotVisualizer() {

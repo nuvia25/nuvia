@@ -16,24 +16,26 @@
 
 @endphp
 
-<x-card class="w-full" id="summary" size="lg">
-    <div class="flex justify-between sm:mb-7 max-sm:flex-wrap">
-        <h3 class="inline-grid items-center leading-6 text-[17px] mb-0">
+<x-card
+    class="w-full"
+    id="summary"
+    size="lg"
+>
+    <div class="flex justify-between max-sm:flex-wrap sm:mb-7">
+        <h3 class="mb-0 inline-grid items-center text-[17px] leading-6">
             @lang('Account Summary')
         </h3>
-        <div class="flex justify-between w-full sm:w-1/2 max-sm:flex-wrap">
-            <div
-                class="flex relative justify-center flex-col grow sm:ps-12 sm:after:h-[80%] sm:after:w-px sm:after:bg-foreground/20 sm:after:absolute sm:after:right-0">
-                <p class="text-nowrap leading-5 text-sm">@lang('Hours Saved')</p>
+        <div class="flex w-full justify-between max-sm:flex-wrap sm:w-1/2">
+            <div class="relative flex grow flex-col justify-center sm:ps-12 sm:after:absolute sm:after:right-0 sm:after:h-[80%] sm:after:w-px sm:after:bg-border">
+                <p class="text-nowrap text-sm leading-5">@lang('Hours Saved')</p>
                 <h2>{{ $hoursSaved }}</h2>
             </div>
-            <div
-                class="flex relative justify-center flex-col grow sm:ps-12 sm:after:h-[80%] sm:after:w-px sm:after:bg-foreground/20 sm:after:absolute sm:after:right-0">
-                <p class="text-nowrap leading-5 text-sm">@lang('Documents')</p>
+            <div class="relative flex grow flex-col justify-center sm:ps-12 sm:after:absolute sm:after:right-0 sm:after:h-[80%] sm:after:w-px sm:after:bg-border">
+                <p class="text-nowrap text-sm leading-5">@lang('Documents')</p>
                 <h2> {{ $docsCount }} </h2>
             </div>
-            <div class="flex justify-center flex-col grow sm:ps-12">
-                <p class="text-nowrap leading-5 text-sm">@lang('Chatbots')</p>
+            <div class="flex grow flex-col justify-center sm:ps-12">
+                <p class="text-nowrap text-sm leading-5">@lang('Chatbots')</p>
                 <h2>{{ $chatbotCount }}</h2>
             </div>
         </div>
@@ -43,40 +45,49 @@
 
     <div class="flex flex-col gap-4 sm:py-6">
         <h4 class="text-foreground/80">@lang('Document Overview')</h4>
-        <div class="flex items-center max-sm:flex-wrap flex-nowrap max-sm:gap-4 gap-10">
-            <div class="flex flex-nowrap gap-0.5 w-full h-[10px] rounded-lg overflow-hidden">
-                <span class="bg-[#9A34CD] {{ $textDocsCount == 0 ? 'hidden' : '' }}"
-                    style="width: {{ $sum == 0 ? '100' : ($textDocsCount / $sum) * 100 }}%"></span>
-                <span class="bg-[#1CA685] {{ $imageDocsCount == 0 ? 'hidden' : '' }}"
-                    style="width: {{ $sum == 0 ? '100' : ($imageDocsCount / $sum) * 100 }}%"></span>
-                <span class="bg-[#667085] {{ $audioDocsCount == 0 ? 'hidden' : '' }}"
-                    style="width: {{ $sum == 0 ? '100' : ($audioDocsCount / $sum) * 100 }}%"></span>
+        <div class="flex flex-nowrap items-center gap-10 max-sm:flex-wrap max-sm:gap-4">
+            <div class="flex h-[10px] w-full flex-nowrap gap-0.5 overflow-hidden rounded-lg">
+                <span
+                    class="{{ $textDocsCount == 0 ? 'hidden' : '' }} bg-accent"
+                    style="width: {{ $sum == 0 ? '100' : ($textDocsCount / $sum) * 100 }}%"
+                ></span>
+                <span
+                    class="{{ $imageDocsCount == 0 ? 'hidden' : '' }} bg-[#1CA685]"
+                    style="width: {{ $sum == 0 ? '100' : ($imageDocsCount / $sum) * 100 }}%"
+                ></span>
+                <span
+                    class="{{ $audioDocsCount == 0 ? 'hidden' : '' }} bg-[#667085]"
+                    style="width: {{ $sum == 0 ? '100' : ($audioDocsCount / $sum) * 100 }}%"
+                ></span>
             </div>
-            <x-button variant="link" href="{{ route('dashboard.user.openai.documents.all') }}">
-                <span class="text-foreground font-bold text-nowrap">@lang('View All')</span>
-                <x-tabler-chevron-right class="ms-auto size-4" />
+            <x-button
+                variant="link"
+                href="{{ route('dashboard.user.openai.documents.all') }}"
+            >
+                <span class="text-nowrap font-bold text-foreground">@lang('View All')</span>
+                <x-tabler-chevron-right class="size-4 rtl:rotate-180" />
             </x-button>
         </div>
-        <div class="inline-flex flex-wrap max-sm:gap-3 gap-7 pt-1 px-2">
+        <div class="inline-flex flex-wrap gap-7 px-2 pt-1 max-sm:gap-3">
             <div class="inline-flex items-center gap-2">
-                <span class="size-2.5 rounded-sm bg-[#9A34CD]"></span>
-                <span class="text-heading-foreground text-sm leading-5">@lang('Text')</span>
-                <span class="text-foreground/70 leading-5">{{ $textDocsCount }}</span>
+                <span class="size-2.5 rounded-sm bg-accent"></span>
+                <span class="text-sm leading-5 text-heading-foreground">@lang('Text')</span>
+                <span class="leading-5 text-foreground/70">{{ $textDocsCount }}</span>
             </div>
             <div class="inline-flex items-center gap-2">
                 <span class="size-2.5 rounded-sm bg-[#1CA685]"></span>
-                <span class="text-heading-foreground text-sm leading-5">@lang('Image')</span>
-                <span class="text-foreground/70 leading-5">{{ $imageDocsCount }}</span>
+                <span class="text-sm leading-5 text-heading-foreground">@lang('Image')</span>
+                <span class="leading-5 text-foreground/70">{{ $imageDocsCount }}</span>
             </div>
             <div class="inline-flex items-center gap-2">
                 <span class="size-2.5 rounded-sm bg-[#667085]"></span>
-                <span class="text-heading-foreground text-sm leading-5">@lang('Audio')</span>
-                <span class="text-foreground/70 leading-5">{{ $audioDocsCount }}</span>
+                <span class="text-sm leading-5 text-heading-foreground">@lang('Audio')</span>
+                <span class="leading-5 text-foreground/70">{{ $audioDocsCount }}</span>
             </div>
             <div class="inline-flex items-center gap-2">
                 <span class="size-2.5 rounded-sm bg-[#E6E7E9]"></span>
-                <span class="text-heading-foreground text-sm leading-5">@lang('Other')</span>
-                <span class="text-foreground/70 leading-5">{{ $otherDocsCount }}</span>
+                <span class="text-sm leading-5 text-heading-foreground">@lang('Other')</span>
+                <span class="leading-5 text-foreground/70">{{ $otherDocsCount }}</span>
             </div>
         </div>
     </div>

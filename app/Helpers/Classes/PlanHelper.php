@@ -58,7 +58,7 @@ class PlanHelper
         $checkArray = array_merge($plan_ai_tools, $plan_features);
 
         if ($checkArray) {
-            return in_array($key, $checkArray);
+            return array_key_exists($key, $checkArray) && $checkArray[$key] == true;
         }
 
         return false;

@@ -5,6 +5,7 @@ namespace MagicAI\Updater\Traits;
 use App\Domains\Marketplace\Repositories\Contracts\ExtensionRepositoryInterface;
 use App\Helpers\Classes\InstallationHelper;
 use App\Models\Setting;
+use Exception;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -16,6 +17,52 @@ use RuntimeException;
 
 trait HasVersionUpdate
 {
+    public ?string $downloadFileCacheKey = 'downloadFileCacheKey';
+
+    public function downloadNewVersion(): void
+    {
+        set_time_limit(0); // unlimited max execution time
+        ini_set('memory_limit', '-1'); // increase memory_limit to 1GB
+
+        $blackList = app(ExtensionRepositoryInterface::class)->blacklist();
+
+        if ($blackList) {
+            throw ValidationException::withMessages([
+                'message' => 'Please try again later!',
+            ]);
+        }
+
+        $version = $this->nextVersion;
+
+        $downloadUrl = config('magicai-updater.base_url') . $this->versionZipFile;
+
+        try {
+            $downloadFile = $this->download($downloadUrl, 'new-version' . $version . '.zip');
+
+            cache()->remember($this->downloadFileCacheKey, now()->addMinutes(30), function () use ($downloadFile, $version) {
+                return [
+                    'file'    => $downloadFile,
+                    'version' => $version,
+                ];
+            });
+
+        } catch (Exception $exception) {
+
+            Log::error($exception->getMessage());
+
+            throw ValidationException::withMessages([
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    public function getDownloadVersion(): ?string
+    {
+        $array = cache($this->downloadFileCacheKey) ?: [];
+
+        return data_get($array, 'version');
+    }
+
     public function updateNewVersion(string $backupFileName): bool
     {
         set_time_limit(0); // unlimited max execution time
@@ -29,11 +76,15 @@ trait HasVersionUpdate
             ]);
         }
 
-        $versionRequest = $this->versionRequest();
+        $version = $this->nextVersion;
 
-        $version = $versionRequest->json('version');
+        $downloadFile = data_get(cache($this->downloadFileCacheKey), 'file');
 
-        $downloadUrl = config('magicai-updater.base_url') . $versionRequest->json('archive');
+        if (! $downloadFile || ! file_exists($downloadFile)) {
+            throw ValidationException::withMessages([
+                'message' => 'The download file could not be found. Please try again.',
+            ]);
+        }
 
         try {
             if (File::exists(base_path('bootstrap/cache/packages.php'))) {
@@ -44,13 +95,7 @@ trait HasVersionUpdate
                 File::delete(base_path('bootstrap/cache/services.php'));
             }
 
-            Artisan::call('config:clear');
-            Artisan::call('cache:clear');
-            Artisan::call('route:clear');
-            Artisan::call('view:clear');
             Artisan::call('optimize:clear');
-
-            $downloadFile = $this->download($downloadUrl, 'new-version' . $version . '.zip');
 
             DB::beginTransaction();
 

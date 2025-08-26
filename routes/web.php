@@ -8,6 +8,7 @@ use App\Http\Controllers\Common\ClearController;
 use App\Http\Controllers\Common\DebugModeController;
 use App\Http\Controllers\Common\LocaleController;
 use App\Http\Controllers\Common\SitemapController;
+use App\Http\Controllers\FontsController;
 use App\Http\Controllers\IndexController;
 use App\Http\Controllers\InstallationController;
 use App\Http\Controllers\MailController;
@@ -24,9 +25,10 @@ Route::any('test', [TestController::class, 'test'])->name('test');
 
 Route::view('test/chatbot', 'default.chatbot');
 Route::get('default', static function () {
-    return response()->noContent();
-})->name('default');
+    return response()->noContent(
 
+    );
+})->name('default');
 Route::middleware('checkInstallation')
     ->group(static function () {
         Route::get('', IndexController::class)->name('index');
@@ -65,7 +67,7 @@ Route::controller(InstallationController::class)
 
 Route::get('clear-log', [ClearController::class, 'clearLog'])->name('clearLog');
 Route::get('cache-clear', [ClearController::class, 'cacheClear'])->name('cache.clear');
-
+Route::get('update-fonts', [FontsController::class, 'updateFontsCache']);
 Route::get('debug/{token}', DebugModeController::class)->name('debug');
 Route::get('check-subscription-end', CheckSubscriptionEndController::class)->name('check-subscription-end');
 

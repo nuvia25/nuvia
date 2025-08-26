@@ -1,5 +1,5 @@
 <div
-    class="flex w-full flex-col gap-6 md:col-span-2"
+    class="flex w-full flex-col gap-6 lg:col-span-2"
     id="{{ 'admin-card-' . ($widget?->name?->value ?? 'finance') }}"
 >
     <div class="flex items-center justify-between">
@@ -16,7 +16,7 @@
         class:body="grid grid-cols-10 gap-9 px-2 sm:px-8 py-6"
         size="md"
     >
-        <div class="col-span-10 flex flex-col gap-6 sm:col-span-8">
+        <div class="col-span-10 flex flex-col gap-6 sm:col-span-8 sm:max-lg:col-span-7">
             <div class="flex items-end justify-between">
                 <div class="flex flex-col gap-1">
                     <h4 class="flex items-center gap-1"> @lang('Total Earnings')
@@ -72,12 +72,12 @@
                 id="chart-daily-sales"
             ></div>
         </div>
-        <div class="col-span-10 flex flex-col justify-center gap-7 sm:col-span-2">
+        <div class="col-span-10 grid grid-cols-1 content-center gap-7 sm:col-span-2 sm:max-lg:col-span-3">
             <x-card
                 class:body="py-2"
                 size="sm"
             >
-                <div class="flex flex-col gap-3 max-sm:items-center">
+                <div class="flex flex-col gap-3">
                     <span class="font-medium text-heading-foreground">{{ __('Referral Payouts') }}</span>
                     <h3 class="lqd-statistic-change m-0 flex items-center text-2xl sm:text-[30px]">
                         <span class="text-xl">{{ $currencySymbol }}</span>{{ cache('referral_payout') }}
@@ -88,7 +88,7 @@
                 class:body="py-2"
                 size="sm"
             >
-                <div class="flex flex-col gap-3 max-sm:items-center">
+                <div class="flex flex-col gap-3">
                     <span class="font-medium text-heading-foreground">{{ __('Total Spending') }}</span>
                     <h3 class="lqd-statistic-change m-0 flex items-center text-2xl sm:text-[30px]">
                         <span
