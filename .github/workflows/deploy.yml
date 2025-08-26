@@ -66,10 +66,42 @@ jobs:
             # Prepare environment file
             [ -f .env ] || ( [ -f .env.example ] && cp .env.example .env ) || true
             
-            # Build and start production stack (fallback without make)
-            if command -v make >/dev/null 2>&1; then
-              make deploy
-            else
-              docker compose -f docker-compose.prod.yml up -d --build
+            # Ensure Docker (Engine + Compose) is installed
+            set -e
+            if ! command -v curl >/dev/null 2>&1; then
+              if command -v apt-get >/dev/null 2>&1; then
+                sudo apt-get update -y && sudo apt-get install -y curl ca-certificates gnupg lsb-release || true
+              elif command -v yum >/dev/null 2>&1; then
+                sudo yum install -y curl ca-certificates || true
+              fi
             fi
+            if ! command -v docker >/dev/null 2>&1; then
+              echo "Docker não encontrado. Instalando via get.docker.com..."
+              curl -fsSL https://get.docker.com | sh
+            fi
+            # Start docker service if stopped
+            (sudo systemctl enable --now docker || sudo service docker start || true) >/dev/null 2>&1
+            
+            # Determine compose command (prefer v2 plugin)
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE_CMD="sudo docker compose"
+            elif command -v docker-compose >/dev/null 2>&1; then
+              COMPOSE_CMD="sudo docker-compose"
+            else
+              # Try to install compose v2 plugin on Debian/Ubuntu
+              if command -v apt-get >/dev/null 2>&1; then
+                sudo apt-get update -y && sudo apt-get install -y docker-compose-plugin || true
+              fi
+              if docker compose version >/dev/null 2>&1; then
+                COMPOSE_CMD="sudo docker compose"
+              elif command -v docker-compose >/dev/null 2>&1; then
+                COMPOSE_CMD="sudo docker-compose"
+              else
+                echo "Erro: Docker Compose não está disponível mesmo após tentativa de instalação." >&2
+                exit 1
+              fi
+            fi
+            
+            # Build and start production stack
+            $COMPOSE_CMD -f docker-compose.prod.yml up -d --build
           EOF
