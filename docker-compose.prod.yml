@@ -39,19 +39,30 @@ services:
       - ./public:/var/www/public:ro
       - letsencrypt:/etc/letsencrypt
       - certbot-web:/var/www/certbot
-    command: >-
-      /bin/sh -lc '
-      if [ -z "$SERVER_NAME" ]; then echo "SERVER_NAME não definido" >&2; exit 1; fi;
-      if [ -f "/etc/letsencrypt/live/$SERVER_NAME/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$SERVER_NAME/privkey.pem" ]; then ENABLE_SSL=1; else ENABLE_SSL=0; fi;
-      echo "[nginx] SERVER_NAME=$SERVER_NAME ENABLE_SSL=$ENABLE_SSL";
-      if [ "$ENABLE_SSL" = "1" ]; then
-        export ENABLE_SSL;
-        envsubst '$$SERVER_NAME $$ENABLE_SSL' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf;
-      else
-        # Strip SSL block between #BEGIN_SSL and #END_SSL
-        awk '/#BEGIN_SSL/{flag=1; next} /#END_SSL/{flag=0; next} !flag {print}' /etc/nginx/conf.d/default.conf.template | ENABLE_SSL=0 envsubst '$$SERVER_NAME $$ENABLE_SSL' > /etc/nginx/conf.d/default.conf;
+    command: >
+      sh -c "
+      if [ -z \"$$SERVER_NAME\" ]; then 
+        echo 'SERVER_NAME não definido' >&2; 
+        exit 1; 
       fi;
-      nginx -t && exec nginx -g "daemon off;"'
+      
+      if [ -f \"/etc/letsencrypt/live/$$SERVER_NAME/fullchain.pem\" ] && [ -f \"/etc/letsencrypt/live/$$SERVER_NAME/privkey.pem\" ]; then 
+        ENABLE_SSL=1; 
+      else 
+        ENABLE_SSL=0; 
+      fi;
+      
+      echo '[nginx] SERVER_NAME='$$SERVER_NAME' ENABLE_SSL='$$ENABLE_SSL;
+      
+      if [ \"$$ENABLE_SSL\" = \"1\" ]; then
+        export ENABLE_SSL;
+        envsubst '\$$SERVER_NAME \$$ENABLE_SSL' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf;
+      else
+        awk '/#BEGIN_SSL/{flag=1; next} /#END_SSL/{flag=0; next} !flag {print}' /etc/nginx/conf.d/default.conf.template | ENABLE_SSL=0 envsubst '\$$SERVER_NAME \$$ENABLE_SSL' > /etc/nginx/conf.d/default.conf;
+      fi;
+      
+      nginx -t && exec nginx -g 'daemon off;'
+      "
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
       interval: 30s

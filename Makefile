@@ -169,19 +169,30 @@ ssl-status:
 .PHONY: nginx-reload
 nginx-reload:
 	@echo "[nginx] Rendering config and reloading"
-	@$(COMPOSE_BIN) -f docker-compose.prod.yml exec nginx sh -lc '
-	  if [ -z "$$SERVER_NAME" ]; then echo "SERVER_NAME não definido no contêiner nginx" >&2; exit 1; fi;
+	@$(COMPOSE_BIN) -f docker-compose.prod.yml exec nginx sh -c '
+	  if [ -z "$$SERVER_NAME" ]; then
+	    echo "SERVER_NAME não definido no contêiner nginx" >&2;
+	    exit 1;
+	  fi;
+
 	  if [ -f "/etc/nginx/conf.d/default.conf.template" ]; then
-	    if [ -f "/etc/letsencrypt/live/$$SERVER_NAME/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$$SERVER_NAME/privkey.pem" ]; then ENABLE_SSL=1; else ENABLE_SSL=0; fi;
-	    echo "[nginx] SERVER_NAME=$$SERVER_NAME ENABLE_SSL=$$ENABLE_SSL (reload)";
-	    if [ "$$ENABLE_SSL" = "1" ]; then
-	      env ENABLE_SSL=$$ENABLE_SSL envsubst "$$SERVER_NAME $$ENABLE_SSL" < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf;
+	    if [ -f "/etc/letsencrypt/live/$$SERVER_NAME/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$$SERVER_NAME/privkey.pem" ]; then
+	      ENABLE_SSL=1;
 	    else
-	      awk '/#BEGIN_SSL/{flag=1; next} /#END_SSL/{flag=0; next} !flag {print}' /etc/nginx/conf.d/default.conf.template | ENABLE_SSL=0 envsubst "$$SERVER_NAME $$ENABLE_SSL" > /etc/nginx/conf.d/default.conf;
+	      ENABLE_SSL=0;
+	    fi;
+
+	    echo "[nginx] SERVER_NAME=$$SERVER_NAME ENABLE_SSL=$$ENABLE_SSL (reload)";
+
+	    if [ "$$ENABLE_SSL" = "1" ]; then
+	      env ENABLE_SSL=$$ENABLE_SSL envsubst "\$$SERVER_NAME \$$ENABLE_SSL" < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf;
+	    else
+	      awk '\''/#BEGIN_SSL/{flag=1; next} /#END_SSL/{flag=0; next} !flag {print}'\'' /etc/nginx/conf.d/default.conf.template | ENABLE_SSL=0 envsubst "\$$SERVER_NAME \$$ENABLE_SSL" > /etc/nginx/conf.d/default.conf;
 	    fi;
 	  fi;
+
 	  nginx -t && nginx -s reload'
-	@rc=$$?; if [ $$rc -ne 0 ]; then echo "[nginx] Reload falhou, reiniciando container..."; $(COMPOSE_BIN) -f docker-compose.prod.yml restart nginx; fi
+	@if [ $$? -ne 0 ]; then echo "[nginx] Reload falhou, reiniciando container..."; $(COMPOSE_BIN) -f docker-compose.prod.yml restart nginx; fi
 
 .PHONY: ssl-renew
 ssl-renew:
