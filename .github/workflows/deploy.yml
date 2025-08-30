@@ -25,17 +25,28 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git && SERVER_NAME='${{ secrets.SERVER_NAME }}' make deploy-prod"
 
+      - name: Bootstrap HTTPS (first run) only if no valid cert exists
+        if: ${{ secrets.CERTBOT_EMAIL != '' && secrets.SERVER_NAME != '' }}
+        run: |
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && echo '[deploy] Checking existing certificates...' && make ssl-status || true && (
+            docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q 'Domains: ${{ secrets.SERVER_NAME }}' && echo '[deploy] ✅ Cert already exists' || (
+              echo '[deploy] 🚀 Bootstrapping certificate for ${{ secrets.SERVER_NAME }}' && make certbot-init MODE=prod domain='${{ secrets.SERVER_NAME }}' email='${{ secrets.CERTBOT_EMAIL }}' && make MODE=prod nginx-reload
+            )
+          )"
+
       - name: Verify deployment
         run: |
           ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && docker compose -f docker-compose.prod.yml ps"
 
-      - name: Test site connectivity (HTTP only)
+      - name: Test site connectivity (HTTP and HTTPS)
         run: |
           sleep 10
           URL='${{ secrets.SERVER_NAME }}'
           if [ -z "$URL" ]; then URL='${{ secrets.SSH_HOST }}'; fi
           echo "Testando HTTP em: http://$URL"
-          curl -f -m 20 "http://$URL" -o /dev/null && echo "✅ HTTP OK" || echo "⚠️ Site não responde via HTTP"
+          (curl -fsS -m 20 "http://$URL" -o /dev/null && echo "✅ HTTP OK") || echo "⚠️ HTTP falhou"
+          echo "Testando HTTPS em: https://$URL"
+          (curl -fsS -m 20 --retry 2 --retry-connrefused --retry-delay 3 "https://$URL" -o /dev/null && echo "✅ HTTPS OK") || echo "⚠️ HTTPS ainda não disponível (pode precisar emissão/propagação DNS)"
 
 
       - name: Cleanup SSH key

@@ -1,0 +1,25 @@
+name: SSL Renew (Let's Encrypt)
+
+on:
+  schedule:
+    - cron: '17 3 * * *' # Daily at 03:17 UTC
+  workflow_dispatch:
+
+jobs:
+  renew:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+      - name: Renew certificates and reload Nginx
+        run: |
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && make ssl-renew MODE=prod"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_rsa ~/.ssh/id_ed25519
