@@ -1,0 +1,126 @@
+# Intelligent Nginx template for HTTP->HTTPS with graceful fallback
+# This file is rendered by docker-compose command using envsubst and a small shell that
+# strips the SSL block if certificates are not present.
+# Required envs: SERVER_NAME, ENABLE_SSL (set by startup command; 1 when certs exist, 0 otherwise)
+
+# Map a boolean-like env to a variable to control redirect behavior
+map $ENABLE_SSL $redirect_https {
+    default 0;
+    "1"     1;
+}
+
+# Upstream PHP-FPM
+upstream php_upstream {
+    server app:9000;
+    keepalive 16;
+}
+
+# HTTP server always on: serves app and ACME challenge
+server {
+    listen 80;
+    server_name ${SERVER_NAME};
+
+    # Healthcheck endpoint
+    location = /health { return 200 'ok'; add_header Content-Type text/plain; }
+
+    # ACME challenge for certbot webroot
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+        try_files $uri =404;
+    }
+
+    # If SSL is ready, redirect everything else to HTTPS
+    if ($redirect_https) { return 301 https://$host$request_uri; }
+
+    root /var/www/public;
+    index index.php index.html index.htm;
+
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include        fastcgi_params;
+        fastcgi_pass   php_upstream;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param  PATH_INFO        $fastcgi_path_info;
+        fastcgi_param  PATH_TRANSLATED  $document_root$fastcgi_path_info;
+        fastcgi_buffers 16 16k;
+        fastcgi_buffer_size 32k;
+    }
+
+    # Deny access to hidden and sensitive files
+    location ~ /\.ht { deny all; }
+    location ~ /\.git { deny all; }
+    location ~ /\.env { deny all; }
+}
+
+#BEGIN_SSL
+# HTTPS server only active when ENABLE_SSL=1 (this entire block is stripped otherwise)
+server {
+    listen 443 ssl http2;
+    server_name ${SERVER_NAME};
+
+    # Healthcheck endpoint
+    location = /health { return 200 'ok'; add_header Content-Type text/plain; }
+
+    # SSL certificates (Let’s Encrypt)
+    ssl_certificate     /etc/letsencrypt/live/${SERVER_NAME}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${SERVER_NAME}/privkey.pem;
+
+    # OCSP stapling (optional; requires chain)
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    resolver 1.1.1.1 1.0.0.1 valid=300s;
+    resolver_timeout 5s;
+
+    # Strong SSL settings (aim A+ SSL Labs)
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:\
+                 ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:\
+                 ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256';
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
+
+    # HSTS (only when HTTPS is active)
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
+    # ACME challenge (still serve over HTTPS just in case)
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+        try_files $uri =404;
+    }
+
+    root /var/www/public;
+    index index.php index.html index.htm;
+
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include        fastcgi_params;
+        fastcgi_pass   php_upstream;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param  PATH_INFO        $fastcgi_path_info;
+        fastcgi_param  PATH_TRANSLATED  $document_root$fastcgi_path_info;
+        fastcgi_buffers 16 16k;
+        fastcgi_buffer_size 32k;
+    }
+
+    # Deny access to hidden and sensitive files
+    location ~ /\.ht { deny all; }
+    location ~ /\.git { deny all; }
+    location ~ /\.env { deny all; }
+}
+#END_SSL

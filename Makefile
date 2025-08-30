@@ -135,6 +135,9 @@ help:
 	@echo "  make storage-link             - Cria link simbólico do storage"
 	@echo "  make prune                    - Remove tudo (imagens/volumes/órfãos)"
 	@echo "  make certbot-init domain=example.com email=me@example.com - Emite certificado inicial (prod)"
+	@echo "  make ssl-status               - Mostra certificados gerenciados pelo Let's Encrypt"
+	@echo "  make ssl-renew                - Renova certificados (webroot) e recarrega o Nginx"
+	@echo "  make nginx-reload             - Recarrega o Nginx (sem downtime)"
 	@echo "  make deploy                   - Build + Up em produção (usa docker-compose.prod.yml)"
 	@echo "  make help                     - Exibe esta ajuda"
 
@@ -142,9 +145,12 @@ help:
 .PHONY: certbot-init
 depends_prod_nginx :=
 certbot-init:
-	@if [ -z "$(domain)" ] || [ -z "$(email)" ]; then echo "Uso: make certbot-init MODE=prod domain=seu.dominio.com email=voce@dominio.com"; exit 1; fi
-	@$(COMPOSE_BIN) -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot -d $(domain) --email $(email) --agree-tos --no-eff-email || true
-	@echo "Certificado solicitado. Reinicie o nginx: make MODE=prod restart"
+	@if [ -z "$(domain)" ] || [ -z "$(email)" ]; then echo "Uso: make certbot-init MODE=prod domain=seu.dominio.com[,outro.com] email=voce@dominio.com"; exit 1; fi
+	@DOMAINS_ARGS=""; \
+	DOMS="$(domain)"; \
+	for d in $${DOMS//,/ }; do DOMAINS_ARGS="$$DOMAINS_ARGS -d $$d"; done; \
+	$(COMPOSE_BIN) -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot $$DOMAINS_ARGS --email $(email) --agree-tos --no-eff-email || true
+	@echo "Certificado solicitado. Recarregue o nginx: make MODE=prod nginx-reload"
 
 .PHONY: deploy
 deploy:
@@ -160,9 +166,27 @@ deploy-prod:
 ssl-status:
 	@$(COMPOSE_BIN) -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates || echo "Nenhum certificado encontrado"
 
+.PHONY: nginx-reload
+nginx-reload:
+	@echo "[nginx] Rendering config and reloading"
+	@$(COMPOSE_BIN) -f docker-compose.prod.yml exec nginx sh -lc '
+	  if [ -z "$$SERVER_NAME" ]; then echo "SERVER_NAME não definido no contêiner nginx" >&2; exit 1; fi;
+	  if [ -f "/etc/nginx/conf.d/default.conf.template" ]; then
+	    if [ -f "/etc/letsencrypt/live/$$SERVER_NAME/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$$SERVER_NAME/privkey.pem" ]; then ENABLE_SSL=1; else ENABLE_SSL=0; fi;
+	    echo "[nginx] SERVER_NAME=$$SERVER_NAME ENABLE_SSL=$$ENABLE_SSL (reload)";
+	    if [ "$$ENABLE_SSL" = "1" ]; then
+	      env ENABLE_SSL=$$ENABLE_SSL envsubst "$$SERVER_NAME $$ENABLE_SSL" < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf;
+	    else
+	      awk '/#BEGIN_SSL/{flag=1; next} /#END_SSL/{flag=0; next} !flag {print}' /etc/nginx/conf.d/default.conf.template | ENABLE_SSL=0 envsubst "$$SERVER_NAME $$ENABLE_SSL" > /etc/nginx/conf.d/default.conf;
+	    fi;
+	  fi;
+	  nginx -t && nginx -s reload'
+	@rc=$$?; if [ $$rc -ne 0 ]; then echo "[nginx] Reload falhou, reiniciando container..."; $(COMPOSE_BIN) -f docker-compose.prod.yml restart nginx; fi
+
 .PHONY: ssl-renew
 ssl-renew:
 	@$(COMPOSE_BIN) -f docker-compose.prod.yml run --rm --entrypoint certbot certbot renew --webroot -w /var/www/certbot --non-interactive --agree-tos || true
+	@$(MAKE) nginx-reload || true
 
 # Comando padrão
 .DEFAULT_GOAL := help
