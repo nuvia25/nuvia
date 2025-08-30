@@ -1,4 +1,3 @@
-
 name: Production CI/CD
 
 on:
@@ -11,6 +10,7 @@ jobs:
     environment: Production
     env:
       SERVER_NAME: ${{ secrets.SERVER_NAME }}
+      CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,14 +25,31 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git && SERVER_NAME='${{ secrets.SERVER_NAME }}' make deploy-prod"
 
-      - name: Bootstrap HTTPS (first run) only if no valid cert exists
-        if: ${{ secrets.CERTBOT_EMAIL != '' && secrets.SERVER_NAME != '' }}
+      - name: Check SSL requirements
+        id: ssl_check
         run: |
-          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && echo '[deploy] Checking existing certificates...' && make ssl-status || true && (
-            docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q 'Domains: ${{ secrets.SERVER_NAME }}' && echo '[deploy] ✅ Cert already exists' || (
-              echo '[deploy] 🚀 Bootstrapping certificate for ${{ secrets.SERVER_NAME }}' && make certbot-init MODE=prod domain='${{ secrets.SERVER_NAME }}' email='${{ secrets.CERTBOT_EMAIL }}' && make MODE=prod nginx-reload
-            )
-          )"
+          if [ -n "${{ env.CERTBOT_EMAIL }}" ] && [ -n "${{ env.SERVER_NAME }}" ]; then
+            echo "ssl_enabled=true" >> $GITHUB_OUTPUT
+          else
+            echo "ssl_enabled=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bootstrap HTTPS (first run) only if no valid cert exists
+        if: steps.ssl_check.outputs.ssl_enabled == 'true'
+        run: |
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && 
+            echo '[deploy] 🔍 Verificando certificados existentes...' && 
+            if docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q 'Domains: ${{ env.SERVER_NAME }}'; then
+              echo '[deploy] ✅ Certificado já existe para ${{ env.SERVER_NAME }}'
+            else
+              echo '[deploy] 🚀 Iniciando bootstrap do certificado SSL para ${{ env.SERVER_NAME }}'
+              if make certbot-init MODE=prod domain='${{ env.SERVER_NAME }}' email='${{ env.CERTBOT_EMAIL }}'; then
+                echo '[deploy] ✅ Certificado emitido com sucesso'
+                make MODE=prod nginx-reload && echo '[deploy] ✅ Nginx recarregado com SSL'
+              else
+                echo '[deploy] ⚠️ Falha na emissão do certificado - continuando com HTTP'
+              fi
+            fi"
 
       - name: Verify deployment
         run: |
@@ -40,14 +57,44 @@ jobs:
 
       - name: Test site connectivity (HTTP and HTTPS)
         run: |
-          sleep 10
-          URL='${{ secrets.SERVER_NAME }}'
+          sleep 15
+          URL='${{ env.SERVER_NAME }}'
           if [ -z "$URL" ]; then URL='${{ secrets.SSH_HOST }}'; fi
-          echo "Testando HTTP em: http://$URL"
-          (curl -fsS -m 20 "http://$URL" -o /dev/null && echo "✅ HTTP OK") || echo "⚠️ HTTP falhou"
-          echo "Testando HTTPS em: https://$URL"
-          (curl -fsS -m 20 --retry 2 --retry-connrefused --retry-delay 3 "https://$URL" -o /dev/null && echo "✅ HTTPS OK") || echo "⚠️ HTTPS ainda não disponível (pode precisar emissão/propagação DNS)"
-
+          
+          echo "🌐 Testando conectividade para: $URL"
+          echo "=================================="
+          
+          # Teste HTTP
+          echo "📡 Testando HTTP em: http://$URL"
+          if curl -fsS -m 20 -L "http://$URL" -o /dev/null; then
+            echo "✅ HTTP: OK"
+            HTTP_SUCCESS=true
+          else
+            echo "❌ HTTP: FALHOU"
+            HTTP_SUCCESS=false
+          fi
+          
+          # Teste HTTPS (mais tolerante)
+          echo "🔐 Testando HTTPS em: https://$URL"
+          if curl -fsS -m 30 --retry 3 --retry-connrefused --retry-delay 5 -L "https://$URL" -o /dev/null; then
+            echo "✅ HTTPS: OK"
+            HTTPS_SUCCESS=true
+          else
+            echo "⚠️ HTTPS: Não disponível (pode precisar de propagação DNS ou primeiro deploy)"
+            HTTPS_SUCCESS=false
+          fi
+          
+          # Resumo
+          echo "=================================="
+          if [ "$HTTP_SUCCESS" = "true" ]; then
+            echo "🎉 Deploy realizado com sucesso! Site acessível via HTTP"
+            if [ "$HTTPS_SUCCESS" = "true" ]; then
+              echo "🔒 SSL/HTTPS também funcionando perfeitamente"
+            fi
+          else
+            echo "❌ Problemas na conectividade - verificar logs do container"
+            exit 1
+          fi
 
       - name: Cleanup SSH key
         if: always()
