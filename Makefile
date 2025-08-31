@@ -131,9 +131,14 @@ prune:
 # Comandos SSL/HTTPS para produção (pandy.pro)
 .PHONY: ssl-init ssl-status ssl-renew
 ssl-init:
-	@if [ -z "$(email)" ]; then echo "$(RED)Uso: make ssl-init email=admin@pandy.pro$(RESET)"; exit 1; fi
+	@if [ -z "$(CERTBOT_EMAIL)" ]; then
+		echo "$(RED)Erro: CERTBOT_EMAIL não definido!$(RESET)"
+		echo "$(RED)Uso: export CERTBOT_EMAIL=admin@pandy.pro && make ssl-init$(RESET)"
+		exit 1
+	fi
 	@echo "$(BLUE)[ssl]$(RESET) Solicitando certificado SSL para pandy.pro..."
-	@$(PROD_COMPOSE) run --rm certbot certonly --webroot -w /var/www/certbot -d pandy.pro --email $(email) --agree-tos --no-eff-email
+	@echo "$(BLUE)[ssl]$(RESET) Email: $(CERTBOT_EMAIL)"
+	@$(PROD_COMPOSE) run --rm certbot certonly --webroot -w /var/www/certbot -d pandy.pro --email $(CERTBOT_EMAIL) --agree-tos --no-eff-email
 	@echo "$(GREEN)[ssl]$(RESET) Certificado emitido! Recarregue o nginx: make nginx-reload"
 
 ssl-status:
@@ -144,6 +149,7 @@ ssl-renew:
 	@echo "$(BLUE)[ssl]$(RESET) Renovando certificados..."
 	@$(PROD_COMPOSE) run --rm --entrypoint certbot certbot renew --webroot -w /var/www/certbot --non-interactive --agree-tos || true
 	@$(MAKE) nginx-reload
+
 
 # Comando nginx reload
 .PHONY: nginx-reload
@@ -214,7 +220,7 @@ help:
 	@echo "  npm-build                - Compila assets"
 	@echo ""
 	@echo "$(BLUE)🔒 SSL/HTTPS (pandy.pro):$(RESET)"
-	@echo "  ssl-init email=X         - Emite certificado SSL"
+	@echo "  ssl-init                 - Emite certificado (precisa CERTBOT_EMAIL)"
 	@echo "  ssl-status               - Status dos certificados"
 	@echo "  ssl-renew                - Renova certificados"
 	@echo "  nginx-reload             - Recarrega Nginx"
@@ -227,6 +233,11 @@ help:
 	@echo "  dev-quickstart           - Setup completo desenvolvimento"
 	@echo "  test                     - Executa testes Pest"
 	@echo "  prune                    - Remove tudo Docker"
+	@echo ""
+	@echo "$(YELLOW)💡 Exemplo SSL:$(RESET)"
+	@echo "  export CERTBOT_EMAIL=admin@pandy.pro"
+	@echo "  make ssl-init"
+
 
 # Comando padrão
 .DEFAULT_GOAL := help
