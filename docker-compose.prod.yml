@@ -35,11 +35,11 @@ services:
     volumes:
       - ./docker/nginx/pandy-http.conf:/etc/nginx/conf.d/pandy-http.conf:ro
       - ./docker/nginx/pandy-https.conf:/etc/nginx/conf.d/pandy-https.conf:ro
-      - ./docker/nginx/init-pandy.sh:/docker-init/init-pandy.sh:ro
+      - ./docker/nginx/init-pandy.sh:/init-pandy.sh:ro
       - ./public:/var/www/public:ro
       - letsencrypt:/etc/letsencrypt
       - certbot-web:/var/www/certbot
-    command: sh -c "chmod +x /docker-init/init-pandy.sh && /docker-init/init-pandy.sh --daemon-off"
+    command: ["sh", "/init-pandy.sh", "--daemon-off"]
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
       interval: 30s
@@ -55,7 +55,7 @@ services:
       - letsencrypt:/etc/letsencrypt
       - certbot-web:/var/www/certbot
     entrypoint: "/bin/sh -c"
-    command: "certbot --version" # placeholder; use 'make certbot-init' and 'make ssl-renew'
+    command: "certbot --version"
     networks:
       - prod-network
 
