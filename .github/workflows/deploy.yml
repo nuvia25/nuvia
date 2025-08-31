@@ -36,19 +36,20 @@ jobs:
       - name: Bootstrap HTTPS (first run) only if no valid cert exists
         if: steps.ssl_check.outputs.ssl_enabled == 'true'
         run: |
-          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && 
-            echo '[deploy] 🔍 Verificando certificados existentes...' && 
-            if docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q 'Domains: pandy.pro'; then
-              echo '[deploy] ✅ Certificado já existe para pandy.pro'
+          # Verificar se certificado já existe
+          if ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q 'Domains: pandy.pro'"; then
+            echo '[deploy] ✅ Certificado já existe para pandy.pro'
+          else
+            echo '[deploy] 🚀 Iniciando bootstrap do certificado SSL para pandy.pro'
+            # Emitir certificado com variável explícita
+            if ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && CERTBOT_EMAIL='${{ secrets.CERTBOT_EMAIL }}' make ssl-init"; then
+              echo '[deploy] ✅ Certificado emitido com sucesso'
+              ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && make nginx-reload"
+              echo '[deploy] ✅ Nginx recarregado com SSL'
             else
-              echo '[deploy] 🚀 Iniciando bootstrap do certificado SSL para pandy.pro'
-              if make ssl-init; then
-                echo '[deploy] ✅ Certificado emitido com sucesso'
-                make nginx-reload && echo '[deploy] ✅ Nginx recarregado com SSL'
-              else
-                echo '[deploy] ⚠️ Falha na emissão do certificado - continuando com HTTP'
-              fi
-            fi"
+              echo '[deploy] ⚠️ Falha na emissão do certificado - continuando com HTTP'
+            fi
+          fi
 
       - name: Verify deployment
         run: |
