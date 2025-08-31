@@ -2,14 +2,13 @@ name: Production CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: Production
     env:
-      SERVER_NAME: ${{ secrets.SERVER_NAME }}
       CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
     steps:
       - name: Checkout code
@@ -23,12 +22,12 @@ jobs:
 
       - name: Deploy to production
         run: |
-          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git && SERVER_NAME='${{ secrets.SERVER_NAME }}' make deploy-prod"
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git && make deploy-prod"
 
       - name: Check SSL requirements
         id: ssl_check
         run: |
-          if [ -n "${{ env.CERTBOT_EMAIL }}" ] && [ -n "${{ env.SERVER_NAME }}" ]; then
+          if [ -n "${{ env.CERTBOT_EMAIL }}" ]; then
             echo "ssl_enabled=true" >> $GITHUB_OUTPUT
           else
             echo "ssl_enabled=false" >> $GITHUB_OUTPUT
@@ -39,13 +38,13 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && 
             echo '[deploy] 🔍 Verificando certificados existentes...' && 
-            if docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q 'Domains: ${{ env.SERVER_NAME }}'; then
-              echo '[deploy] ✅ Certificado já existe para ${{ env.SERVER_NAME }}'
+            if docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q 'Domains: pandy.pro'; then
+              echo '[deploy] ✅ Certificado já existe para pandy.pro'
             else
-              echo '[deploy] 🚀 Iniciando bootstrap do certificado SSL para ${{ env.SERVER_NAME }}'
-              if make certbot-init MODE=prod domain='${{ env.SERVER_NAME }}' email='${{ env.CERTBOT_EMAIL }}'; then
+              echo '[deploy] 🚀 Iniciando bootstrap do certificado SSL para pandy.pro'
+              if make ssl-init; then
                 echo '[deploy] ✅ Certificado emitido com sucesso'
-                make MODE=prod nginx-reload && echo '[deploy] ✅ Nginx recarregado com SSL'
+                make nginx-reload && echo '[deploy] ✅ Nginx recarregado com SSL'
               else
                 echo '[deploy] ⚠️ Falha na emissão do certificado - continuando com HTTP'
               fi
@@ -58,8 +57,7 @@ jobs:
       - name: Test site connectivity (HTTP and HTTPS)
         run: |
           sleep 15
-          URL='${{ env.SERVER_NAME }}'
-          if [ -z "$URL" ]; then URL='${{ secrets.SSH_HOST }}'; fi
+          URL='pandy.pro'
           
           echo "🌐 Testando conectividade para: $URL"
           echo "=================================="
