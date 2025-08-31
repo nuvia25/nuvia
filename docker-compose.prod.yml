@@ -13,7 +13,6 @@ services:
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
-      # Use external DB (provide via .env or environment)
       DB_CONNECTION: ${DB_CONNECTION:-mysql}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT:-3306}
@@ -35,11 +34,35 @@ services:
     volumes:
       - ./docker/nginx/pandy-http.conf:/etc/nginx/conf.d/pandy-http.conf:ro
       - ./docker/nginx/pandy-https.conf:/etc/nginx/conf.d/pandy-https.conf:ro
-      - ./docker/nginx/init-pandy.sh:/init-pandy.sh:ro
       - ./public:/var/www/public:ro
       - letsencrypt:/etc/letsencrypt
       - certbot-web:/var/www/certbot
-    command: ["sh", "/init-pandy.sh", "--daemon-off"]
+    command: >
+      sh -c "
+      echo '[nginx] 🚀 Inicializando configuração para pandy.pro' &&
+      
+      # Remove configuração padrão do nginx para evitar conflitos
+      rm -f /etc/nginx/conf.d/default.conf &&
+      
+      # Aguarda certificados
+      sleep 3 &&
+      
+      # Seleciona configuração baseada em SSL
+      if [ -f '/etc/letsencrypt/live/pandy.pro/fullchain.pem' ] && [ -f '/etc/letsencrypt/live/pandy.pro/privkey.pem' ]; then
+        echo '[nginx] ✅ Certificados SSL encontrados - Ativando HTTPS' &&
+        cp /etc/nginx/conf.d/pandy-https.conf /etc/nginx/conf.d/active.conf &&
+        echo '[nginx] 🔒 Modo HTTPS ativado';
+      else
+        echo '[nginx] ⚠️ Certificados SSL não encontrados - Ativando HTTP' &&
+        cp /etc/nginx/conf.d/pandy-http.conf /etc/nginx/conf.d/active.conf &&
+        echo '[nginx] 🌐 Modo HTTP ativado';
+      fi &&
+      
+      echo '[nginx] 🔧 Testando configuração...' &&
+      nginx -t &&
+      echo '[nginx] 🚀 Iniciando Nginx...' &&
+      exec nginx -g 'daemon off;'
+      "
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
       interval: 30s
