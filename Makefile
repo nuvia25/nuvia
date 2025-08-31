@@ -131,14 +131,14 @@ prune:
 # Comandos SSL/HTTPS para produção (pandy.pro)
 .PHONY: ssl-init ssl-status ssl-renew
 ssl-init:
-	@if [ -z "$(CERTBOT_EMAIL)" ]; then
-		echo "$(RED)Erro: CERTBOT_EMAIL não definido!$(RESET)"
-		echo "$(RED)Uso: export CERTBOT_EMAIL=admin@pandy.pro && make ssl-init$(RESET)"
-		exit 1
+	@if [ -z "$(CERTBOT_EMAIL)" ]; then \
+		echo "$(RED)Erro: CERTBOT_EMAIL não definido!$(RESET)"; \
+		echo "$(RED)Uso: export CERTBOT_EMAIL=admin@pandy.pro && make ssl-init$(RESET)"; \
+		exit 1; \
 	fi
 	@echo "$(BLUE)[ssl]$(RESET) Solicitando certificado SSL para pandy.pro..."
 	@echo "$(BLUE)[ssl]$(RESET) Email: $(CERTBOT_EMAIL)"
-	@$(PROD_COMPOSE) run --rm certbot certonly --webroot -w /var/www/certbot -d pandy.pro --email $(CERTBOT_EMAIL) --agree-tos --no-eff-email
+	@$(PROD_COMPOSE) run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot -d pandy.pro --email $(CERTBOT_EMAIL) --agree-tos --no-eff-email --non-interactive
 	@echo "$(GREEN)[ssl]$(RESET) Certificado emitido! Recarregue o nginx: make nginx-reload"
 
 ssl-status:
