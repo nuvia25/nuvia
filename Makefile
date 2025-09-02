@@ -136,7 +136,7 @@ prune:
 	$(DOCKER_COMPOSE) down --rmi all -v --remove-orphans
 
 # Comandos SSL/HTTPS para produção (genéricos com Cloudflare DNS)
-.PHONY: ssl-init ssl-status ssl-renew ssl-test ssl-backup ssl-clean ssl-on ssl-off ssl-prepare-conf
+.PHONY: ssl-init ssl-status ssl-renew ssl-test ssl-backup ssl-clean ssl-prepare-conf
 
 # Renderiza Nginx default.conf com DOMAIN_NAME (usando inplace sed)
 ssl-prepare-conf:
@@ -195,18 +195,6 @@ ssl-clean:
 	@$(COMPOSE_BIN) volume rm -f certbot_conf || true
 	@$(COMPOSE_BIN) volume rm -f letsencrypt || true
 	@echo "$(GREEN)[ssl]$(RESET) Limpeza concluída."
-
-ssl-on:
-	@$(MAKE) ssl-prepare-conf
-	@echo "$(BLUE)[nginx]$(RESET) Ativando HTTPS em Nginx (removendo marcadores)"
-	@sed -i "s/#SSL_START//g; s/#SSL_END//g" ./.docker/nginx/conf.d/default.conf
-	@$(MAKE) nginx-reload
-
-ssl-off:
-	@echo "$(BLUE)[nginx]$(RESET) Desativando HTTPS (restaurando arquivo)"
-	@git checkout -- ./.docker/nginx/conf.d/default.conf || true
-	@$(MAKE) ssl-prepare-conf
-	@$(MAKE) nginx-reload
 
 # Comando nginx reload
 .PHONY: nginx-reload
