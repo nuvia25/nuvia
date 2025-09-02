@@ -212,7 +212,6 @@ down-prod:
 
 deploy-prod:
 	@echo "$(BLUE)[deploy]$(RESET) Deploy para produção..."
-	@$(MAKE) ssl-prepare-conf
 	@$(PROD_COMPOSE) pull || true
 	@$(PROD_COMPOSE) up -d --build
 	@# Ativa HTTPS automaticamente se já existir certificado
