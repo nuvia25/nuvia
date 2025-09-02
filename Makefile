@@ -2,14 +2,40 @@
 include .env
 export
 
-DOCKER_PROD = docker-compose -f docker-compose.prod.yml
-DOCKER_DEV = docker-compose -f docker-compose.dev.yml
+# Detectar se é docker-compose ou docker compose
+DOCKER_COMPOSE := $(shell command -v docker-compose 2> /dev/null)
+ifeq ($(DOCKER_COMPOSE),)
+	DOCKER_COMPOSE_CMD = docker compose
+else
+	DOCKER_COMPOSE_CMD = docker-compose
+endif
+
+DOCKER_PROD = $(DOCKER_COMPOSE_CMD) -f docker-compose.prod.yml
+DOCKER_DEV = $(DOCKER_COMPOSE_CMD) -f docker-compose.dev.yml
 DOCKER_PROD_EXEC = $(DOCKER_PROD) exec app
+
+# ========== VERIFICAÇÃO DE DEPENDÊNCIAS ==========
+check-docker:
+	@echo "🔍 ### Verificando Docker ###"
+	@if ! command -v docker &> /dev/null; then \
+		echo "❌ Docker não encontrado. Instale Docker primeiro."; \
+		exit 1; \
+	fi
+	@if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null 2>&1; then \
+		echo "❌ Docker Compose não encontrado. Instale Docker Compose primeiro."; \
+		exit 1; \
+	fi
+	@echo "✅ Docker: $(shell docker --version)"
+	@if command -v docker-compose &> /dev/null; then \
+		echo "✅ Docker Compose: $(shell docker-compose --version)"; \
+	else \
+		echo "✅ Docker Compose: $(shell docker compose version)"; \
+	fi
 
 # ========== SSL WILDCARD SIMPLIFICADO (Cloudflare) ==========
 
 # 1. Setup inicial das credenciais Cloudflare (automático)
-ssl-setup:
+ssl-setup: check-docker
 	@echo "🔧 ### Setup inicial Cloudflare ###"
 	@if [ -z "$(CLOUDFLARE_TOKEN)" ]; then echo "❌ CLOUDFLARE_TOKEN não definido no .env"; exit 1; fi
 	@echo "Criando estrutura de credenciais..."
@@ -27,7 +53,7 @@ ssl-setup:
 	@echo "✅ Credenciais Cloudflare configuradas automaticamente!"
 
 # 2. Configurar SSL wildcard pela primeira vez
-ssl-init:
+ssl-init: check-docker
 	@echo "🔒 ### Configurando SSL Wildcard ###"
 	@if [ -z "$(DOMAIN_NAME)" ]; then echo "❌ DOMAIN_NAME não definido no .env"; exit 1; fi
 	@if [ -z "$(CERTBOT_EMAIL)" ]; then echo "❌ CERTBOT_EMAIL não definido no .env"; exit 1; fi
@@ -51,7 +77,7 @@ ssl-init:
 	@echo "🌐 Agora funciona para qualquer subdomínio!"
 
 # 3. Ativar/Desativar HTTPS
-ssl-on:
+ssl-on: check-docker
 	@echo "🔒 ### Ativando HTTPS ###"
 	@docker run --rm -v certbot_conf:/certs alpine \
 		test -f /certs/live/$(DOMAIN_NAME)/fullchain.pem || \
@@ -62,7 +88,7 @@ ssl-on:
 	$(DOCKER_PROD) restart nginx
 	@echo "✅ HTTPS ativado para todos os subdomínios!"
 
-ssl-off:
+ssl-off: check-docker
 	@echo "🌐 ### Desativando HTTPS ###"
 	@sed 's/^[^#]*return 301/#SSL_START&#SSL_END/g; s/^[^#]*\(server {\|listen 443\|ssl_\|http2 on\)/#SSL_START&#SSL_END/g; s/^[^#]*} #SSL_END/#SSL_START&#SSL_END/g' \
 		.docker/nginx/conf.d/default.conf > .docker/nginx/conf.d/default.conf.tmp && \
@@ -71,7 +97,7 @@ ssl-off:
 	@echo "✅ HTTPS desativado - rodando apenas HTTP"
 
 # 4. Renovar certificados (automático via cron)
-ssl-renew:
+ssl-renew: check-docker
 	@echo "🔄 ### Renovando certificados wildcard ###"
 	@if [ -z "$(CLOUDFLARE_TOKEN)" ]; then echo "❌ CLOUDFLARE_TOKEN não definido no .env"; exit 1; fi
 	@$(MAKE) ssl-setup  # Regenera credenciais com token atual
@@ -85,14 +111,14 @@ ssl-renew:
 	@echo "✅ Certificados renovados!"
 
 # 5. Status e teste
-ssl-status:
+ssl-status: check-docker
 	@echo "📊 ### Status SSL ###"
 	@docker run --rm -v certbot_conf:/certs alpine \
 		ls -la /certs/live/ 2>/dev/null || echo "❌ Nenhum certificado encontrado"
 	@docker run --rm -v certbot_conf:/etc/letsencrypt \
 		certbot/dns-cloudflare:latest certificates 2>/dev/null || true
 
-ssl-test:
+ssl-test: check-docker
 	@echo "🧪 ### Testando renovação (dry-run) ###"
 	@if [ -z "$(CLOUDFLARE_TOKEN)" ]; then echo "❌ CLOUDFLARE_TOKEN não definido no .env"; exit 1; fi
 	@$(MAKE) ssl-setup  # Regenera credenciais
@@ -103,7 +129,7 @@ ssl-test:
 		certbot/dns-cloudflare:latest \
 		renew --dry-run --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini
 
-ssl-backup:
+ssl-backup: check-docker
 	@echo "💾 ### Fazendo backup dos certificados ###"
 	@backup_name="ssl_backup_$(shell date +%Y%m%d_%H%M%S).tar.gz"; \
 	docker run --rm -v certbot_conf:/data -v $(PWD):/backup alpine \
@@ -127,25 +153,30 @@ ssl-clean:
 # ========== DEPLOY LARAVEL INTELIGENTE ==========
 
 # Build e cache para produção
-build-prod:
+build-prod: check-docker
 	@echo "🏗️ ### Construindo imagem de produção ###"
 	$(DOCKER_PROD) build --no-cache app
 
 # Deploy completo
-deploy-prod: down-prod build-prod up-prod
+deploy-prod: check-docker down-prod build-prod up-prod
 	@echo "⏳ Aguardando containers ficarem prontos..."
-	@sleep 10
+	@sleep 15
 	@echo "🔄 ### Executando otimizações Laravel ###"
-	$(DOCKER_PROD_EXEC) composer install --no-dev --optimize-autoloader
-	$(DOCKER_PROD_EXEC) php artisan key:generate --force
-	$(DOCKER_PROD_EXEC) php artisan migrate --force
-	$(DOCKER_PROD_EXEC) php artisan config:cache
-	$(DOCKER_PROD_EXEC) php artisan route:cache
-	$(DOCKER_PROD_EXEC) php artisan view:cache
-	$(DOCKER_PROD_EXEC) php artisan storage:link
+	@echo "Instalando dependências..."
+	-$(DOCKER_PROD_EXEC) composer install --no-dev --optimize-autoloader --no-interaction
+	@echo "Configurando aplicação..."
+	-$(DOCKER_PROD_EXEC) php artisan key:generate --force --no-interaction
+	@echo "Executando migrations..."
+	-$(DOCKER_PROD_EXEC) php artisan migrate --force --no-interaction
+	@echo "Criando caches..."
+	-$(DOCKER_PROD_EXEC) php artisan config:cache
+	-$(DOCKER_PROD_EXEC) php artisan route:cache
+	-$(DOCKER_PROD_EXEC) php artisan view:cache
+	@echo "Configurando storage..."
+	-$(DOCKER_PROD_EXEC) php artisan storage:link --force
 	@echo "🗂️ ### Configurando permissões ###"
-	$(DOCKER_PROD_EXEC) chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-	$(DOCKER_PROD_EXEC) chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+	-$(DOCKER_PROD_EXEC) chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true
+	-$(DOCKER_PROD_EXEC) chmod -R 775 /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true
 	@echo "✅ Otimizações Laravel concluídas!"
 	@echo "🚀 ### Deploy concluído! ###"
 	@if docker run --rm -v certbot_conf:/certs alpine test -f /certs/live/$(DOMAIN_NAME)/fullchain.pem 2>/dev/null; then \
@@ -160,100 +191,99 @@ deploy-prod: down-prod build-prod up-prod
 	$(DOCKER_PROD) ps
 
 # Deploy rápido (sem rebuild)
-deploy-quick:
+deploy-quick: check-docker
 	@echo "⚡ ### Deploy rápido (sem rebuild) ###"
-	$(DOCKER_PROD) pull
 	$(DOCKER_PROD) up -d --force-recreate
-	@sleep 5
-	$(DOCKER_PROD_EXEC) php artisan migrate --force
-	$(DOCKER_PROD_EXEC) php artisan config:cache
-	$(DOCKER_PROD_EXEC) php artisan route:cache
-	$(DOCKER_PROD_EXEC) php artisan view:cache
+	@sleep 10
+	-$(DOCKER_PROD_EXEC) php artisan migrate --force --no-interaction
+	-$(DOCKER_PROD_EXEC) php artisan config:cache
+	-$(DOCKER_PROD_EXEC) php artisan route:cache
+	-$(DOCKER_PROD_EXEC) php artisan view:cache
 	@echo "✅ Deploy rápido concluído!"
 
 # ========== COMANDOS BÁSICOS DOCKER ==========
 
 # Produção
-up-prod:
+up-prod: check-docker
 	@echo "🚀 ### Iniciando containers de produção ###"
 	$(DOCKER_PROD) up -d
 
-down-prod:
+down-prod: check-docker
 	@echo "🛑 ### Parando containers de produção ###"
 	$(DOCKER_PROD) down
 
-logs-prod:
+logs-prod: check-docker
 	@echo "📋 ### Logs de produção ###"
 	$(DOCKER_PROD) logs -f
 
-restart-prod:
+restart-prod: check-docker
 	@echo "🔄 ### Reiniciando produção ###"
 	$(DOCKER_PROD) restart
 
 # Desenvolvimento
-up-dev:
+up-dev: check-docker
 	@echo "🔧 ### Iniciando containers de desenvolvimento ###"
 	$(DOCKER_DEV) up -d
 
-down-dev:
+down-dev: check-docker
 	@echo "🛑 ### Parando containers de desenvolvimento ###"
 	$(DOCKER_DEV) down
 
-logs-dev:
+logs-dev: check-docker
 	@echo "📋 ### Logs de desenvolvimento ###"
 	$(DOCKER_DEV) logs -f
 
 # ========== UTILITÁRIOS LARAVEL ==========
 
 # Artisan commands
-artisan:
+artisan: check-docker
 	$(DOCKER_PROD_EXEC) php artisan $(filter-out $@,$(MAKECMDGOALS))
 
 # Composer commands
-composer:
+composer: check-docker
 	$(DOCKER_PROD_EXEC) composer $(filter-out $@,$(MAKECMDGOALS))
 
 # Shell no container
-shell:
+shell: check-docker
 	$(DOCKER_PROD_EXEC) sh
 
 # Limpar cache Laravel
-cache-clear:
+cache-clear: check-docker
 	@echo "🧹 ### Limpando cache Laravel ###"
-	$(DOCKER_PROD_EXEC) php artisan cache:clear
-	$(DOCKER_PROD_EXEC) php artisan config:clear
-	$(DOCKER_PROD_EXEC) php artisan route:clear
-	$(DOCKER_PROD_EXEC) php artisan view:clear
+	-$(DOCKER_PROD_EXEC) php artisan cache:clear
+	-$(DOCKER_PROD_EXEC) php artisan config:clear
+	-$(DOCKER_PROD_EXEC) php artisan route:clear
+	-$(DOCKER_PROD_EXEC) php artisan view:clear
 	@echo "✅ Cache limpo!"
 
 # Otimizar Laravel
-optimize:
+optimize: check-docker
 	@echo "⚡ ### Otimizando Laravel ###"
-	$(DOCKER_PROD_EXEC) php artisan config:cache
-	$(DOCKER_PROD_EXEC) php artisan route:cache
-	$(DOCKER_PROD_EXEC) php artisan view:cache
-	$(DOCKER_PROD_EXEC) composer dump-autoload --optimize
+	-$(DOCKER_PROD_EXEC) php artisan config:cache
+	-$(DOCKER_PROD_EXEC) php artisan route:cache
+	-$(DOCKER_PROD_EXEC) php artisan view:cache
+	-$(DOCKER_PROD_EXEC) composer dump-autoload --optimize
 	@echo "✅ Otimização concluída!"
 
 # Backup do banco
-db-backup:
+db-backup: check-docker
 	@echo "💾 ### Backup do banco de dados ###"
 	@backup_file="backup_$(shell date +%Y%m%d_%H%M%S).sql"; \
-	$(DOCKER_PROD) exec db mysqldump -u $(DB_USERNAME) -p$(DB_PASSWORD) $(DB_DATABASE) > $$backup_file; \
+	$(DOCKER_PROD) exec -T db mysqldump -u $(DB_USERNAME) -p$(DB_PASSWORD) $(DB_DATABASE) > $$backup_file; \
 	echo "✅ Backup salvo como: $$backup_file"
 
 # Nginx
-nginx-reload:
+nginx-reload: check-docker
 	@echo "🔄 ### Recarregando Nginx ###"
 	$(DOCKER_PROD) exec nginx nginx -s reload
 	@echo "✅ Nginx recarregado!"
 
-nginx-test:
+nginx-test: check-docker
 	@echo "🧪 ### Testando configuração Nginx ###"
 	$(DOCKER_PROD) exec nginx nginx -t
 
 # Health check
-health:
+health: check-docker
 	@echo "🩺 ### Verificando saúde da aplicação ###"
 	@if curl -f -s http://localhost/health > /dev/null 2>&1; then \
 		echo "✅ Aplicação saudável (HTTP)"; \
@@ -267,7 +297,7 @@ health:
 	fi
 
 # Status completo
-status:
+status: check-docker
 	@echo "📊 ### Status completo do sistema ###"
 	@echo "=== Containers ==="
 	$(DOCKER_PROD) ps
@@ -278,9 +308,30 @@ status:
 	@echo "=== Health Check ==="
 	@$(MAKE) health
 
+# Instalar Docker Compose (Ubuntu/Debian)
+install-docker-compose:
+	@echo "🔧 ### Instalando Docker Compose ###"
+	@if command -v docker-compose &> /dev/null; then \
+		echo "✅ Docker Compose já está instalado"; \
+		docker-compose --version; \
+	elif docker compose version &> /dev/null 2>&1; then \
+		echo "✅ Docker Compose (plugin) já está disponível"; \
+		docker compose version; \
+	else \
+		echo "📦 Instalando Docker Compose..."; \
+		sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(shell uname -s)-$(shell uname -m)" -o /usr/local/bin/docker-compose; \
+		sudo chmod +x /usr/local/bin/docker-compose; \
+		echo "✅ Docker Compose instalado!"; \
+		docker-compose --version; \
+	fi
+
 # Help
 help:
 	@echo "🆘 ### Comandos disponíveis ###"
+	@echo ""
+	@echo "=== Verificação ==="
+	@echo "  check-docker           - Verificar Docker/Compose"
+	@echo "  install-docker-compose - Instalar Docker Compose"
 	@echo ""
 	@echo "=== SSL ==="
 	@echo "  ssl-init      - Configurar SSL wildcard pela primeira vez"
@@ -318,4 +369,4 @@ help:
 %:
 	@:
 
-.PHONY: ssl-setup ssl-init ssl-on ssl-off ssl-renew ssl-status ssl-test ssl-backup ssl-clean deploy-prod deploy-quick up-prod down-prod logs-prod restart-prod up-dev down-dev logs-dev artisan composer shell cache-clear optimize db-backup nginx-reload nginx-test health status help
+.PHONY: check-docker install-docker-compose ssl-setup ssl-init ssl-on ssl-off ssl-renew ssl-status ssl-test ssl-backup ssl-clean deploy-prod deploy-quick up-prod down-prod logs-prod restart-prod up-dev down-dev logs-dev artisan composer shell cache-clear optimize db-backup nginx-reload nginx-test health status help
