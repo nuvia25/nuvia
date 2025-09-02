@@ -46,27 +46,6 @@ services:
     networks:
       - prod-network
 
-  redis:
-    image: redis:7-alpine
-    container_name: laravel-redis-prod
-    restart: unless-stopped
-    networks:
-      - prod-network
-
-  certbot:
-    build:
-      context: ./.docker/certbot
-      dockerfile: Dockerfile
-    image: custom-certbot-cloudflare
-    container_name: certbot
-    volumes:
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    entrypoint: [ "/bin/sh", "-c" ]
-    command: [ "certbot --version" ]
-    networks:
-      - prod-network
-
 networks:
   prod-network:
     driver: bridge
