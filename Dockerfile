@@ -28,7 +28,7 @@ RUN mkdir -p /home/$user/.composer && \
 
 WORKDIR /var/www
 
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY .docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY .docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 COPY .docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY . /var/www
