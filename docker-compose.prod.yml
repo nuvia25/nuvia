@@ -37,7 +37,7 @@ services:
       - "443:443"
     volumes:
       - ./.docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./.docker/nginx/conf.d/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./.docker/nginx/conf.d/default.conf:/etc/nginx/templates/default.conf:ro
       - ./public:/var/www/public:ro
       - certbot_conf:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
@@ -53,6 +53,19 @@ services:
     networks:
       - prod-network
 
+  certbot:
+    build:
+      context: ./.docker/certbot
+      dockerfile: Dockerfile
+    image: custom-certbot-cloudflare
+    container_name: certbot
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: [ "certbot --version" ]
+    networks:
+      - prod-network
 
 networks:
   prod-network:
