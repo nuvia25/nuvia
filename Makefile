@@ -7,6 +7,13 @@ DOCKER_COMPOSE := $(COMPOSE_BIN) --env-file $(ENV_FILE) -f $(COMPOSE_FILE)
 DOCKER_COMPOSE_EXEC := $(DOCKER_COMPOSE) exec app
 PROD_COMPOSE := $(COMPOSE_BIN) -f docker-compose.prod.yml
 
+# Carregar variáveis do .env se o arquivo existir
+ifneq (,$(wildcard $(ENV_FILE)))
+include $(ENV_FILE)
+export
+endif
+
+
 # Cores para output
 GREEN := \033[32m
 YELLOW := \033[33m
