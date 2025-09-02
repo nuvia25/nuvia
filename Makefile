@@ -128,52 +128,111 @@ prune:
 	@echo "$(YELLOW)[prune]$(RESET) Removendo tudo (containers, volumes, imagens)..."
 	$(DOCKER_COMPOSE) down --rmi all -v --remove-orphans
 
-# Comandos SSL/HTTPS para produção (pandy.pro)
-.PHONY: ssl-init ssl-status ssl-renew
+# Comandos SSL/HTTPS para produção (genéricos com Cloudflare DNS)
+.PHONY: ssl-init ssl-status ssl-renew ssl-test ssl-backup ssl-clean ssl-on ssl-off ssl-prepare-conf
+
+# Renderiza Nginx default.conf com DOMAIN_NAME (usando inplace sed)
+ssl-prepare-conf:
+	@if [ -z "$(DOMAIN_NAME)" ]; then echo "$(RED)Erro: DOMAIN_NAME não definido no .env$(RESET)"; exit 1; fi
+	@sed -i "s/\${DOMAIN_NAME}/$(DOMAIN_NAME)/g" ./.docker/nginx/conf.d/default.conf || true
+	@echo "$(GREEN)🔧 Nginx default.conf preparado para $(DOMAIN_NAME)$(RESET)"
+
 ssl-init:
-	@if [ -z "$(CERTBOT_EMAIL)" ]; then \
-		echo "$(RED)Erro: CERTBOT_EMAIL não definido!$(RESET)"; \
-		echo "$(RED)Uso: export CERTBOT_EMAIL=admin@pandy.pro && make ssl-init$(RESET)"; \
-		exit 1; \
-	fi
-	@echo "$(BLUE)[ssl]$(RESET) Solicitando certificado SSL para pandy.pro..."
-	@echo "$(BLUE)[ssl]$(RESET) Email: $(CERTBOT_EMAIL)"
-	@$(PROD_COMPOSE) run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot -d pandy.pro --email $(CERTBOT_EMAIL) --agree-tos --no-eff-email --non-interactive
-	@echo "$(GREEN)[ssl]$(RESET) Certificado emitido! Recarregue o nginx: make nginx-reload"
+	@if [ -z "$(CERTBOT_EMAIL)" ] || [ -z "$(DOMAIN_NAME)" ] || [ -z "$(CLOUDFLARE_TOKEN)" ]; then \
+		echo "$(RED)Erro: CERTBOT_EMAIL, DOMAIN_NAME e CLOUDFLARE_TOKEN são necessários$(RESET)"; exit 1; fi
+	@echo "$(BLUE)[ssl]$(RESET) Solicitando certificado wildcard para *.$(DOMAIN_NAME) via Cloudflare DNS..."
+	@$(PROD_COMPOSE) run --rm -e CLOUDFLARE_TOKEN="$(CLOUDFLARE_TOKEN)" -e DOMAIN_NAME="$(DOMAIN_NAME)" -e CERTBOT_EMAIL="$(CERTBOT_EMAIL)" certbot sh -lc "\
+	  set -e; \
+	  echo \"dns_cloudflare_api_token=$$CLOUDFLARE_TOKEN\" > /etc/letsencrypt/cloudflare.ini; \
+	  chmod 600 /etc/letsencrypt/cloudflare.ini; \
+	  certbot certonly \\ \
+	    --dns-cloudflare \\ \
+	    --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \\ \
+	    -d $$DOMAIN_NAME -d *.$$DOMAIN_NAME \\ \
+	    --email $$CERTBOT_EMAIL --agree-tos --no-eff-email --non-interactive; \
+	"
+	@echo "$(GREEN)[ssl]$(RESET) Certificado emitido!"
+	@$(MAKE) ssl-on
 
 ssl-status:
 	@echo "$(BLUE)[ssl]$(RESET) Status dos certificados:"
 	@$(PROD_COMPOSE) run --rm --entrypoint certbot certbot certificates || echo "$(YELLOW)Nenhum certificado encontrado$(RESET)"
 
 ssl-renew:
-	@echo "$(BLUE)[ssl]$(RESET) Renovando certificados..."
-	@$(PROD_COMPOSE) run --rm --entrypoint certbot certbot renew --webroot -w /var/www/certbot --non-interactive --agree-tos || true
+	@echo "$(BLUE)[ssl]$(RESET) Renovando certificados (Cloudflare DNS)..."
+	@$(PROD_COMPOSE) run --rm certbot sh -lc "\
+	  set -e;\
+	  if [ -f /etc/letsencrypt/cloudflare.ini ]; then chmod 600 /etc/letsencrypt/cloudflare.ini; fi;\
+	  certbot renew --dns-cloudflare --non-interactive --agree-tos || true;\
+	"
 	@$(MAKE) nginx-reload
 
+ssl-test:
+	@echo "$(BLUE)[ssl]$(RESET) Teste de renovação (dry-run)..."
+	@$(PROD_COMPOSE) run --rm certbot sh -lc "\
+	  certbot renew --dry-run --dns-cloudflare --agree-tos || true;\
+	"
+
+ssl-backup:
+	@echo "$(BLUE)[ssl]$(RESET) Backup de certificados em ./documents/letsencrypt-backup.tar.gz"
+	@mkdir -p documents
+	@$(PROD_COMPOSE) run --rm -v $(PWD)/documents:/backup certbot sh -lc "\
+	  tar czf /backup/letsencrypt-backup.tar.gz -C / etc/letsencrypt\
+	"
+	@echo "$(GREEN)[ssl]$(RESET) Backup concluído!"
+
+ssl-clean:
+	@echo "$(YELLOW)[ssl]$(RESET) Limpando certificados..."
+	@$(PROD_COMPOSE) down
+	@$(COMPOSE_BIN) volume rm -f nuvia_certbot_conf || true
+	@$(COMPOSE_BIN) volume rm -f certbot_conf || true
+	@$(COMPOSE_BIN) volume rm -f letsencrypt || true
+	@echo "$(GREEN)[ssl]$(RESET) Limpeza concluída."
+
+ssl-on:
+	@$(MAKE) ssl-prepare-conf
+	@echo "$(BLUE)[nginx]$(RESET) Ativando HTTPS em Nginx (removendo marcadores)"
+	@sed -i "s/#SSL_START//g; s/#SSL_END//g" ./.docker/nginx/conf.d/default.conf
+	@$(MAKE) nginx-reload
+
+ssl-off:
+	@echo "$(BLUE)[nginx]$(RESET) Desativando HTTPS (restaurando arquivo)"
+	@git checkout -- ./.docker/nginx/conf.d/default.conf || true
+	@$(MAKE) ssl-prepare-conf
+	@$(MAKE) nginx-reload
 
 # Comando nginx reload
 .PHONY: nginx-reload
 nginx-reload:
-	@echo "$(BLUE)[nginx]$(RESET) Recarregando configuração para pandy.pro..."
-	@$(PROD_COMPOSE) exec nginx sh -c '
-	  rm -f /etc/nginx/conf.d/default.conf;
-	  if [ -f "/etc/letsencrypt/live/pandy.pro/fullchain.pem" ]; then
-	    cp /etc/nginx/conf.d/pandy-https.conf /etc/nginx/conf.d/active.conf;
-	    echo "$(GREEN)[nginx] Usando configuração HTTPS$(RESET)";
-	  else
-	    cp /etc/nginx/conf.d/pandy-http.conf /etc/nginx/conf.d/active.conf;
-	    echo "$(YELLOW)[nginx] Usando configuração HTTP$(RESET)";
-	  fi;
-	  nginx -t && nginx -s reload;
-	' || (echo "$(RED)[nginx] Falha no reload - reiniciando container...$(RESET)" && $(PROD_COMPOSE) restart nginx)
+	@echo "$(BLUE)[nginx]$(RESET) Recarregando configuração de Nginx..."
+	@$(PROD_COMPOSE) exec nginx sh -lc 'nginx -t && nginx -s reload' || (echo "$(RED)[nginx] Falha no reload - reiniciando container...$(RESET)" && $(PROD_COMPOSE) restart nginx)
 
 # Comandos de produção
-.PHONY: deploy deploy-prod
+.PHONY: build-prod up-prod down-prod deploy deploy-prod
+build-prod:
+	@echo "$(BLUE)[prod]$(RESET) Build de imagens de produção..."
+	@$(PROD_COMPOSE) build
+
+up-prod:
+	@echo "$(BLUE)[prod]$(RESET) Subindo serviços de produção..."
+	@$(PROD_COMPOSE) up -d
+
+down-prod:
+	@echo "$(BLUE)[prod]$(RESET) Parando serviços de produção..."
+	@$(PROD_COMPOSE) down
+
 deploy-prod:
-	@echo "$(BLUE)[deploy]$(RESET) Deploy para produção (pandy.pro)..."
+	@echo "$(BLUE)[deploy]$(RESET) Deploy para produção..."
+	@$(MAKE) ssl-prepare-conf
 	@$(PROD_COMPOSE) pull || true
 	@$(PROD_COMPOSE) up -d --build
-	@echo "$(GREEN)[deploy]$(RESET) Deploy concluído!"
+	@# Ativa HTTPS automaticamente se já existir certificado
+	@if $(PROD_COMPOSE) run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q "Domains: $(DOMAIN_NAME)"; then \
+		echo "$(GREEN)[deploy] 🔒 Certificado encontrado - ativando HTTPS$(RESET)"; \
+		$(MAKE) ssl-on; \
+	else \
+		echo "$(YELLOW)[deploy] 🌐 Sem certificado - permanecendo em HTTP. Rode: make ssl-init$(RESET)"; \
+	fi
 
 deploy: deploy-prod
 
@@ -219,14 +278,22 @@ help:
 	@echo "  npm-dev                  - Servidor Vite (dev)"
 	@echo "  npm-build                - Compila assets"
 	@echo ""
-	@echo "$(BLUE)🔒 SSL/HTTPS (pandy.pro):$(RESET)"
-	@echo "  ssl-init                 - Emite certificado (precisa CERTBOT_EMAIL)"
+	@echo "$(BLUE)🔒 SSL/HTTPS (prod):$(RESET)"
+	@echo "  ssl-init                 - Emite wildcard via Cloudflare (usa CERTBOT_EMAIL, DOMAIN_NAME, CLOUDFLARE_TOKEN)"
+	@echo "  ssl-on                   - Ativa HTTPS (sed em Nginx)"
+	@echo "  ssl-off                  - Desativa HTTPS (HTTP only)"
 	@echo "  ssl-status               - Status dos certificados"
 	@echo "  ssl-renew                - Renova certificados"
+	@echo "  ssl-test                 - Dry-run de renovação"
+	@echo "  ssl-backup               - Cria backup dos certificados"
+	@echo "  ssl-clean                - Limpa certificados/volumes"
 	@echo "  nginx-reload             - Recarrega Nginx"
 	@echo ""
 	@echo "$(BLUE)🚀 Produção:$(RESET)"
-	@echo "  deploy-prod              - Deploy para pandy.pro"
+	@echo "  build-prod               - Build de imagens prod"
+	@echo "  up-prod                  - Sobe serviços prod"
+	@echo "  down-prod                - Para serviços prod"
+	@echo "  deploy-prod              - Deploy completo com auto-SSL"
 	@echo "  prod-status              - Status produção"
 	@echo ""
 	@echo "$(BLUE)⚡ Atalhos:$(RESET)"
@@ -235,7 +302,7 @@ help:
 	@echo "  prune                    - Remove tudo Docker"
 	@echo ""
 	@echo "$(YELLOW)💡 Exemplo SSL:$(RESET)"
-	@echo "  export CERTBOT_EMAIL=admin@pandy.pro"
+	@echo "  export DOMAIN_NAME=example.com CERTBOT_EMAIL=admin@example.com CLOUDFLARE_TOKEN=***"
 	@echo "  make ssl-init"
 
 

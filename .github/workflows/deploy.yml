@@ -36,13 +36,13 @@ jobs:
       - name: Bootstrap HTTPS (first run) only if no valid cert exists
         if: steps.ssl_check.outputs.ssl_enabled == 'true'
         run: |
-          # Verificar se certificado já existe
-          if ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q 'Domains: pandy.pro'"; then
-            echo '[deploy] ✅ Certificado já existe para pandy.pro'
+          DOMAIN='${{ secrets.DOMAIN_NAME }}'
+          echo "[deploy] 🔍 Verificando certificado para $DOMAIN"
+          if ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q \"Domains: $DOMAIN\""; then
+            echo "[deploy] ✅ Certificado já existe para $DOMAIN"
           else
-            echo '[deploy] 🚀 Iniciando bootstrap do certificado SSL para pandy.pro'
-            # Emitir certificado com variável explícita
-            if ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && CERTBOT_EMAIL='${{ secrets.CERTBOT_EMAIL }}' make ssl-init"; then
+            echo "[deploy] 🚀 Iniciando bootstrap do certificado SSL para $DOMAIN (wildcard)"
+            if ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && DOMAIN_NAME='${{ secrets.DOMAIN_NAME }}' CERTBOT_EMAIL='${{ secrets.CERTBOT_EMAIL }}' CLOUDFLARE_TOKEN='${{ secrets.CLOUDFLARE_TOKEN }}' make ssl-init"; then
               echo '[deploy] ✅ Certificado emitido com sucesso'
               ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && make nginx-reload"
               echo '[deploy] ✅ Nginx recarregado com SSL'
@@ -58,7 +58,7 @@ jobs:
       - name: Test site connectivity (HTTP and HTTPS)
         run: |
           sleep 15
-          URL='pandy.pro'
+          URL='${{ secrets.DOMAIN_NAME }}'
           
           echo "🌐 Testando conectividade para: $URL"
           echo "=================================="
