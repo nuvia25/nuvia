@@ -136,13 +136,7 @@ prune:
 	$(DOCKER_COMPOSE) down --rmi all -v --remove-orphans
 
 # Comandos SSL/HTTPS para produção (genéricos com Cloudflare DNS)
-.PHONY: ssl-init ssl-status ssl-renew ssl-test ssl-backup ssl-clean ssl-prepare-conf
-
-# Renderiza Nginx default.conf com DOMAIN_NAME (usando inplace sed)
-ssl-prepare-conf:
-	@if [ -z "$(DOMAIN_NAME)" ]; then echo "$(RED)Erro: DOMAIN_NAME não definido no .env$(RESET)"; exit 1; fi
-	@sed -i "s/\${DOMAIN_NAME}/$(DOMAIN_NAME)/g" ./.docker/nginx/conf.d/default.conf || true
-	@echo "$(GREEN)🔧 Nginx default.conf preparado para $(DOMAIN_NAME)$(RESET)"
+.PHONY: ssl-init ssl-status ssl-renew ssl-test ssl-backup ssl-clean
 
 ssl-init:
 	@if [ -z "$(CERTBOT_EMAIL)" ] || [ -z "$(DOMAIN_NAME)" ] || [ -z "$(CLOUDFLARE_TOKEN)" ]; then \
@@ -158,8 +152,8 @@ ssl-init:
 	    -d $$DOMAIN_NAME -d *.$$DOMAIN_NAME \\ \
 	    --email $$CERTBOT_EMAIL --agree-tos --no-eff-email --non-interactive; \
 	"
-	@echo "$(GREEN)[ssl]$(RESET) Certificado emitido!"
-	@$(MAKE) ssl-on
+	@echo "$(GREEN)[ssl]$(RESET) Certificado emitido! Recarregando Nginx..."
+	@$(MAKE) nginx-reload
 
 ssl-status:
 	@echo "$(BLUE)[ssl]$(RESET) Status dos certificados:"

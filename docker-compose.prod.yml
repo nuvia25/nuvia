@@ -25,43 +25,24 @@ services:
       - prod-network
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.25-alpine
     container_name: laravel-nginx-prod
     restart: unless-stopped
     depends_on:
       - app
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./.docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./.docker/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
+      - ./.docker/nginx/conf.d/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./public:/var/www/public:ro
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    command:
-      - sh
-      - -c
-      - |
-        echo "[nginx] 🚀 Inicializando configuração para ${DOMAIN_NAME:-domain.local}"
-        nginx -t || true
-        exec nginx -g 'daemon off;'
+      - certbot_conf:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
-    networks:
-      - prod-network
-
-  database:
-    image: mysql:8.0
-    container_name: laravel-db-prod
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-laravel}
-      MYSQL_USER: ${DB_USERNAME:-laravel}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
-    volumes:
-      - db_data:/var/lib/mysql
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1" ]
     networks:
       - prod-network
 
@@ -72,19 +53,6 @@ services:
     networks:
       - prod-network
 
-  certbot:
-    build:
-      context: ./.docker/certbot
-      dockerfile: Dockerfile
-    image: custom-certbot-cloudflare
-    container_name: certbot
-    volumes:
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["certbot --version"]
-    networks:
-      - prod-network
 
 networks:
   prod-network:
