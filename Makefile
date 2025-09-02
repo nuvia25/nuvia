@@ -1,298 +1,321 @@
-# Definição de variáveis
-ENV_FILE := .env
-COMPOSE_BIN ?= docker compose
-MODE ?= dev
-COMPOSE_FILE := docker-compose.$(MODE).yml
-DOCKER_COMPOSE := $(COMPOSE_BIN) --env-file $(ENV_FILE) -f $(COMPOSE_FILE)
-DOCKER_COMPOSE_EXEC := $(DOCKER_COMPOSE) exec app
-PROD_COMPOSE := $(COMPOSE_BIN) -f docker-compose.prod.yml
-
-# Carregar variáveis do .env se o arquivo existir
-ifneq (,$(wildcard $(ENV_FILE)))
-include $(ENV_FILE)
+# ========== CONFIGURAÇÕES BASE ==========
+include .env
 export
-endif
 
+DOCKER_PROD = docker-compose -f docker-compose.prod.yml
+DOCKER_DEV = docker-compose -f docker-compose.dev.yml
+DOCKER_PROD_EXEC = $(DOCKER_PROD) exec app
 
-# Cores para output
-GREEN := \033[32m
-YELLOW := \033[33m
-RED := \033[31m
-BLUE := \033[34m
-RESET := \033[0m
+# ========== SSL WILDCARD SIMPLIFICADO (Cloudflare) ==========
 
-# Comandos básicos de container
-.PHONY: build up down restart ps logs
-build:
-	@which docker >/dev/null 2>&1 || (echo "$(RED)Docker não está instalado!$(RESET)" && exit 1)
-	@echo "$(BLUE)[build]$(RESET) Construindo imagens para modo $(MODE)..."
-	$(DOCKER_COMPOSE) build
+# 1. Setup inicial das credenciais Cloudflare (automático)
+ssl-setup:
+	@echo "🔧 ### Setup inicial Cloudflare ###"
+	@if [ -z "$(CLOUDFLARE_TOKEN)" ]; then echo "❌ CLOUDFLARE_TOKEN não definido no .env"; exit 1; fi
+	@echo "Criando estrutura de credenciais..."
+	@if [ -d "certbot" ]; then \
+		echo "Removendo diretório certbot existente..."; \
+		chmod -R 755 certbot 2>/dev/null || sudo chmod -R 755 certbot 2>/dev/null || true; \
+		rm -rf certbot 2>/dev/null || sudo rm -rf certbot 2>/dev/null || { \
+			echo "⚠️ Não foi possível remover o diretório certbot. Tentando continuar..."; \
+		}; \
+	fi
+	@mkdir -p certbot
+	@echo "# Cloudflare API Token (novo formato)" > certbot/cloudflare.ini
+	@echo "dns_cloudflare_api_token = $(CLOUDFLARE_TOKEN)" >> certbot/cloudflare.ini
+	@chmod 600 certbot/cloudflare.ini
+	@echo "✅ Credenciais Cloudflare configuradas automaticamente!"
 
-up:
-	@test -f $(ENV_FILE) || (echo "$(RED)Arquivo $(ENV_FILE) não encontrado! Rode: make env-init$(RESET)" && exit 1)
-	@echo "$(BLUE)[up]$(RESET) Subindo containers em modo $(MODE)..."
-	$(DOCKER_COMPOSE) up -d
-
-down:
-	@echo "$(BLUE)[down]$(RESET) Parando containers..."
-	$(DOCKER_COMPOSE) down
-
-restart:
-	@echo "$(BLUE)[restart]$(RESET) Reiniciando containers..."
-	$(DOCKER_COMPOSE) restart
-
-ps:
-	$(DOCKER_COMPOSE) ps
-
-logs:
-	$(DOCKER_COMPOSE) logs -f
-
-# Comandos de acesso aos containers
-.PHONY: sh exec-app exec-db exec-nginx
-sh:
-	$(DOCKER_COMPOSE) exec app /bin/bash || $(DOCKER_COMPOSE) exec app sh
-
-exec-app:
-	$(DOCKER_COMPOSE) exec app /bin/bash
-
-exec-db:
-	$(DOCKER_COMPOSE) exec db sh
-
-exec-nginx:
-	$(DOCKER_COMPOSE) exec nginx sh
-
-# Comandos Laravel/PHP
-.PHONY: artisan migrate migrate-fresh seed composer-install composer-update
-artisan:
-	@if [ -z "$(cmd)" ]; then echo "$(RED)Uso: make artisan cmd='migrate'$(RESET)"; exit 1; fi
-	$(DOCKER_COMPOSE_EXEC) php artisan $(cmd)
-
-migrate:
-	@echo "$(BLUE)[migrate]$(RESET) Executando migrações..."
-	$(DOCKER_COMPOSE_EXEC) php artisan migrate
-
-migrate-fresh:
-	@echo "$(YELLOW)[migrate-fresh]$(RESET) Recriando banco de dados..."
-	$(DOCKER_COMPOSE_EXEC) php artisan migrate:fresh
-
-seed:
-	@echo "$(BLUE)[seed]$(RESET) Populando banco de dados..."
-	$(DOCKER_COMPOSE_EXEC) php artisan db:seed
-
-composer-install:
-	@echo "$(BLUE)[composer]$(RESET) Instalando dependências PHP..."
-	$(DOCKER_COMPOSE_EXEC) composer install
-
-composer-update:
-	@echo "$(BLUE)[composer]$(RESET) Atualizando dependências PHP..."
-	$(DOCKER_COMPOSE_EXEC) composer update
-
-# Comandos Node.js/NPM
-.PHONY: npm-install npm-build npm-dev
-npm-install:
-	@echo "$(BLUE)[npm]$(RESET) Instalando dependências JavaScript..."
-	$(DOCKER_COMPOSE_EXEC) npm ci || $(DOCKER_COMPOSE_EXEC) npm install
-
-npm-build:
-	@echo "$(BLUE)[npm]$(RESET) Compilando assets para produção..."
-	$(DOCKER_COMPOSE_EXEC) npm run build
-
-npm-dev:
-	@echo "$(BLUE)[npm]$(RESET) Iniciando servidor de desenvolvimento Vite..."
-	$(DOCKER_COMPOSE_EXEC) npm run dev -- --host
-
-# Comandos de configuração Laravel
-.PHONY: key-generate storage-link permissions
-key-generate:
-	@echo "$(BLUE)[laravel]$(RESET) Gerando chave da aplicação..."
-	$(DOCKER_COMPOSE_EXEC) php artisan key:generate
-
-storage-link:
-	@echo "$(BLUE)[laravel]$(RESET) Criando link simbólico do storage..."
-	$(DOCKER_COMPOSE_EXEC) php artisan storage:link
-
-permissions:
-	@echo "$(BLUE)[permissions]$(RESET) Ajustando permissões..."
-	$(DOCKER_COMPOSE_EXEC) sh -c 'mkdir -p storage/framework/{cache,sessions,views,testing,cache/data} bootstrap/cache; chown -R laravel:laravel storage bootstrap/cache || chown -R www-data:www-data storage bootstrap/cache || true; find storage -type d -exec chmod 775 {} \; ; find storage -type f -exec chmod 664 {} \; ; chmod -R ug+rwX bootstrap/cache'
-
-# Comandos de teste
-.PHONY: test
-test:
-	@echo "$(BLUE)[test]$(RESET) Executando testes..."
-	$(DOCKER_COMPOSE_EXEC) php vendor/bin/pest --colors=always
-
-# Comandos de inicialização
-.PHONY: env-init prune
-env-init:
-	@test -f $(ENV_FILE) || cp .env.example $(ENV_FILE)
-	@echo "$(GREEN)Arquivo .env criado! Ajuste as configurações para Docker:$(RESET)"
-	@echo "  - DB_HOST=db"
-	@echo "  - REDIS_HOST=redis"
-	@echo "  - MAIL_HOST=mailpit"
-	@echo "  - APP_URL=http://localhost (para dev)"
-
-prune:
-	@echo "$(YELLOW)[prune]$(RESET) Removendo tudo (containers, volumes, imagens)..."
-	$(DOCKER_COMPOSE) down --rmi all -v --remove-orphans
-
-# Comandos SSL/HTTPS para produção (genéricos com Cloudflare DNS)
-.PHONY: ssl-init ssl-status ssl-renew ssl-test ssl-backup ssl-clean
-
+# 2. Configurar SSL wildcard pela primeira vez
 ssl-init:
-	@if [ -z "$(CERTBOT_EMAIL)" ] || [ -z "$(DOMAIN_NAME)" ] || [ -z "$(CLOUDFLARE_TOKEN)" ]; then \
-		echo "$(RED)Erro: CERTBOT_EMAIL, DOMAIN_NAME e CLOUDFLARE_TOKEN são necessários$(RESET)"; exit 1; fi
-	@echo "$(BLUE)[ssl]$(RESET) Solicitando certificado wildcard para *.$(DOMAIN_NAME) via Cloudflare DNS..."
-	@$(PROD_COMPOSE) run --rm -e CLOUDFLARE_TOKEN="$(CLOUDFLARE_TOKEN)" -e DOMAIN_NAME="$(DOMAIN_NAME)" -e CERTBOT_EMAIL="$(CERTBOT_EMAIL)" certbot sh -lc "\
-	  set -e; \
-	  echo \"dns_cloudflare_api_token=$$CLOUDFLARE_TOKEN\" > /etc/letsencrypt/cloudflare.ini; \
-	  chmod 600 /etc/letsencrypt/cloudflare.ini; \
-	  certbot certonly \\ \
-	    --dns-cloudflare \\ \
-	    --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \\ \
-	    -d $$DOMAIN_NAME -d *.$$DOMAIN_NAME \\ \
-	    --email $$CERTBOT_EMAIL --agree-tos --no-eff-email --non-interactive; \
-	"
-	@echo "$(GREEN)[ssl]$(RESET) Certificado emitido! Recarregando Nginx..."
-	@$(MAKE) nginx-reload
+	@echo "🔒 ### Configurando SSL Wildcard ###"
+	@if [ -z "$(DOMAIN_NAME)" ]; then echo "❌ DOMAIN_NAME não definido no .env"; exit 1; fi
+	@if [ -z "$(CERTBOT_EMAIL)" ]; then echo "❌ CERTBOT_EMAIL não definido no .env"; exit 1; fi
+	@if [ -z "$(CLOUDFLARE_TOKEN)" ]; then echo "❌ CLOUDFLARE_TOKEN não definido no .env"; exit 1; fi
+	@echo "Domínio: *.$(DOMAIN_NAME) | Email: $(CERTBOT_EMAIL)"
+	@$(MAKE) ssl-setup
+	@echo "Gerando certificado wildcard via Cloudflare DNS..."
+	docker run --rm \
+		-v certbot_conf:/etc/letsencrypt \
+		-v certbot_www:/var/www/certbot \
+		-v $(PWD)/certbot/cloudflare.ini:/etc/letsencrypt/cloudflare.ini:ro \
+		certbot/dns-cloudflare:latest \
+		certonly --non-interactive \
+		--agree-tos --email $(CERTBOT_EMAIL) \
+		--dns-cloudflare \
+		--dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
+		-d $(DOMAIN_NAME) -d *.$(DOMAIN_NAME)
+	@echo "✅ Certificado wildcard gerado! Ativando HTTPS..."
+	@$(MAKE) ssl-on
+	@echo "🎉 SSL wildcard configurado para: *.$(DOMAIN_NAME)"
+	@echo "🌐 Agora funciona para qualquer subdomínio!"
 
-ssl-status:
-	@echo "$(BLUE)[ssl]$(RESET) Status dos certificados:"
-	@$(PROD_COMPOSE) run --rm --entrypoint certbot certbot certificates || echo "$(YELLOW)Nenhum certificado encontrado$(RESET)"
+# 3. Ativar/Desativar HTTPS
+ssl-on:
+	@echo "🔒 ### Ativando HTTPS ###"
+	@docker run --rm -v certbot_conf:/certs alpine \
+		test -f /certs/live/$(DOMAIN_NAME)/fullchain.pem || \
+		(echo "❌ Certificado não encontrado. Execute: make ssl-init" && exit 1)
+	@sed 's/#SSL_START//g; s/#SSL_END//g' \
+		.docker/nginx/conf.d/default.conf > .docker/nginx/conf.d/default.conf.tmp && \
+		mv .docker/nginx/conf.d/default.conf.tmp .docker/nginx/conf.d/default.conf
+	$(DOCKER_PROD) restart nginx
+	@echo "✅ HTTPS ativado para todos os subdomínios!"
 
+ssl-off:
+	@echo "🌐 ### Desativando HTTPS ###"
+	@sed 's/^[^#]*return 301/#SSL_START&#SSL_END/g; s/^[^#]*\(server {\|listen 443\|ssl_\|http2 on\)/#SSL_START&#SSL_END/g; s/^[^#]*} #SSL_END/#SSL_START&#SSL_END/g' \
+		.docker/nginx/conf.d/default.conf > .docker/nginx/conf.d/default.conf.tmp && \
+		mv .docker/nginx/conf.d/default.conf.tmp .docker/nginx/conf.d/default.conf
+	$(DOCKER_PROD) restart nginx
+	@echo "✅ HTTPS desativado - rodando apenas HTTP"
+
+# 4. Renovar certificados (automático via cron)
 ssl-renew:
-	@echo "$(BLUE)[ssl]$(RESET) Renovando certificados (Cloudflare DNS)..."
-	@$(PROD_COMPOSE) run --rm certbot sh -lc "\
-	  set -e;\
-	  if [ -f /etc/letsencrypt/cloudflare.ini ]; then chmod 600 /etc/letsencrypt/cloudflare.ini; fi;\
-	  certbot renew --dns-cloudflare --non-interactive --agree-tos || true;\
-	"
-	@$(MAKE) nginx-reload
+	@echo "🔄 ### Renovando certificados wildcard ###"
+	@if [ -z "$(CLOUDFLARE_TOKEN)" ]; then echo "❌ CLOUDFLARE_TOKEN não definido no .env"; exit 1; fi
+	@$(MAKE) ssl-setup  # Regenera credenciais com token atual
+	docker run --rm \
+		-v certbot_conf:/etc/letsencrypt \
+		-v certbot_www:/var/www/certbot \
+		-v $(PWD)/certbot/cloudflare.ini:/etc/letsencrypt/cloudflare.ini:ro \
+		certbot/dns-cloudflare:latest \
+		renew --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini --quiet
+	$(DOCKER_PROD) restart nginx
+	@echo "✅ Certificados renovados!"
+
+# 5. Status e teste
+ssl-status:
+	@echo "📊 ### Status SSL ###"
+	@docker run --rm -v certbot_conf:/certs alpine \
+		ls -la /certs/live/ 2>/dev/null || echo "❌ Nenhum certificado encontrado"
+	@docker run --rm -v certbot_conf:/etc/letsencrypt \
+		certbot/dns-cloudflare:latest certificates 2>/dev/null || true
 
 ssl-test:
-	@echo "$(BLUE)[ssl]$(RESET) Teste de renovação (dry-run)..."
-	@$(PROD_COMPOSE) run --rm certbot sh -lc "\
-	  certbot renew --dry-run --dns-cloudflare --agree-tos || true;\
-	"
+	@echo "🧪 ### Testando renovação (dry-run) ###"
+	@if [ -z "$(CLOUDFLARE_TOKEN)" ]; then echo "❌ CLOUDFLARE_TOKEN não definido no .env"; exit 1; fi
+	@$(MAKE) ssl-setup  # Regenera credenciais
+	docker run --rm \
+		-v certbot_conf:/etc/letsencrypt \
+		-v certbot_www:/var/www/certbot \
+		-v $(PWD)/certbot/cloudflare.ini:/etc/letsencrypt/cloudflare.ini:ro \
+		certbot/dns-cloudflare:latest \
+		renew --dry-run --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini
 
 ssl-backup:
-	@echo "$(BLUE)[ssl]$(RESET) Backup de certificados em ./documents/letsencrypt-backup.tar.gz"
-	@mkdir -p documents
-	@$(PROD_COMPOSE) run --rm -v $(PWD)/documents:/backup certbot sh -lc "\
-	  tar czf /backup/letsencrypt-backup.tar.gz -C / etc/letsencrypt\
-	"
-	@echo "$(GREEN)[ssl]$(RESET) Backup concluído!"
+	@echo "💾 ### Fazendo backup dos certificados ###"
+	@backup_name="ssl_backup_$(shell date +%Y%m%d_%H%M%S).tar.gz"; \
+	docker run --rm -v certbot_conf:/data -v $(PWD):/backup alpine \
+		tar czf /backup/$$backup_name -C /data .; \
+	echo "✅ Backup salvo como: $$backup_name"
 
+# Limpar setup SSL (útil para recomeçar)
 ssl-clean:
-	@echo "$(YELLOW)[ssl]$(RESET) Limpando certificados..."
-	@$(PROD_COMPOSE) down
-	@$(COMPOSE_BIN) volume rm -f nuvia_certbot_conf || true
-	@$(COMPOSE_BIN) volume rm -f certbot_conf || true
-	@$(COMPOSE_BIN) volume rm -f letsencrypt || true
-	@echo "$(GREEN)[ssl]$(RESET) Limpeza concluída."
+	@echo "🧹 ### Limpando configurações SSL ###"
+	@if [ -d "certbot" ]; then \
+		echo "Removendo diretório certbot..."; \
+		chmod -R 755 certbot 2>/dev/null || sudo chmod -R 755 certbot 2>/dev/null || true; \
+		rm -rf certbot 2>/dev/null || sudo rm -rf certbot 2>/dev/null || { \
+			echo "⚠️ Não foi possível remover completamente o diretório certbot"; \
+			echo "Execute manualmente: sudo rm -rf certbot"; \
+		}; \
+	fi
+	@echo "✅ Limpeza concluída!"
+	@echo "💡 Execute: make ssl-init para reconfigurar"
 
-# Comando nginx reload
-.PHONY: nginx-reload
-nginx-reload:
-	@echo "$(BLUE)[nginx]$(RESET) Recarregando configuração de Nginx..."
-	@$(PROD_COMPOSE) exec nginx sh -lc 'nginx -t && nginx -s reload' || (echo "$(RED)[nginx] Falha no reload - reiniciando container...$(RESET)" && $(PROD_COMPOSE) restart nginx)
+# ========== DEPLOY LARAVEL INTELIGENTE ==========
 
-# Comandos de produção
-.PHONY: build-prod up-prod down-prod deploy deploy-prod
+# Build e cache para produção
 build-prod:
-	@echo "$(BLUE)[prod]$(RESET) Build de imagens de produção..."
-	@$(PROD_COMPOSE) build
+	@echo "🏗️ ### Construindo imagem de produção ###"
+	$(DOCKER_PROD) build --no-cache app
 
+# Deploy completo
+deploy-prod: down-prod build-prod up-prod
+	@echo "⏳ Aguardando containers ficarem prontos..."
+	@sleep 10
+	@echo "🔄 ### Executando otimizações Laravel ###"
+	$(DOCKER_PROD_EXEC) composer install --no-dev --optimize-autoloader
+	$(DOCKER_PROD_EXEC) php artisan key:generate --force
+	$(DOCKER_PROD_EXEC) php artisan migrate --force
+	$(DOCKER_PROD_EXEC) php artisan config:cache
+	$(DOCKER_PROD_EXEC) php artisan route:cache
+	$(DOCKER_PROD_EXEC) php artisan view:cache
+	$(DOCKER_PROD_EXEC) php artisan storage:link
+	@echo "🗂️ ### Configurando permissões ###"
+	$(DOCKER_PROD_EXEC) chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+	$(DOCKER_PROD_EXEC) chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+	@echo "✅ Otimizações Laravel concluídas!"
+	@echo "🚀 ### Deploy concluído! ###"
+	@if docker run --rm -v certbot_conf:/certs alpine test -f /certs/live/$(DOMAIN_NAME)/fullchain.pem 2>/dev/null; then \
+		echo "🔒 Certificado wildcard encontrado - ativando HTTPS..." && $(MAKE) ssl-on; \
+	else \
+		echo "🌐 SSL não configurado - rodando apenas HTTP"; \
+		echo "💡 Para configurar SSL wildcard: make ssl-init"; \
+	fi
+	@echo "✅ Aplicação Laravel disponível!"
+	@echo "🌍 HTTP:  http://$(DOMAIN_NAME), http://app.$(DOMAIN_NAME), etc."
+	@echo "🔒 HTTPS: https://$(DOMAIN_NAME), https://app.$(DOMAIN_NAME), etc."
+	$(DOCKER_PROD) ps
+
+# Deploy rápido (sem rebuild)
+deploy-quick:
+	@echo "⚡ ### Deploy rápido (sem rebuild) ###"
+	$(DOCKER_PROD) pull
+	$(DOCKER_PROD) up -d --force-recreate
+	@sleep 5
+	$(DOCKER_PROD_EXEC) php artisan migrate --force
+	$(DOCKER_PROD_EXEC) php artisan config:cache
+	$(DOCKER_PROD_EXEC) php artisan route:cache
+	$(DOCKER_PROD_EXEC) php artisan view:cache
+	@echo "✅ Deploy rápido concluído!"
+
+# ========== COMANDOS BÁSICOS DOCKER ==========
+
+# Produção
 up-prod:
-	@echo "$(BLUE)[prod]$(RESET) Subindo serviços de produção..."
-	@$(PROD_COMPOSE) up -d
+	@echo "🚀 ### Iniciando containers de produção ###"
+	$(DOCKER_PROD) up -d
 
 down-prod:
-	@echo "$(BLUE)[prod]$(RESET) Parando serviços de produção..."
-	@$(PROD_COMPOSE) down
+	@echo "🛑 ### Parando containers de produção ###"
+	$(DOCKER_PROD) down
 
-deploy-prod:
-	@echo "$(BLUE)[deploy]$(RESET) Deploy para produção..."
-	@$(PROD_COMPOSE) pull || true
-	@$(PROD_COMPOSE) up -d --build
-	@# Ativa HTTPS automaticamente se já existir certificado
-	@if $(PROD_COMPOSE) run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q "Domains: $(DOMAIN_NAME)"; then \
-		echo "$(GREEN)[deploy] 🔒 Certificado encontrado - ativando HTTPS$(RESET)"; \
-		$(MAKE) ssl-on; \
+logs-prod:
+	@echo "📋 ### Logs de produção ###"
+	$(DOCKER_PROD) logs -f
+
+restart-prod:
+	@echo "🔄 ### Reiniciando produção ###"
+	$(DOCKER_PROD) restart
+
+# Desenvolvimento
+up-dev:
+	@echo "🔧 ### Iniciando containers de desenvolvimento ###"
+	$(DOCKER_DEV) up -d
+
+down-dev:
+	@echo "🛑 ### Parando containers de desenvolvimento ###"
+	$(DOCKER_DEV) down
+
+logs-dev:
+	@echo "📋 ### Logs de desenvolvimento ###"
+	$(DOCKER_DEV) logs -f
+
+# ========== UTILITÁRIOS LARAVEL ==========
+
+# Artisan commands
+artisan:
+	$(DOCKER_PROD_EXEC) php artisan $(filter-out $@,$(MAKECMDGOALS))
+
+# Composer commands
+composer:
+	$(DOCKER_PROD_EXEC) composer $(filter-out $@,$(MAKECMDGOALS))
+
+# Shell no container
+shell:
+	$(DOCKER_PROD_EXEC) sh
+
+# Limpar cache Laravel
+cache-clear:
+	@echo "🧹 ### Limpando cache Laravel ###"
+	$(DOCKER_PROD_EXEC) php artisan cache:clear
+	$(DOCKER_PROD_EXEC) php artisan config:clear
+	$(DOCKER_PROD_EXEC) php artisan route:clear
+	$(DOCKER_PROD_EXEC) php artisan view:clear
+	@echo "✅ Cache limpo!"
+
+# Otimizar Laravel
+optimize:
+	@echo "⚡ ### Otimizando Laravel ###"
+	$(DOCKER_PROD_EXEC) php artisan config:cache
+	$(DOCKER_PROD_EXEC) php artisan route:cache
+	$(DOCKER_PROD_EXEC) php artisan view:cache
+	$(DOCKER_PROD_EXEC) composer dump-autoload --optimize
+	@echo "✅ Otimização concluída!"
+
+# Backup do banco
+db-backup:
+	@echo "💾 ### Backup do banco de dados ###"
+	@backup_file="backup_$(shell date +%Y%m%d_%H%M%S).sql"; \
+	$(DOCKER_PROD) exec db mysqldump -u $(DB_USERNAME) -p$(DB_PASSWORD) $(DB_DATABASE) > $$backup_file; \
+	echo "✅ Backup salvo como: $$backup_file"
+
+# Nginx
+nginx-reload:
+	@echo "🔄 ### Recarregando Nginx ###"
+	$(DOCKER_PROD) exec nginx nginx -s reload
+	@echo "✅ Nginx recarregado!"
+
+nginx-test:
+	@echo "🧪 ### Testando configuração Nginx ###"
+	$(DOCKER_PROD) exec nginx nginx -t
+
+# Health check
+health:
+	@echo "🩺 ### Verificando saúde da aplicação ###"
+	@if curl -f -s http://localhost/health > /dev/null 2>&1; then \
+		echo "✅ Aplicação saudável (HTTP)"; \
 	else \
-		echo "$(YELLOW)[deploy] 🌐 Sem certificado - permanecendo em HTTP. Rode: make ssl-init$(RESET)"; \
+		echo "❌ Aplicação não responde (HTTP)"; \
+	fi
+	@if curl -f -s -k https://localhost/health > /dev/null 2>&1; then \
+		echo "✅ Aplicação saudável (HTTPS)"; \
+	else \
+		echo "⚠️ HTTPS não disponível"; \
 	fi
 
-deploy: deploy-prod
+# Status completo
+status:
+	@echo "📊 ### Status completo do sistema ###"
+	@echo "=== Containers ==="
+	$(DOCKER_PROD) ps
+	@echo ""
+	@echo "=== SSL Status ==="
+	@$(MAKE) ssl-status
+	@echo ""
+	@echo "=== Health Check ==="
+	@$(MAKE) health
 
-# Atalhos úteis
-.PHONY: dev-quickstart prod-status
-dev-quickstart:
-	@echo "$(GREEN)🚀 Iniciando ambiente de desenvolvimento...$(RESET)"
-	@$(MAKE) env-init
-	@$(MAKE) build
-	@$(MAKE) up
-	@$(MAKE) permissions
-	@$(MAKE) key-generate || true
-	@$(MAKE) storage-link || true
-	@$(MAKE) npm-install || true
-	@echo "$(GREEN)✅ Ambiente pronto! Acesse http://localhost$(RESET)"
-
-prod-status:
-	@echo "$(BLUE)[prod]$(RESET) Status dos containers de produção:"
-	@$(PROD_COMPOSE) ps
-
-# Help melhorado
-.PHONY: help
+# Help
 help:
-	@echo "$(GREEN)📚 MagicAI - Comandos Makefile$(RESET)"
+	@echo "🆘 ### Comandos disponíveis ###"
 	@echo ""
-	@echo "$(BLUE)🔨 Comandos básicos:$(RESET)"
-	@echo "  env-init                 - Cria arquivo .env a partir do exemplo"
-	@echo "  build [MODE=dev|prod]    - Constrói imagens Docker"
-	@echo "  up [MODE=dev|prod]       - Sobe containers"
-	@echo "  down [MODE=dev|prod]     - Para containers"
-	@echo "  restart [MODE=dev|prod]  - Reinicia containers"
+	@echo "=== SSL ==="
+	@echo "  ssl-init      - Configurar SSL wildcard pela primeira vez"
+	@echo "  ssl-on        - Ativar HTTPS"
+	@echo "  ssl-off       - Desativar HTTPS"
+	@echo "  ssl-renew     - Renovar certificados"
+	@echo "  ssl-status    - Status dos certificados"
+	@echo "  ssl-test      - Teste de renovação"
+	@echo "  ssl-clean     - Limpar configurações SSL"
 	@echo ""
-	@echo "$(BLUE)🐘 Comandos Laravel:$(RESET)"
-	@echo "  artisan cmd='...'        - Executa comando Artisan"
-	@echo "  migrate                  - Executa migrações"
-	@echo "  seed                     - Popula banco"
-	@echo "  key-generate             - Gera APP_KEY"
-	@echo "  permissions              - Ajusta permissões"
+	@echo "=== Deploy ==="
+	@echo "  deploy-prod   - Deploy completo (com rebuild)"
+	@echo "  deploy-quick  - Deploy rápido (sem rebuild)"
 	@echo ""
-	@echo "$(BLUE)📦 Dependências:$(RESET)"
-	@echo "  composer-install         - Instala dependências PHP"
-	@echo "  npm-install              - Instala dependências JS"
-	@echo "  npm-dev                  - Servidor Vite (dev)"
-	@echo "  npm-build                - Compila assets"
+	@echo "=== Docker ==="
+	@echo "  up-prod       - Iniciar produção"
+	@echo "  down-prod     - Parar produção"
+	@echo "  restart-prod  - Reiniciar produção"
+	@echo "  logs-prod     - Ver logs de produção"
 	@echo ""
-	@echo "$(BLUE)🔒 SSL/HTTPS (prod):$(RESET)"
-	@echo "  ssl-init                 - Emite wildcard via Cloudflare (usa CERTBOT_EMAIL, DOMAIN_NAME, CLOUDFLARE_TOKEN)"
-	@echo "  ssl-on                   - Ativa HTTPS (sed em Nginx)"
-	@echo "  ssl-off                  - Desativa HTTPS (HTTP only)"
-	@echo "  ssl-status               - Status dos certificados"
-	@echo "  ssl-renew                - Renova certificados"
-	@echo "  ssl-test                 - Dry-run de renovação"
-	@echo "  ssl-backup               - Cria backup dos certificados"
-	@echo "  ssl-clean                - Limpa certificados/volumes"
-	@echo "  nginx-reload             - Recarrega Nginx"
+	@echo "=== Laravel ==="
+	@echo "  artisan       - Executar comando artisan"
+	@echo "  composer      - Executar comando composer"
+	@echo "  cache-clear   - Limpar cache Laravel"
+	@echo "  optimize      - Otimizar Laravel"
+	@echo "  shell         - Acessar shell do container"
 	@echo ""
-	@echo "$(BLUE)🚀 Produção:$(RESET)"
-	@echo "  build-prod               - Build de imagens prod"
-	@echo "  up-prod                  - Sobe serviços prod"
-	@echo "  down-prod                - Para serviços prod"
-	@echo "  deploy-prod              - Deploy completo com auto-SSL"
-	@echo "  prod-status              - Status produção"
-	@echo ""
-	@echo "$(BLUE)⚡ Atalhos:$(RESET)"
-	@echo "  dev-quickstart           - Setup completo desenvolvimento"
-	@echo "  test                     - Executa testes Pest"
-	@echo "  prune                    - Remove tudo Docker"
-	@echo ""
-	@echo "$(YELLOW)💡 Exemplo SSL:$(RESET)"
-	@echo "  export DOMAIN_NAME=example.com CERTBOT_EMAIL=admin@example.com CLOUDFLARE_TOKEN=***"
-	@echo "  make ssl-init"
+	@echo "=== Utilitários ==="
+	@echo "  health        - Health check da aplicação"
+	@echo "  status        - Status completo"
+	@echo "  nginx-reload  - Recarregar Nginx"
+	@echo "  db-backup     - Backup do banco"
 
+# Evitar que make interprete argumentos como targets
+%:
+	@:
 
-# Comando padrão
-.DEFAULT_GOAL := help
+.PHONY: ssl-setup ssl-init ssl-on ssl-off ssl-renew ssl-status ssl-test ssl-backup ssl-clean deploy-prod deploy-quick up-prod down-prod logs-prod restart-prod up-dev down-dev logs-dev artisan composer shell cache-clear optimize db-backup nginx-reload nginx-test health status help
