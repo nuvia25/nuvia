@@ -24,18 +24,10 @@ jobs:
             echo '🚀 Iniciando deploy...' &&
             echo '🛑 Parando containers Docker...' &&
             docker stop \$(docker ps -q) 2>/dev/null || true &&
-            echo '🧹 Limpando com sudo (corrigindo permissões)...' &&
+            echo '🧹 Limpando modificações com stash...' &&
             sudo chown -R \$(whoami):\$(whoami) . &&
-            sudo chmod -R 755 . &&
-            git reset --hard HEAD &&
-            git clean -fd &&
-            sudo rm -rf public/storage &&
-            sudo rm -rf storage/framework/cache/* &&
-            sudo rm -rf storage/framework/sessions/* &&
-            sudo rm -rf storage/framework/views/* &&
-            sudo rm -rf storage/logs/* &&
-            sudo rm -rf bootstrap/cache/* &&
-            git stash --all || true &&
+            git add . &&
+            git stash push -m 'Deploy cleanup \$(date)' &&
             git stash drop || true &&
             echo '📥 Fazendo pull do GitHub...' &&
             git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git &&
