@@ -1,16 +1,17 @@
-
-name: Production CI/CD
+name: Laravel Production CI/CD
 
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: Production
     env:
-      SERVER_NAME: ${{ secrets.SERVER_NAME }}
+      CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,34 +22,152 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: ${{ secrets.KNOWN_HOSTS }}
 
-      - name: Deploy to production
+      - name: Pull latest code and deploy Laravel
         run: |
-          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git && SERVER_NAME='${{ secrets.SERVER_NAME }}' make deploy-prod"
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.APP_PATH }} && \
+             git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git && \
+             make deploy-prod"
 
-      - name: Bootstrap HTTPS (first run) only if no valid cert exists
-        if: ${{ secrets.CERTBOT_EMAIL != '' && secrets.SERVER_NAME != '' }}
+      - name: Check SSL requirements and existing certificates
+        id: ssl_check
         run: |
-          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && echo '[deploy] Checking existing certificates...' && make ssl-status || true && (
-            docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot certificates 2>/dev/null | grep -q 'Domains: ${{ secrets.SERVER_NAME }}' && echo '[deploy] ✅ Cert already exists' || (
-              echo '[deploy] 🚀 Bootstrapping certificate for ${{ secrets.SERVER_NAME }}' && make certbot-init MODE=prod domain='${{ secrets.SERVER_NAME }}' email='${{ secrets.CERTBOT_EMAIL }}' && make MODE=prod nginx-reload
-            )
-          )"
+          if [ -n "${{ env.CERTBOT_EMAIL }}" ] && [ -n "${{ secrets.CLOUDFLARE_TOKEN }}" ]; then
+            echo "ssl_enabled=true" >> $GITHUB_OUTPUT
+            echo "[deploy] 🔍 SSL configurado - verificando certificados existentes..."
+          
+            # Verificar se certificado já existe
+            if ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+               "cd ${{ secrets.APP_PATH }} && make ssl-status | grep -q 'Certificate Name: ${{ secrets.DOMAIN_NAME }}'"; then
+              echo "cert_exists=true" >> $GITHUB_OUTPUT
+              echo "[deploy] ✅ Certificado wildcard já existe"
+            else
+              echo "cert_exists=false" >> $GITHUB_OUTPUT
+              echo "[deploy] 📝 Nenhum certificado encontrado"
+            fi
+          else
+            echo "ssl_enabled=false" >> $GITHUB_OUTPUT
+            echo "[deploy] ⚠️ SSL não configurado (CERTBOT_EMAIL ou CLOUDFLARE_TOKEN ausente)"
+          fi
 
-      - name: Verify deployment
+      - name: Initialize SSL wildcard (first time only)
+        if: steps.ssl_check.outputs.ssl_enabled == 'true' && steps.ssl_check.outputs.cert_exists == 'false'
         run: |
-          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.APP_PATH }} && docker compose -f docker-compose.prod.yml ps"
+          echo "[deploy] 🚀 Configurando SSL wildcard pela primeira vez..."
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.APP_PATH }} && \
+             DOMAIN_NAME='${{ secrets.DOMAIN_NAME }}' \
+             CERTBOT_EMAIL='${{ secrets.CERTBOT_EMAIL }}' \
+             CLOUDFLARE_TOKEN='${{ secrets.CLOUDFLARE_TOKEN }}' \
+             make ssl-init"
+          echo "[deploy] ✅ SSL wildcard configurado com sucesso!"
 
-      - name: Test site connectivity (HTTP and HTTPS)
+      - name: Activate existing SSL (if certificate exists but not active)
+        if: steps.ssl_check.outputs.ssl_enabled == 'true' && steps.ssl_check.outputs.cert_exists == 'true'
         run: |
-          sleep 10
-          URL='${{ secrets.SERVER_NAME }}'
-          if [ -z "$URL" ]; then URL='${{ secrets.SSH_HOST }}'; fi
-          echo "Testando HTTP em: http://$URL"
-          (curl -fsS -m 20 "http://$URL" -o /dev/null && echo "✅ HTTP OK") || echo "⚠️ HTTP falhou"
-          echo "Testando HTTPS em: https://$URL"
-          (curl -fsS -m 20 --retry 2 --retry-connrefused --retry-delay 3 "https://$URL" -o /dev/null && echo "✅ HTTPS OK") || echo "⚠️ HTTPS ainda não disponível (pode precisar emissão/propagação DNS)"
+          echo "[deploy] 🔒 Ativando HTTPS com certificado existente..."
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.APP_PATH }} && make ssl-on"
 
+      - name: Laravel post-deployment optimizations
+        run: |
+          echo "[deploy] ⚡ Executando otimizações finais do Laravel..."
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.APP_PATH }} && make optimize"
+
+      - name: Verify deployment status
+        run: |
+          echo "[deploy] 📊 Verificando status da aplicação..."
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.APP_PATH }} && make status"
+
+      - name: Health check and connectivity test
+        run: |
+          sleep 20  # Aguardar containers estabilizarem
+          DOMAIN='${{ secrets.DOMAIN_NAME }}'
+          
+          echo "🌐 === Testando conectividade para: $DOMAIN ==="
+          
+          # Teste básico de health endpoint
+          echo "🩺 Testando health check..."
+          if ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+             "cd ${{ secrets.APP_PATH }} && make health | grep -q 'saudável'"; then
+            echo "✅ Health check local: PASSOU"
+            LOCAL_HEALTH=true
+          else
+            echo "⚠️ Health check local: FALHOU"
+            LOCAL_HEALTH=false
+          fi
+          
+          # Teste HTTP externo
+          echo "📡 Testando HTTP externo: http://$DOMAIN"
+          if curl -fsS -m 30 -L "http://$DOMAIN" -o /dev/null 2>&1; then
+            echo "✅ HTTP: ACESSÍVEL"
+            HTTP_SUCCESS=true
+          else
+            echo "❌ HTTP: FALHOU"
+            HTTP_SUCCESS=false
+          fi
+          
+          # Teste HTTPS externo (se SSL habilitado)
+          if [ "${{ steps.ssl_check.outputs.ssl_enabled }}" = "true" ]; then
+            echo "🔐 Testando HTTPS externo: https://$DOMAIN"
+            if curl -fsS -m 30 --retry 3 --retry-connrefused --retry-delay 10 -L "https://$DOMAIN" -o /dev/null 2>&1; then
+              echo "✅ HTTPS: ACESSÍVEL"
+              HTTPS_SUCCESS=true
+            else
+              echo "⚠️ HTTPS: Não acessível (pode precisar de propagação DNS)"
+              HTTPS_SUCCESS=false
+            fi
+          fi
+          
+          # Teste de subdomínio wildcard (se SSL ativo)
+          if [ "${{ steps.ssl_check.outputs.ssl_enabled }}" = "true" ] && [ "$HTTPS_SUCCESS" = "true" ]; then
+            echo "🌟 Testando wildcard: https://app.$DOMAIN"
+            if curl -fsS -m 20 -L "https://app.$DOMAIN" -o /dev/null 2>&1; then
+              echo "✅ Wildcard SSL: FUNCIONANDO"
+            else
+              echo "⚠️ Wildcard SSL: Pode precisar de propagação DNS"
+            fi
+          fi
+          
+          # Resumo final
+          echo "=================================="
+          if [ "$HTTP_SUCCESS" = "true" ]; then
+            echo "🎉 Deploy do Laravel realizado com sucesso!"
+            echo "🌍 Site principal: http://$DOMAIN"
+          
+            if [ "${{ steps.ssl_check.outputs.ssl_enabled }}" = "true" ]; then
+              if [ "$HTTPS_SUCCESS" = "true" ]; then
+                echo "🔒 SSL/HTTPS: https://$DOMAIN"
+                echo "🌟 Wildcard: https://app.$DOMAIN, https://admin.$DOMAIN, etc."
+              else
+                echo "⏳ HTTPS em configuração - aguarde propagação DNS"
+              fi
+            else
+              echo "💡 Para habilitar SSL: configure CERTBOT_EMAIL e CLOUDFLARE_TOKEN"
+            fi
+          
+            echo ""
+            echo "📋 Recursos disponíveis:"
+            echo "   • Health check: http://$DOMAIN/health"
+            echo "   • Laravel app: http://$DOMAIN"
+            if [ "${{ steps.ssl_check.outputs.ssl_enabled }}" = "true" ]; then
+              echo "   • SSL wildcard: https://*.$DOMAIN"
+            fi
+          else
+            echo "❌ Problemas na conectividade - verificar logs:"
+            echo "   • ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+            echo "   • cd ${{ secrets.APP_PATH }} && make logs-prod"
+            exit 1
+          fi
+
+      - name: Notify deployment completion
+        if: success()
+        run: |
+          echo "✅ Deploy concluído com sucesso!"
+          echo "🚀 Laravel em produção está rodando"
 
       - name: Cleanup SSH key
         if: always()
-        run: rm -f ~/.ssh/id_rsa ~/.ssh/id_ed25519
+        run: rm -f ~/.ssh/id_rsa ~/.ssh/id_ed25519 ~/.ssh/known_hosts
