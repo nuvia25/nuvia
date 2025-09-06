@@ -28,9 +28,9 @@ RUN mkdir -p /home/$user/.composer && \
 
 WORKDIR /var/www
 
-COPY .docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY .docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
-COPY .docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY . /var/www
 
 # Normalize script line endings, ensure executable, and validate shebang/exec at build time
@@ -50,7 +50,7 @@ RUN apk add --no-cache bash nano $PHPIZE_DEPS && \
     pecl install xdebug && \
     docker-php-ext-enable xdebug
 
-COPY .docker/php/xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+COPY docker/php/xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
 USER root
 EXPOSE 9000
