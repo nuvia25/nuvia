@@ -65,7 +65,6 @@ deploy:
 	make permissions
 	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) sh -lc "composer install --no-dev --prefer-dist --no-interaction --no-progress"
 	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) php artisan migrate --force
-	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) php artisan optimize
 
 help:
 	@echo "Makefile (MODE=$(MODE))"
