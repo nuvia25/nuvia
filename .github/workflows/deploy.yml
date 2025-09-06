@@ -22,11 +22,20 @@ jobs:
           ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd ${{ secrets.APP_PATH }} &&
             echo '🚀 Iniciando deploy...' &&
-            echo '🧹 Limpando modificações locais...' &&
+            echo '🛑 Parando containers Docker...' &&
+            docker stop \$(docker ps -q) 2>/dev/null || true &&
+            echo '🧹 Limpando com sudo (corrigindo permissões)...' &&
+            sudo chown -R \$(whoami):\$(whoami) . &&
+            sudo chmod -R 755 . &&
             git reset --hard HEAD &&
             git clean -fd &&
-            rm -rf public/storage &&
-            git stash --all &&
+            sudo rm -rf public/storage &&
+            sudo rm -rf storage/framework/cache/* &&
+            sudo rm -rf storage/framework/sessions/* &&
+            sudo rm -rf storage/framework/views/* &&
+            sudo rm -rf storage/logs/* &&
+            sudo rm -rf bootstrap/cache/* &&
+            git stash --all || true &&
             git stash drop || true &&
             echo '📥 Fazendo pull do GitHub...' &&
             git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git &&
