@@ -51,11 +51,18 @@ artisan:
 shell:
 	@$(DC) -f $(COMPOSE_FILE) exec $(APP_SERVICE) sh
 
+permissions:
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) git config --global --add safe.directory /var/www || true
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/vendor 2>/dev/null || true
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) chmod -R 775 /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) chmod -R 755 /var/www/vendor 2>/dev/null || true
+
 deploy:
 	@if [ "$(MODE)" != "prod" ]; then echo "Deploy disponível apenas com MODE=prod"; exit 1; fi
 	@echo "Deploy (MODE=prod) using $(COMPOSE_FILE)"
 	@$(DC) -f $(COMPOSE_FILE) build
 	@$(DC) -f $(COMPOSE_FILE) up -d --remove-orphans
+	make permissions
 	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) sh -lc "composer install --no-dev --prefer-dist --no-interaction --no-progress"
 	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) php artisan migrate --force
 	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) php artisan optimize
@@ -76,4 +83,4 @@ help:
 %:
 	@:
 
-.PHONY: up down build prune install-deps restart logs composer artisan shell deploy help
+.PHONY: up down build prune install-deps restart logs composer artisan shell deploy permissions help
