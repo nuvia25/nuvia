@@ -7,6 +7,7 @@ use App\Enums\Introduction;
 use App\Helpers\Classes\Helper;
 use App\Helpers\Classes\Localization;
 use App\Helpers\Classes\MarketplaceHelper;
+use App\Helpers\Classes\MenuHelper;
 use App\Helpers\Classes\PlanHelper;
 use App\Models\Common\Menu;
 use App\Models\Extension;
@@ -101,7 +102,8 @@ class MenuService
 
     public function generate(bool $active = true): array
     {
-        return cache()->rememberForever(self::MENU_KEY, function () use ($active) {
+
+        $data = cache()->rememberForever(self::MENU_KEY . time(), function () use ($active) {
             $items = Menu::query()
                 ->with('children')
                 ->withCount('children')
@@ -115,6 +117,15 @@ class MenuService
             return $this->merge($items);
         });
 
+        if (setting('dash_theme') === 'oupi') {
+            $menuHelper = app(MenuHelper::class);
+
+            foreach ($data as $key => $value) {
+                $data[$key]['performUserCheck'] = (bool) $menuHelper->checker($value);
+            }
+        }
+
+        return $data;
     }
 
     public function subMenuOrderUpdate(array $data)
@@ -230,11 +241,29 @@ class MenuService
                 ],
                 'show_condition' => true,
             ],
+            'creative_suite' => [
+                'parent_key'       => null,
+                'key'              => 'creative_suite',
+                'route'            => 'dashboard.user.creative-suite.index',
+                'label'            => 'Creative Suite',
+                'icon'             => 'tabler-image-in-picture',
+                'svg'              => null,
+                'order'            => 3,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => [
+                    'dashboard.user.creative-suite.index',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('creative-suite'),
+                'badge'            => 'new',
+            ],
             'ext_chat_bot' => [
                 'parent_key'       => null,
                 'key'              => 'ext_chat_bot',
                 'route'            => 'dashboard.chatbot.index',
-                'label'            => 'AI Bots',
+                'label'            => 'AI Chat Bots',
                 'data-name'        => Introduction::AI_EXT_CHATBOT,
                 'icon'             => 'tabler-message-chatbot',
                 'svg'              => null,
@@ -247,6 +276,43 @@ class MenuService
                     'dashboard.chatbot.*',
                 ],
                 'show_condition' => Route::has('dashboard.chatbot.index'),
+                'badge'          => 'new',
+            ],
+            'ext_chatbot_knowledge_base_article' => [
+                'parent_key'       => null,
+                'key'              => 'ext_chatbot_knowledge_base_article',
+                'route'            => 'dashboard.chatbot.knowledge-base-article.index',
+                'label'            => 'AI Bot Knowledge Base',
+                'data-name'        => Introduction::AI_EXT_CHATBOT_KNOWLEDGE_BASE_ARTICLES,
+                'icon'             => 'tabler-library',
+                'svg'              => null,
+                'order'            => 5,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => [
+                    'dashboard.chatbot.*',
+                ],
+                'show_condition' => Route::has('dashboard.chatbot.knowledge-base-article.index'),
+            ],
+            'ext_chatbot_chatbot_customer_article' => [
+                'parent_key'       => null,
+                'key'              => 'ext_chatbot_chatbot_customer_article',
+                'route'            => 'dashboard.chatbot.chatbot-customer.index',
+                'label'            => 'AI Bot Contacts',
+                'data-name'        => Introduction::AI_EXT_CHATBOT_CUSTOMER,
+                'icon'             => 'tabler-library',
+                'svg'              => null,
+                'order'            => 5,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => [
+                    'dashboard.chatbot.*',
+                ],
+                'show_condition' => Route::has('dashboard.chatbot.chatbot-customer.index'),
             ],
             'ext_voice_chatbot' => [
                 'parent_key'       => null,
@@ -282,6 +348,7 @@ class MenuService
                 'active_condition' => ['dashboard.user.marketing-bot.dashboard'],
                 'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
                 'is_admin'         => false,
+                'badge'            => 'new',
             ],
             'marketing_bot_settings' => [
                 'parent_key'       => null,
@@ -393,7 +460,7 @@ class MenuService
                 'type'             => 'item',
                 'extension'        => null,
                 'active_condition' => [
-                    'dashboard.user.index',
+                    'dashboard.user.marketing-bot.telegram-group.*',
                 ],
                 'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
             ],
@@ -549,7 +616,7 @@ class MenuService
                 'type'             => 'item',
                 'extension'        => true,
                 'active_condition' => [
-                    'dashboard.user.social-media.*',
+                    'dashboard.user.social-media.index',
                 ],
                 'show_condition' => Route::has('dashboard.user.social-media.index'),
             ],
@@ -567,7 +634,7 @@ class MenuService
                 'type'             => 'item',
                 'extension'        => true,
                 'active_condition' => [
-                    'dashboard.user.social-media.*',
+                    'dashboard.user.social-media.campaign.*',
                 ],
                 'show_condition' => Route::has('dashboard.user.social-media.index'),
             ],
@@ -585,7 +652,8 @@ class MenuService
                 'type'             => 'item',
                 'extension'        => true,
                 'active_condition' => [
-                    'dashboard.user.social-media.*',
+                    'dashboard.user.social-media.platforms',
+                    'dashboard.user.social-media.platforms.*',
                 ],
                 'show_condition' => Route::has('dashboard.user.social-media.platforms'),
             ],
@@ -603,7 +671,7 @@ class MenuService
                 'type'             => 'item',
                 'extension'        => true,
                 'active_condition' => [
-                    'dashboard.user.social-media.*',
+                    'dashboard.user.social-media.post.*',
                 ],
                 'show_condition' => Route::has('dashboard.user.social-media.post.index'),
             ],
@@ -621,9 +689,85 @@ class MenuService
                 'type'             => 'item',
                 'extension'        => true,
                 'active_condition' => [
-                    'dashboard.user.social-media.*',
+                    'dashboard.user.social-media.calendar',
                 ],
                 'show_condition' => Route::has('dashboard.user.social-media.calendar'),
+            ],
+            'ai_influencer' => [
+                'parent_key'       => null,
+                'key'              => 'ai_influencer',
+                'route'            => 'dashboard.user.ai-influencer.index',
+                'label'            => 'AI Influencer',
+                'data-name'        => Introduction::AI_INFLUENCER,
+                'icon'             => 'tabler-star',
+                'svg'              => null,
+                'order'            => 10,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => [
+                    'dashboard.user.ai-influencer.index',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('url-to-video') || MarketplaceHelper::isRegistered('influencer-avatar') || MarketplaceHelper::isRegistered('ai-viral-clips'),
+                'badge'            => 'new',
+            ],
+            'url_to_video' => [
+                'parent_key'       => null,
+                'key'              => 'url_to_video',
+                'route'            => 'dashboard.user.url-to-video.index',
+                'label'            => 'Url To Video',
+                'data-name'        => Introduction::URL_TO_VIDEO,
+                'icon'             => 'tabler-photo-video',
+                'svg'              => null,
+                'order'            => 10,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => [
+                    'dashboard.user.url-to-video.index',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('url-to-video'),
+                'badge'            => 'new',
+            ],
+            'viral_clips' => [
+                'parent_key'       => null,
+                'key'              => 'viral_clips',
+                'route'            => 'dashboard.user.viral-clips.index',
+                'label'            => 'AI Viral Clips',
+                'data-name'        => Introduction::VIRAL_CLIPS,
+                'icon'             => 'tabler-movie',
+                'svg'              => null,
+                'order'            => 10,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => [
+                    'dashboard.user.viral-clips.index',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('ai-viral-clips'),
+                'badge'            => 'new',
+            ],
+            'influencer_avatar' => [
+                'parent_key'       => null,
+                'key'              => 'influencer_avatar',
+                'route'            => 'dashboard.user.influencer-avatar.index',
+                'label'            => 'Influencer Avatar',
+                'data-name'        => Introduction::INFLUENCER_AVATAR,
+                'icon'             => 'tabler-device-mobile-star',
+                'svg'              => null,
+                'order'            => 10,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => [
+                    'dashboard.user.influencer-avatar.index',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('influencer-avatar'),
+                'badge'            => 'new',
             ],
             'documents' => [
                 'parent_key'       => null,
@@ -870,7 +1014,7 @@ class MenuService
                 'active_condition' => [
                     'dashboard.user.openai.chat.*',
                 ],
-                'show_condition' => (bool) Helper::setting('feature_ai_chat', null, $setting),
+                'show_condition'   => (bool) Helper::setting('feature_ai_chat', null, $setting),
             ],
             'ai_chat_pro' => [
                 'parent_key'       => null,
@@ -1529,6 +1673,26 @@ class MenuService
                 'show_condition' => true,
                 'is_admin'       => true,
             ],
+            'discount-manager' => [
+                'parent_key'       => null,
+                'key'              => 'discount-manager',
+                'route'            => 'dashboard.admin.discount-manager.index',
+                'label'            => 'Discount & Offer Manager',
+                'data-name'        => Introduction::DISCOUNT_MANAGER,
+                'icon'             => 'tabler-shopping-bag-discount',
+                'svg'              => null,
+                'order'            => 37,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => [
+                    'dashboard.admin.discount-manager.*',
+                ],
+                'show_condition' => MarketplaceHelper::isRegistered('discount-manager'),
+                'is_admin'       => true,
+                'badge'          => 'new',
+            ],
             'site_promo' => [
                 'parent_key'       => null,
                 'key'              => 'site_promo',
@@ -2000,7 +2164,7 @@ class MenuService
                 'active_condition' => [
                     'dashboard.admin.frontend.curtain.*',
                 ],
-                'show_condition' => setting('front_theme') === 'social-media-front',
+                'show_condition' => in_array(setting('front_theme'), ['social-media-front', 'marketing-bot']),
                 'is_admin'       => true,
             ],
             'features_section' => [
@@ -2610,6 +2774,78 @@ class MenuService
                 'onclick'          => Helper::appIsDemo() ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '',
                 'badge'            => 'new',
             ],
+            'api_integration_creatify' => [
+                'parent_key'       => 'api_integration',
+                'key'              => 'api_integration_creatify',
+                'route'            => Helper::appIsDemo() ? 'default' : 'dashboard.admin.settings.creatify',
+                'label'            => EngineEnum::fromSlug('creatify')?->label() ?? 'Creatify',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 68,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => ['dashboard.admin.settings.creatify'],
+                'show_condition'   => Route::has('dashboard.admin.settings.creatify'),
+                'is_admin'         => true,
+                'onclick'          => Helper::appIsDemo() ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '',
+                'badge'            => 'new',
+            ],
+            'api_integration_topview' => [
+                'parent_key'       => 'api_integration',
+                'key'              => 'api_integration_topview',
+                'route'            => Helper::appIsDemo() ? 'default' : 'dashboard.admin.settings.topview',
+                'label'            => EngineEnum::TOPVIEW->label(),
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 68,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => ['dashboard.admin.settings.topview'],
+                'show_condition'   => Route::has('dashboard.admin.settings.topview'),
+                'is_admin'         => true,
+                'onclick'          => Helper::appIsDemo() ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '',
+                'badge'            => 'new',
+            ],
+            'api_integration_vizard' => [
+                'parent_key'       => 'api_integration',
+                'key'              => 'api_integration_vizard',
+                'route'            => Helper::appIsDemo() ? 'default' : 'dashboard.admin.settings.vizard',
+                'label'            => EngineEnum::VIZARD->label(),
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 68,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => ['dashboard.admin.settings.vizard'],
+                'show_condition'   => Route::has('dashboard.admin.settings.vizard'),
+                'is_admin'         => true,
+                'onclick'          => Helper::appIsDemo() ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '',
+                'badge'            => 'new',
+            ],
+            'api_integration_klap' => [
+                'parent_key'       => 'api_integration',
+                'key'              => 'api_integration_klap',
+                'route'            => Helper::appIsDemo() ? 'default' : 'dashboard.admin.settings.klap',
+                'label'            => EngineEnum::KLAP->label(),
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 68,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => ['dashboard.admin.settings.klap'],
+                'show_condition'   => Route::has('dashboard.admin.settings.klap'),
+                'is_admin'         => true,
+                'onclick'          => Helper::appIsDemo() ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '',
+                'badge'            => 'new',
+            ],
             'api_integration_piapi_ai' => [
                 'parent_key'       => 'api_integration',
                 'key'              => 'api_integration_piapi_ai',
@@ -2999,7 +3235,7 @@ class MenuService
                 'type'             => 'item',
                 'extension'        => null,
                 'active_condition' => ['dashboard.admin.license.index'],
-                'show_condition'   => true,
+                'show_condition'   => Helper::appIsNotDemo(),
                 'is_admin'         => true,
             ],
             'update' => [
@@ -3036,6 +3272,24 @@ class MenuService
                 'extension'        => null,
                 'active_condition' => ['dashboard.admin.menu.index'],
                 'show_condition'   => Route::has('dashboard.admin.menu.index'),
+                'is_admin'         => true,
+            ],
+            'footer_menu_setting' => [
+                'parent_key'       => null,
+                'class'            => '',
+                'key'              => 'footer_menu_setting',
+                'route'            => 'dashboard.admin.footer-menu.index',
+                'label'            => 'Footer Menu',
+                'data-name'        => Introduction::ADMIN_FOOTER_MENU_SETTINGS,
+                'icon'             => 'tabler-menu',
+                'svg'              => null,
+                'order'            => 89,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => ['dashboard.admin.footer-menu.index'],
+                'show_condition'   => Route::has('dashboard.admin.footer-menu.index') && setting('footer_menu_enabled', '0') == '1',
                 'is_admin'         => true,
             ],
             'mega_menu_setting' => [
@@ -3216,6 +3470,24 @@ class MenuService
                     'dashboard.admin.openai.chat.pro.settings',
                 ],
                 'show_condition' => Route::has('dashboard.admin.openai.chat.pro.settings'),
+                'badge'          => 'new',
+            ],
+            'content_manager_extension' => [
+                'parent_key'       => 'settings',
+                'key'              => 'content_manager_extension',
+                'route'            => 'content-manager::settings',
+                'label'            => 'Content Manager Settings',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 77,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => [
+                    'migration::settings.*',
+                ],
+                'show_condition' => MarketplaceHelper::isRegistered('content-manager'),
                 'badge'          => 'new',
             ],
             'social_media_settings_extension' => [
@@ -3574,6 +3846,11 @@ class MenuService
                     'integration',
                     'custom_templates_extension',
                     'chat_training_extension',
+                    'creative_suite',
+                    'ai_influencer',
+                    'url_to_video',
+                    'viral_clips',
+                    'influencer_avatar',
                 ]) && $item['show_condition'];
             })
             ->values()

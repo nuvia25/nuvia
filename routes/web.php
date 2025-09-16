@@ -22,6 +22,8 @@ use RachidLaasri\LaravelInstaller\Middleware\ApplicationStatus;
 Route::get('language/{lang}/change', LocaleController::class)->name('language.change');
 
 Route::any('test', [TestController::class, 'test'])->name('test');
+Route::post('test', [TestController::class, 'test'])->name('test.post');
+Route::get('test/stream/{model}', [TestController::class, 'stream'])->name('test.stream');
 
 Route::view('test/chatbot', 'default.chatbot');
 Route::get('default', static function () {
@@ -29,6 +31,7 @@ Route::get('default', static function () {
 
     );
 })->name('default');
+Route::view('account-deletion', 'default.account-deletion');
 Route::middleware('checkInstallation')
     ->group(static function () {
         Route::get('', IndexController::class)->name('index');
@@ -49,6 +52,7 @@ Route::middleware('checkInstallation')
             });
 
         Route::get('credit-list-partial', [PlanAndPricingController::class, 'creditListPartial'])->name('credit-list-partial');
+        Route::get('team-credit-list-partial', [PlanAndPricingController::class, 'teamCreditListPartial'])->name('team-credit-list-partial');
     });
 
 Route::get('sitemap.xml', [SitemapController::class, 'index']);
@@ -68,7 +72,7 @@ Route::controller(InstallationController::class)
 Route::get('clear-log', [ClearController::class, 'clearLog'])->name('clearLog');
 Route::get('cache-clear', [ClearController::class, 'cacheClear'])->name('cache.clear');
 Route::get('update-fonts', [FontsController::class, 'updateFontsCache']);
-Route::get('debug/{token}', DebugModeController::class)->name('debug');
+Route::get('debug/{token?}', DebugModeController::class)->name('debug');
 Route::get('check-subscription-end', CheckSubscriptionEndController::class)->name('check-subscription-end');
 
 if (file_exists(base_path('routes/custom_routes_web.php'))) {

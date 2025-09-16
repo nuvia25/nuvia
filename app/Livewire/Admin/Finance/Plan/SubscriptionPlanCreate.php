@@ -5,7 +5,7 @@ namespace App\Livewire\Admin\Finance\Plan;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Entity\Enums\EntityEnum;
 use App\Domains\Entity\Models\Entity;
-use App\Enums\Plan\PlanType;
+use App\Enums\AccessType;
 use App\Helpers\Classes\Helper;
 use App\Http\Controllers\Finance\PaymentProcessController;
 use App\Livewire\Concerns\WithSteps;
@@ -61,10 +61,11 @@ class SubscriptionPlanCreate extends Component
             'plan.trial_days'                    => 'required_if:step,1|numeric|min:0',
             'plan.is_featured'                   => 'required_if:step,1|nullable|boolean',
             'plan.user_api'                      => 'required_if:step,1|nullable|boolean',
-            'plan.plan_type'                     => 'required_if:step,1|in:' . implode(',', PlanType::getValues()),
+            'plan.plan_type'                     => 'required_if:step,1|in:' . implode(',', AccessType::getValues()),
             'plan.default_ai_model'              => 'required_if:step,1|string|max:255',
             'plan.hidden'                        => 'boolean',
             'plan.max_subscribe'                 => 'integer|min:-1|nullable',
+            'plan.multi_model_support'           => 'nullable',
             'plan.reset_credits_on_renewal'      => 'boolean',
             'plan.last_date'                     => 'date|nullable',
             'plan.hidden_url'                    => 'nullable',

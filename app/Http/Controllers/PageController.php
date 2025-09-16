@@ -15,16 +15,11 @@ class PageController extends Controller
     {
         $page = Page::where('slug', $slug)->first();
 
-        // Check page status
-        if (! $page->status) {
-            abort(404);
+        if ($page && $page->status) {
+            return view('page.index', compact('page'));
         }
 
-        if ($page) {
-            return view('page.index', compact('page'));
-        } else {
-            abort(404);
-        }
+        abort(404);
     }
 
     public function pageList()
@@ -48,7 +43,7 @@ class PageController extends Controller
     public function pageDelete($id = null)
     {
         $page = Page::where('id', $id)->firstOrFail();
-        $page->delete();
+        $page?->delete();
 
         return back()->with(['message' => __('Deleted Successfully'), 'type' => 'success']);
     }

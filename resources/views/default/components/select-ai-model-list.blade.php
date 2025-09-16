@@ -3,6 +3,7 @@
     use App\Domains\Entity\Models\Entity;
     use App\Domains\Entity\Enums\EntityEnum;
     use App\Extensions\OpenRouter\System\Enums\OpenRouterEngine;
+    use App\Helpers\Classes\MarketplaceHelper;
 
     $defaultEngine = EngineEnum::fromSlug(setting('default_ai_engine', EngineEnum::OPEN_AI->slug()));
     $defaultModel = $defaultEngine->getDefaultWordModel($setting);
@@ -37,35 +38,26 @@
             }
         }
     }
+
+    $currentUrl = url()->current();
+    $previousUrl = url()->previous();
+    $is_chat_pro =
+        \App\Helpers\Classes\MarketplaceHelper::isRegistered('ai-chat-pro') &&
+        (route('dashboard.user.openai.chat.pro.index') === $currentUrl ||
+            route('chat.pro') === $currentUrl ||
+            route('dashboard.user.openai.chat.pro.index') === $previousUrl ||
+            route('chat.pro') === $previousUrl);
+
+    $isMultiModelExtensionEnabled = $is_chat_pro && MarketplaceHelper::isRegistered('multi-model') && setting('ai_chat_pro_multi_model_feature', '1') === '1';
 @endphp
 
-<div x-data="{
-    selectedModelValue: '{{ $selectedModel->enum()?->value }}',
-    selectedModelLabel: '{{ $selectedModel->model()?->selected_title ?? $selectedModel->enum()?->value }}',
-    selectedCard: null,
-    searchString: '',
-    selectCard(el) {
-        if (el?.classList?.contains('inactive')) return;
-        this.selectedCard = el;
-    },
-    saveChanges() {
-        if (!this.selectedCard) return;
-
-        const modelValue = this.selectedCard.getAttribute('data-model-value');
-        const modelLabel = this.selectedCard.getAttribute('data-model-label');
-        const modelSelectElement = this.$refs.modelsSelectElement;
-
-        this.selectedModelValue = modelValue;
-        this.selectedModelLabel = modelLabel;
-
-        modelSelectElement.value = modelValue;
-    }
-}">
-
+<div x-data="modelList">
     <x-modal
+        class:modal="select-ai-model-modal"
+        class:modal-body="max-sm:p-3"
         class:modal-head="gap-1 sticky top-0 z-50 bg-background p-4"
         class:modal-content="mx-5 container"
-        class:close-btn="-order-1 sm:order-1 ms-0"
+        class:close-btn="!hidden"
         id="openRouterModel"
     >
         <x-slot:trigger
@@ -105,8 +97,18 @@
                         @lang('AI Models')
                     </h4>
                     <p class="mb-0 text-2xs font-normal text-foreground">
-                        @lang('Choose the AI model that best suits your needs.')
+                        @if ($isMultiModelExtensionEnabled)
+                            @lang('Choose multiple AI models that best suit your needs.')
+                        @else
+                            @lang('Choose the AI model that best suits your needs.')
+                        @endif
                     </p>
+                    @if ($isMultiModelExtensionEnabled)
+                        <p class="tmp-alert hidden text-2xs text-blue-400">
+                            <x-tabler-info-circle class="me-1 inline size-4" />
+                            @lang('If you want to select multiple models, please upgrade your plan.')
+                        </p>
+                    @endif
                 </div>
 
                 <div class="lg:ms-auto">
@@ -127,10 +129,7 @@
         </x-slot:head-content>
 
         <x-slot:modal>
-            <div
-                class="min-w-fit"
-                x-init="selectCard(document.querySelector(`.lqd-model-card[data-model-value='{{ $selectedModel->enum()?->value }}']`));"
-            >
+            <div class="min-w-fit">
                 <form
                     action="#"
                     @submit.prevent="saveChanges(); modalOpen = false;"
@@ -141,31 +140,25 @@
                                 @php
                                     $model = EntityEnum::fromSlug($engine?->value);
                                     $driver = \App\Domains\Entity\Facades\Entity::driver($model);
+                                    $is_inactive = $driver->creditBalance() <= 0 && !$driver->isUnlimitedCredit();
                                 @endphp
 
                                 <x-card
-                                    class:body="md:p-7 p-5"
+                                    class:body="md:p-7 p-5 static"
                                     data-model-value="{{ $model?->value }}"
                                     data-model-label="{{ $driver->model()?->selected_title ?? $model?->value }}"
                                     @class([
-                                        'lqd-model-card cursor-pointer data-[selected]:outline data-[selected]:outline-[3px] data-[selected]:outline-secondary [&.inactive]:pointer-events-none [&.inactive]:opacity-50',
-                                        'inactive' =>
-                                            $driver->creditBalance() <= 0 && !$driver->isUnlimitedCredit(),
+                                        'lqd-model-card cursor-pointer relative data-[selected]:outline data-[selected]:outline-[3px] data-[selected]:outline-secondary [&.inactive]:pointer-events-none [&.inactive]:opacity-50',
+                                        'inactive' => $is_inactive,
                                     ])
                                     variant="outline-shadow"
-                                    ::class="{
-                                        'inactive': {{ $driver->creditBalance() <= 0 && !$driver->isUnlimitedCredit() ? 'true' : 'false' }},
-                                    }"
-                                    @click.prevent="selectCard($event.currentTarget)"
-                                    ::data-selected="selectedCard?.getAttribute('data-model-value') === $el.getAttribute(
-                                        'data-model-value')"
+                                    @click.prevent="updateSelectedModels({ value: $el.getAttribute('data-model-value'), label: $el.getAttribute('data-model-label') })"
+                                    ::data-selected="selectedModels.findIndex(model => model.value === $el.getAttribute('data-model-value')) >= 0 && {{ $is_inactive ? 'false' : 'true' }}"
                                     x-show="searchString === '' || $el.getAttribute('data-model-label').toLowerCase().includes(searchString.toLowerCase())"
                                 >
                                     <div class="w-full">
                                         <div class="mb-6 flex justify-between gap-1.5">
-                                            <figure
-                                                class="inline-grid size-10 shrink-0 place-content-center rounded-full bg-heading-foreground/5"
-                                            >
+                                            <figure class="inline-grid size-10 shrink-0 place-content-center rounded-full bg-heading-foreground/5">
                                                 <x-tabler-brand-openai
                                                     class="size-6"
                                                     stroke-width="1.5"
@@ -185,43 +178,57 @@
                                             </div>
                                         </div>
 
-                                        <div>
-                                            <h4 class="mb-2">
-                                                {{ $driver->model()?->selected_title ?? $model?->value }}
-                                            </h4>
-                                            {{--											<p class="mb-0"> --}}
-                                            {{--												@lang($model->label()) --}}
-                                            {{--											</p> --}}
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex-1">
+                                                <h4 class="mb-2">
+                                                    {{ $driver->model()?->selected_title ?? $model?->value }}
+                                                </h4>
+                                            </div>
                                         </div>
                                     </div>
-                                </x-card>
-                            @endforeach
-                        </div>
 
-                        <x-forms.input
-                            id="chatbot_front_model"
-                            container-class="hidden"
-                            name="chatbot_front_model"
-                            type="select"
-                            x-ref="modelsSelectElement"
-                            x-model="selectedModelValue"
-                        >
-                            <option value="">{{ __('Default Model') }}</option>
-                            @foreach ($fullModels as $model)
-                                <option
-                                    value="{{ $model?->value }}"
-                                    x-bind:selected="selectedModelValue === '{{ $model?->value }}'"
-                                >
-                                    {{ $model?->label() }}
-                                </option>
-                            @endforeach
-                        </x-forms.input>
+									@if ($isMultiModelExtensionEnabled)
+										<div
+											class="absolute bottom-3 end-3 inline-grid size-9 place-items-center rounded-full bg-secondary text-secondary-foreground shadow-lg shadow-black/5"
+											x-show="selectedModels.find(model => model.value === '{{ $model?->value }}') && {{ $is_inactive ? 'false' : 'true' }}"
+										>
+											<x-tabler-check class="size-5"/>
+										</div>
+									@endif
+								</x-card>
+							@endforeach
+						</div>
+
+						<x-forms.input
+							id="chatbot_front_model"
+							container-class="hidden"
+							name="chatbot_front_model"
+							type="select"
+							:multiple="$isMultiModelExtensionEnabled"
+							x-ref="modelsSelectElement"
+							x-model="selectedModels.map(model => model.value)"
+						>
+							<option
+								data-label="{{ __('Default Model') }}"
+								value=""
+							>
+								{{ __('Default Model') }}
+							</option>
+							@foreach ($fullModels as $model)
+								<option
+									data-label="{{ $model?->label() ?? '' }}"
+									value="{{ $model?->value }}"
+								>
+									{{ $model?->label() }}
+								</option>
+							@endforeach
+						</x-forms.input>
 
                         <x-button
                             class="sticky bottom-5 mt-10 w-full backdrop-blur-lg disabled:bg-heading-foreground/30 disabled:text-header-background"
                             type="submit"
                             size="xl"
-                            ::disabled="!selectedCard"
+                            ::disabled="!selectedModels.length"
                         >
                             {{ __('Apply') }}
                         </x-button>
@@ -231,3 +238,103 @@
         </x-slot:modal>
     </x-modal>
 </div>
+
+@push('script')
+    <script>
+        (() => {
+            document.addEventListener('alpine:init', () => {
+                Alpine.data('modelList', () => ({
+                    selectedModelLabel: '',
+                    selectedModels: [],
+                    searchString: '',
+                    localStorageKey: 'selectedChatModels',
+
+                    getLocalStorage() {
+                        const defaultModelValue = '{{ $selectedModel->enum()?->value }}';
+                        const defaultModelLabel = '{{ $selectedModel->model()?->selected_title ?? $selectedModel->enum()?->value }}';
+                        const localStorageLastSelectedModels = localStorage.getItem(this.localStorageKey) ??
+                            `[{ "value": "${defaultModelValue}", "label": "${defaultModelLabel}" }]`;
+
+						return JSON.parse(localStorageLastSelectedModels);
+					},
+					setLocalStorage() {
+						localStorage.setItem(this.localStorageKey, JSON.stringify(this.selectedModels));
+					},
+					updateSelectedModels(modelObj = {
+						value: null,
+						label: null
+					}) {
+						const existingSelectedModels = this.selectedModels;
+						@php
+							$canMultiSelect = $isMultiModelExtensionEnabled && (auth()?->user()?->activePlan()?->multi_model_support ?? false || auth()?->user()?->isAdmin());
+						@endphp
+						@if ($canMultiSelect)
+							const existingIndex = this.selectedModels.findIndex(model => model.value === modelObj.value);
+							if (existingIndex > -1) {
+								if (this.selectedModels.length > 1) {
+									this.selectedModels = this.selectedModels.filter((model, index) => index !== existingIndex);
+								}
+							} else if (this.selectedModels.length >= 2) {
+								toastr.error('{{ __('Selecting more than 2 models not allowed') }}');
+								this.selectedModels = existingSelectedModels;
+							} else {
+								this.selectedModels.push({
+									value: modelObj.value,
+									label: modelObj.label,
+								});
+							}
+						@else
+							@if ($isMultiModelExtensionEnabled)
+								document.querySelector('.tmp-alert').classList.remove('hidden');
+								setTimeout(() => {
+									document.querySelector('.tmp-alert').classList.add('hidden');
+								}, 3000);
+							@endif
+							this.selectedModels = [modelObj];
+						@endif
+
+                        this.updateSelectionLabel();
+                        this.setLocalStorage();
+                    },
+                    updateSelectionLabel() {
+                        if (this.selectedModels.length === 0) {
+                            this.selectedModelLabel = '{{ __('None') }}';
+                        } else if (this.selectedModels.length === 1) {
+                            this.selectedModelLabel = this.selectedModels[0].label;
+                        } else {
+                            this.selectedModelLabel = this.selectedModels.length + ' {{ __('models selected') }}';
+                        }
+                    },
+                    saveChanges() {
+                        this.updateSelectionLabel();
+                        this.setLocalStorage();
+                    },
+                    init() {
+                        const localStorageLastSelectedModels = this.getLocalStorage();
+
+                        this.selectedModels = localStorageLastSelectedModels;
+                        this.updateSelectionLabel();
+
+                        document.addEventListener('chat-model-change', event => {
+                            const {
+                                model
+                            } = event.detail;
+
+                            if (!model.trim()) return;
+
+                            const modelObj = {
+                                value: model,
+                                label: Array.from(document.querySelector('#chatbot_front_model').options).find(optionEl => optionEl.value === model)
+                                    ?.getAttribute('data-label') ?? ''
+                            };
+
+                            this.selectedModels = [modelObj];
+                            this.setLocalStorage();
+                            this.updateSelectionLabel();
+                        })
+                    }
+                }))
+            })
+        })();
+    </script>
+@endpush

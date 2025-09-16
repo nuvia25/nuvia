@@ -1,20 +1,20 @@
 @php
     $price_details = [
         [
-            'label' => 'Free updates',
+            'label' => 'License',
             'value' => 'Lifetime',
         ],
         [
-            'label' => 'Support',
+            'label' => 'Support & Updates',
             'value' => '6 months',
-        ],
-        [
-            'label' => 'License',
-            'value' => 'Extended',
         ],
         [
             'label' => 'Installation',
             'value' => 'One Click',
+        ],
+        [
+            'label' => 'Recently Updated',
+            'value' => 'Yes',
         ],
     ];
 @endphp
@@ -23,13 +23,13 @@
 @section('title', __('Themes and skins'))
 @section('titlebar_pretitle')
     <x-button
-            class="text-inherit hover:text-foreground"
-            variant="link"
-            href="{{  (route('dashboard.admin.themes.index')) }}"
+        class="text-inherit hover:text-foreground"
+        variant="link"
+        href="{{ route('dashboard.admin.themes.index') }}"
     >
         <x-tabler-chevron-left
-                class="size-4"
-                stroke-width="1.5"
+            class="size-4"
+            stroke-width="1.5"
         />
         {{ __('Back to themes') }}
     </x-button>
@@ -39,13 +39,13 @@
 @section('content')
     <div class="lqd-extension-details flex flex-col justify-between gap-y-7 py-10 md:flex-row">
         <x-card
-                class="lqd-extension-details-card relative w-full pb-10 lg:w-8/12 [&_hr]:my-5 [&_hr]:border-border"
-                variant="shadow"
-                size="lg"
+            class="lqd-extension-details-card relative w-full max-w-none pb-10 lg:w-8/12 [&_hr]:my-5 [&_hr]:border-border"
+            variant="shadow"
+            size="lg"
         >
             <img
-                    class="mb-8"
-                    src="{{ $item['icon'] }}"
+                class="mb-8"
+                src="{{ $item['icon'] }}"
             >
 
             <div class="mb-8 flex flex-wrap items-center gap-2">
@@ -55,7 +55,7 @@
 
                 @if ($item['installed'])
                     <p class="mb-0 ms-3 flex items-center gap-2 text-2xs font-medium">
-                        <span class="size-2 inline-block rounded-full bg-green-500"></span>
+                        <span class="inline-block size-2 rounded-full bg-green-500"></span>
                         {{ __('Installed') }}
                     </p>
                 @endif
@@ -94,7 +94,7 @@
                 {{ __('About this theme') }}
             </h3>
 
-            <div class="mb-8">
+            <div class="prose prose-sm mb-8 max-w-none">
                 {!! $item['detail'] !!}
             </div>
 
@@ -103,7 +103,7 @@
                 @foreach ($item['categories'] as $tag)
                     <p class="flex items-center gap-3 text-base font-medium">
                         <span
-                                class="size-6 me-1 inline-flex items-center justify-center rounded-xl bg-primary/[8%] align-middle text-primary dark:bg-secondary/15 dark:text-secondary-foreground"
+                            class="me-1 inline-flex size-6 items-center justify-center rounded-xl bg-primary/[8%] align-middle text-primary dark:bg-secondary/15 dark:text-secondary-foreground"
                         >
                             <x-tabler-check class="size-3.5" />
                         </span>
@@ -118,30 +118,30 @@
                         {{ __('Have a question?') }}
                     </h3>
                     <div
-                            class="lqd-accordion flex flex-col gap-4"
-                            x-data="{ activeIndex: 0 }"
+                        class="lqd-accordion flex flex-col gap-4"
+                        x-data="{ activeIndex: 0 }"
                     >
                         @foreach ($item['questions'] as $itemQA)
                             <div
-                                    class="lqd-accordion-item rounded-2xl border [&.lqd-is-active]:shadow-lg [&.lqd-is-active]:shadow-black/5"
-                                    data-index="{{ $loop->index }}"
-                                    :class="{ 'lqd-is-active': activeIndex == '{{ $loop->index }}' }"
+                                class="lqd-accordion-item rounded-2xl border [&.lqd-is-active]:shadow-lg [&.lqd-is-active]:shadow-black/5"
+                                data-index="{{ $loop->index }}"
+                                :class="{ 'lqd-is-active': activeIndex == '{{ $loop->index }}' }"
                             >
                                 <button
-                                        class="lqd-accordion-trigger flex w-full items-center justify-between gap-4 px-7 py-4 text-start text-base font-semibold leading-tight text-heading-foreground"
-                                        data-index="{{ $loop->index }}"
-                                        @click.prevent="activeIndex = activeIndex == '{{ $loop->index }}' ? null : '{{ $loop->index }}'"
+                                    class="lqd-accordion-trigger flex w-full items-center justify-between gap-4 px-7 py-4 text-start text-base font-semibold leading-tight text-heading-foreground"
+                                    data-index="{{ $loop->index }}"
+                                    @click.prevent="activeIndex = activeIndex == '{{ $loop->index }}' ? null : '{{ $loop->index }}'"
                                 >
                                     {{ __($itemQA['question']) }}
-                                    <x-tabler-chevron-down class="size-5 ms-auto shrink-0" />
+                                    <x-tabler-chevron-down class="ms-auto size-5 shrink-0" />
                                 </button>
                                 <div
-                                        @class([
-                                            'lqd-accordion-content px-7',
-                                            'hidden' => $loop->index != 0,
-                                            'lqd-is-active' => $loop->index == 0,
-                                        ])
-                                        :class="{ 'hidden': activeIndex != {{ $loop->index }} }"
+                                    @class([
+                                        'lqd-accordion-content px-7',
+                                        'hidden' => $loop->index != 0,
+                                        'lqd-is-active' => $loop->index == 0,
+                                    ])
+                                    :class="{ 'hidden': activeIndex != {{ $loop->index }} }"
                                 >
                                     <div class="lqd-accordion-content-inner pb-4">
                                         <p class="text-sm leading-relaxed opacity-80">
@@ -158,8 +158,8 @@
 
         <div class="flex w-full flex-col gap-8 lg:w-4/12 lg:ps-8">
             <x-card
-                    class="lqd-extension-price-card text-center"
-                    size="lg"
+                class="lqd-extension-price-card text-center"
+                size="lg"
             >
                 <h4 class="mb-6">
                     {{ __('Limited Offer') }}
@@ -172,21 +172,21 @@
                                 {{ $item['price'] }} $
                                 @if ($item['fake_price'] ?? false)
                                     <small
-                                            class="text-[18px] line-through"
-                                            style="text-decoration: line-through;"
+                                        class="text-[18px] line-through"
+                                        style="text-decoration: line-through;"
                                     >{{ $item['fake_price'] }}$</small>
                                 @endif
                             @else
                                 ${{ $item['price'] }}
                                 @if ($item['fake_price'] ?? false)
                                     <small
-                                            class="text-[18px] line-through"
-                                            style="text-decoration: line-through;"
+                                        class="text-[18px] line-through"
+                                        style="text-decoration: line-through;"
                                     >${{ $item['fake_price'] }} </small>
                                 @endif
                             @endif
                         </p>
-                        <p class="m-0 text-2xs font-semibold text-primary/50">
+                        <p class="m-0 text-2xs font-semibold text-foreground/40">
                             {{ __('For a limited time only') }}
                         </p>
                     </div>
@@ -203,11 +203,11 @@
                 @if ($item['price'] != 0)
                     @if ($app_is_demo)
                         <x-button
-                                class="w-full"
-                                size="lg"
-                                href="#"
-                                onclick="return toastr.info('This feature is disabled in Demo version.')"
-                                disabled
+                            class="w-full"
+                            size="lg"
+                            href="#"
+                            onclick="return toastr.info('This feature is disabled in Demo version.')"
+                            disabled
                         >
                             {{ __('Buy Now') }}
                         </x-button>
@@ -216,10 +216,10 @@
                             $is_license = (bool) $item['licensed'];
                         @endphp
                         <x-button
-                                class="w-full"
-                                size="lg"
-                                :disabled="$is_license"
-                                href="{{ $item['routes']['payment'] }}"
+                            class="w-full"
+                            size="lg"
+                            :disabled="$is_license"
+                            href="{{ $item['routes']['payment'] }}"
                         >
                             {{ __('Buy Now') }}
                         </x-button>
@@ -237,12 +237,12 @@
                                 : route('dashboard.admin.themes.activate', ['slug' => $item['slug']]);
                     @endphp
                     <x-button
-                            class="w-full"
-                            size="lg"
-                            :disabled="$is_active"
-                            variant="{{ $item['price'] == 0 ? 'success' : 'primary' }}"
-                            size="lg"
-                            href="{{ $link }}"
+                        class="w-full"
+                        size="lg"
+                        :disabled="$is_active"
+                        variant="{{ $item['price'] == 0 ? 'success' : 'primary' }}"
+                        size="lg"
+                        href="{{ $link }}"
                     >
                         {{ $is_active ? 'Activated' : 'Activate' }}
                     </x-button>
@@ -250,8 +250,8 @@
             </x-card>
 
             <x-card
-                    class="lqd-extension-price-details"
-                    size="lg"
+                class="lqd-extension-price-details"
+                size="lg"
             >
                 <h4 class="mb-6 border-b pb-3">
                     {{ __('Details') }}

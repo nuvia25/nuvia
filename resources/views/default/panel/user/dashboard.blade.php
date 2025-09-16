@@ -1,4 +1,5 @@
 @php
+	$userId = auth()->id();
     $plan = Auth::user()->activePlan();
     $plan_type = 'regular';
     // $team = Auth::user()->getAttribute('team');
@@ -43,10 +44,7 @@
         ],
     ];
 
-    $premium_features = \App\Models\OpenAIGenerator::query()->where('active', 1)
-    ->where('premium', 1)
-    ->limit(5)
-    ->get()->pluck('title')->toArray();
+    $premium_features = \App\Models\OpenAIGenerator::query()->where('active', 1)->where('premium', 1)->limit(5)->get()->pluck('title')->toArray();
     $user_is_premium = false;
     $plan = auth()->user()?->relationPlan;
     if ($plan) {
@@ -74,7 +72,7 @@
         $style_string .= '.theme-dark .lqd-card.lqd-announcement-card { background-image: url(' . setting('announcement_background_image_dark') . '); }';
     }
 
-    $favoriteOpenAis = cache('favorite_openai');
+    $favoriteOpenAis = cache("user:{$userId}:favorite_openai");
 @endphp
 
 @if (filled($style_string))
@@ -91,10 +89,7 @@
     {{ __('Welcome') }}, {{ auth()->user()?->name }}.
 @endsection
 @section('titlebar_after')
-    <ul
-        class="lqd-filter-list mt-1 flex list-none flex-wrap items-center gap-x-4 gap-y-2 text-heading-foreground max-sm:gap-3"
-        x-data="{}"
-    >
+    <ul class="lqd-filter-list mt-1 flex list-none flex-wrap items-center gap-x-4 gap-y-2 text-heading-foreground max-sm:gap-3">
         @foreach ($titlebar_links as $link)
             <li>
                 <x-button
@@ -104,7 +99,6 @@
                     ])
                     variant="ghost"
                     href="{{ $link['link'] }}"
-                    x-data="{}"
                 >
                     @lang($link['label'])
                 </x-button>
@@ -183,6 +177,7 @@
                 </div>
             @endif
             <x-card
+                class:body="max-sm:p-7"
                 data-name="{{ \App\Enums\Introduction::DASHBOARD_TWO }}"
                 size="lg"
             >
@@ -208,7 +203,10 @@
                     class="mb-5 w-full"
                     class:input="bg-background border-none h-12 text-heading-foreground shadow-[0_4px_8px_rgba(0,0,0,0.05)] placeholder:text-heading-foreground"
                     size="lg"
-                    in-content
+                    :show-arrow=false
+                    :show-icon=false
+                    :show-kbd=false
+                    :outline-glow=true
                 />
                 <x-button
                     class="group text-[12px] font-medium text-foreground"
@@ -295,13 +293,7 @@
                         </defs>
                     </svg>
                     <ul class="mb-11 space-y-4 self-center text-xs font-medium">
-                        @foreach ([
-								setting('premium_advantages_1_label', 'Unlimited Credits'),
-								setting('premium_advantages_2_label', 'Access to All Templates'),
-								setting('premium_advantages_3_label', 'External Chatbots'),
-								setting('premium_advantages_4_label', 'o1-mini and DeepSeek R1'),
-								setting('premium_advantages_5_label', 'Premium Support')
-						] as $feature)
+                        @foreach ([setting('premium_advantages_1_label', 'Unlimited Credits'), setting('premium_advantages_2_label', 'Access to All Templates'), setting('premium_advantages_3_label', 'External Chatbots'), setting('premium_advantages_4_label', 'o1-mini and DeepSeek R1'), setting('premium_advantages_5_label', 'Premium Support')] as $feature)
                             <li class="flex items-center gap-3.5">
                                 {{-- blade-formatter-disable --}}
 								<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M2.09635 7.37072C1.80296 7.37154 1.51579 7.45542 1.26807 7.61264C1.02035 7.76986 0.822208 7.994 0.696564 8.25914C0.570919 8.52427 0.522908 8.81956 0.558084 9.11084C0.59326 9.40212 0.710186 9.67749 0.895335 9.9051L4.84228 14.7401C4.98301 14.9148 5.1634 15.0535 5.36847 15.1445C5.57353 15.2355 5.79736 15.2763 6.02136 15.2635C6.50043 15.2377 6.93295 14.9815 7.20871 14.5601L15.4075 1.35593C15.4089 1.35373 15.4103 1.35154 15.4117 1.34939C15.4886 1.23127 15.4637 0.997192 15.3049 0.850142C15.2613 0.809761 15.2099 0.778736 15.1538 0.75898C15.0977 0.739223 15.0382 0.731153 14.9789 0.735266C14.9196 0.739379 14.8618 0.755589 14.809 0.782896C14.7562 0.810204 14.7095 0.848031 14.6719 0.894048C14.669 0.897666 14.6659 0.90123 14.6628 0.904739L6.39421 10.247C6.36275 10.2826 6.32454 10.3115 6.28179 10.3322C6.23905 10.3528 6.19263 10.3648 6.14522 10.3674C6.09782 10.3699 6.05038 10.363 6.00565 10.3471C5.96093 10.3312 5.91982 10.3065 5.88471 10.2746L3.14051 7.77735C2.8555 7.51608 2.48299 7.37102 2.09635 7.37072Z" fill="url(#premium-icon-gradient)" /> </svg>
@@ -338,7 +330,7 @@
                 id="team"
                 size="lg"
             >
-                @if ($team)
+                @if ($app_is_demo || ($team && $team?->allow_seats > 0))
                     <figure class="mb-7">
                         <img
                             class="mx-auto w-full lg:w-7/12"
@@ -352,7 +344,7 @@
                     </p>
                     <form
                         class="flex flex-col gap-3"
-                        action="{{ route('dashboard.user.team.invitation.store', $team->id) }}"
+                        action="{{ route('dashboard.user.team.invitation.store', $team?->id ?? 0) }}"
                         method="post"
                     >
                         @csrf
@@ -388,7 +380,8 @@
                             </x-button>
                         @endif
                     </form>
-                @else
+
+				@else
                     <h3 class="mb-6">
                         {{ __('How it Works') }}
                     </h3>
@@ -654,7 +647,7 @@
                 class="lqd-docs-container group"
                 data-view-mode="grid"
             >
-                <div class="lqd-docs-list grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div class="lqd-docs-list grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5 lg:max-xl:grid-cols-3">
                     @php
                         $folders = auth()->user()->folders()->get();
                     @endphp
@@ -699,7 +692,7 @@
                 class="lqd-docs-container group"
                 data-view-mode="grid"
             >
-                <div class="lqd-docs-list grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div class="lqd-docs-list grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5 lg:max-xl:grid-cols-3">
                     @foreach ($favoriteOpenAis as $entry)
                         @php
                             $upgrade = false;
@@ -760,7 +753,7 @@
                         @else
                             </p>
                         @endif
-                        @if ($loop->iteration == 4)
+                        @if ($loop->iteration === 5)
                             @break
                         @endif
                     @endforeach

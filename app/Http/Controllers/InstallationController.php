@@ -194,7 +194,7 @@ class InstallationController extends Controller
 
     public function updateManual(Request $request)
     {
-        $version = '8.90';
+        $version = '9.40';
 
         Artisan::call('migrate', [
             '--force' => true,
@@ -210,7 +210,9 @@ class InstallationController extends Controller
         $settings->script_version = $version;
         $settings->save();
 
-        return "<p>magicAI Updated to the version: $version. Please don't forget to clear your browser cache. You can close this window.";
+        Artisan::call('optimize:clear');
+
+        return "<p>MagicAI Updated to the version: $version. Please don't forget to clear your browser cache. You can close this window.";
     }
 
     public function updateManual2(): string
@@ -311,9 +313,10 @@ class InstallationController extends Controller
         }
     }
 
-    public function menuClearCache()
+    public function menuClearCache(): \Illuminate\Http\RedirectResponse
     {
         app(MenuService::class)->regenerate();
+        Artisan::call('optimize:clear');
 
         return redirect()->route('dashboard.index')->with(['message' => __('Menu cache cleared successfully.'), 'type' => 'success']);
     }

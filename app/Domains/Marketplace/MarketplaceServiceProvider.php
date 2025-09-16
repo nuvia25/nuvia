@@ -18,8 +18,7 @@ class MarketplaceServiceProvider extends ServiceProvider
      * The service provider bindings.
      */
     public array $bindings = [
-        ExtensionRepositoryInterface::class => ExtensionRepository::class,
-        'migration'                         => \App\Extensions\Migration\System\MigrationServiceProvider::class,
+        ExtensionRepositoryInterface::class        => ExtensionRepository::class,
     ];
 
     /**
@@ -78,15 +77,27 @@ class MarketplaceServiceProvider extends ServiceProvider
         'chatbot-voice'          => \App\Extensions\ChatbotVoice\System\ChatbotVoiceServiceProvider::class,
         'chatbot-telegram'       => \App\Extensions\ChatbotTelegram\System\ChatbotTelegramServiceProvider::class,
         'chatbot-whatsapp'       => \App\Extensions\ChatbotWhatsapp\System\ChatbotWhatsappServiceProvider::class,
+        'chatbot-messenger'      => \App\Extensions\ChatbotMessenger\System\ChatbotMessengerServiceProvider::class,
         'marketing-bot'          => \App\Extensions\MarketingBot\System\MarketingBotServiceProvider::class,
         'migration'              => \App\Extensions\Migration\System\MigrationServiceProvider::class,
         'live-customizer'        => \App\Extensions\LiveCustomizer\System\LiveCustomizerServiceProvider::class,
         'elevenlabs-voice-chat'  => \App\Extensions\ElevenLabsVoiceChat\System\ElevenLabsVoiceChatServiceProvider::class,
+        'creative-suite'         => \App\Extensions\CreativeSuite\System\CreativeSuiteServiceProvider::class,
+        'url-to-video'           => \App\Extensions\UrlToVideo\System\UrlToVideoServiceProvider::class,
+        'ai-viral-clips'         => \App\Extensions\AiViralClips\System\AiViralClipsServiceProvider::class,
+        'influencer-avatar'      => \App\Extensions\InfluencerAvatar\System\InfluencerAvatarServiceProvider::class,
+        'content-manager'        => \App\Extensions\ContentManager\System\ContentManagerServiceProvider::class,
+        'canvas'                 => \App\Extensions\Canvas\System\CanvasServiceProvider::class,
+        'discount-manager'       => \App\Extensions\DiscountManager\System\DiscountManagerServiceProvider::class,
+        'footer-menu'            => \App\Extensions\FooterMenu\System\FooterMenuServiceProvider::class,
+        'chat-pro-temp-chat'     => \App\Extensions\ChatProTempChat\System\ChatProTempChatServiceProvider::class,
+        'demo-extension'         => \App\Extensions\DemoExtension\System\DemoExtensionServiceProvider::class,
+        'multi-model'            => \App\Extensions\MultiModel\System\MultiModelServiceProvider::class,
+        'nano-banana'            => \App\Extensions\NanoBanana\System\NanoBananaServiceProvider::class,
     ];
 
     public function register(): void
     {
-
         $this->extensionProviderRegister();
     }
 

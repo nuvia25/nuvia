@@ -4,8 +4,10 @@
 	--surface-background: 0 0% 100%;
 	--surface-foreground: 0 0% 0%;
 	--card-border: var(--border);
+	--button-border: var(--border);
 	--sidebar-w: 73px;
 	--header-h: 80px;
+	--chats-container-width: 820px;
 
 	&,
 	.lqd-page-wrapper,
@@ -260,12 +262,17 @@
 	}
 
 	.chats-container {
-		@apply lg:ps-12 lg:w-[800px] lg:mx-auto;
+		@apply lg:px-0 lg:w-[--chats-container-width] lg:mx-auto lg:overflow-visible;
 
 		>.lqd-chat-ai-bubble {
 			@apply only:hidden;
 		}
 	}
+
+	// .lqd-chat-ai-bubble,
+	// .lqd-chat-user-bubble {
+	// 	@apply lg:mb-6
+	// }
 
 	.lqd-chat-ai-bubble,
 	.lqd-chat-user-bubble {
@@ -278,7 +285,7 @@
 		&:hover {
 			@apply before:pointer-events-auto;
 
-			.lqd-clipboard-copy-wrap {
+			.lqd-chat-actions-wrap {
 				@apply visible opacity-100;
 			}
 		}
@@ -302,6 +309,13 @@
 
 		.lqd-chat-avatar {
 			@apply size-6 mt-0;
+		}
+
+		&.animating-words-done {
+
+			.multi-model-response-accept {
+				@apply inline-flex;
+			}
 		}
 	}
 
@@ -333,21 +347,24 @@
 		@apply lg:pb-40;
 	}
 
-	.lqd-clipboard-copy-wrap {
+	.lqd-chat-actions-wrap {
 		@apply max-lg:start-auto max-lg:-end-1 lg:z-2 lg:end-auto lg:bottom-auto lg:-start-11 lg:top-0;
 
 		button {
-			@apply lg:text-heading-foreground lg:size-[34px] lg:bg-transparent lg:border lg:border-solid lg:shadow-none lg:hover:bg-surface-background lg:hover:text-heading-foreground lg:hover:border-surface-background lg:hover:shadow-none;
+			@apply lg:bg-background lg:text-heading-foreground lg:size-[34px] lg:border lg:border-solid lg:shadow-none lg:hover:bg-surface-background lg:hover:text-heading-foreground lg:hover:border-surface-background lg:hover:shadow-none;
 
 			>span {
 				@apply lg:bg-surface-background lg:text-surface-foreground lg:end-auto lg:start-full lg:me-0 lg:ms-1 lg:shadow-none lg:pointer-events-none;
 			}
 		}
-
-		>div {
-			@apply lg:bottom-auto lg:top-full lg:pt-2;
-		}
 	}
+
+	// .multi-model-response-wrap {
+
+	// 	.lqd-chat-ai-bubble {
+	// 		@apply mb-0;
+	// 	}
+	// }
 
 	#lqd-ext-chatbot-wrap {
 		@apply hidden;
@@ -359,5 +376,14 @@
 		--surface-background: 0 0% 22%;
 		--surface-foreground: 0 0% 100%;
 		--card-border: var(--border);
+		--button-border: var(--border);
+	}
+
+	@media(min-width: 1300px) {
+
+		.multi-model-response-wrap {
+			width: 1100px;
+			margin-inline-start: calc((1100px - var(--chats-container-width)) / 2 * -1);
+		}
 	}
 }

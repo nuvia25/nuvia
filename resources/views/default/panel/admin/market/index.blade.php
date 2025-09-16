@@ -20,7 +20,7 @@
     <div class="py-10">
         <div class="flex flex-col gap-9">
             @include('panel.admin.market.components.marketplace-filter')
-            
+
             <div class="lqd-extension-grid grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
                 @foreach ($extensions as $extension)
                     <x-card
@@ -39,7 +39,7 @@
                                 @endif
                             </p>
                         @endif
-                        <div class="size-[53px] mb-6 flex items-center rounded-xl">
+                        <div class="mb-6 flex size-[53px] items-center rounded-xl">
                             <img
                                 src="{{ $extension->image_url }}"
                                 width="53"
@@ -48,7 +48,7 @@
                             >
                             @if ($extension->installed)
                                 <p class="mb-0 ms-3 flex items-center gap-2 text-2xs font-medium">
-                                    <span class="size-2 inline-block rounded-full bg-green-500"></span>
+                                    <span class="inline-block size-2 rounded-full bg-green-500"></span>
                                     {{ __('Installed') }}
                                 </p>
                             @endif
@@ -73,7 +73,7 @@
                             @foreach ($tags as $tag)
                                 {{ $tag }}
                                 @if (!$loop->last)
-                                    <span class="size-1 inline-block rounded-full bg-foreground/10"></span>
+                                    <span class="inline-block size-1 rounded-full bg-foreground/10"></span>
                                 @endif
                             @endforeach
                         </div>

@@ -4,13 +4,16 @@ namespace App\Helpers\Classes;
 
 use App\Domains\Marketplace\Repositories\Contracts\ExtensionRepositoryInterface;
 use App\Enums\Roles;
+use App\Helpers\Classes\RateLimiter\RateLimiter;
 use App\Models\Currency;
 use App\Models\Finance\Subscription;
-use App\Models\RateLimit;
 use App\Models\Setting;
 use App\Models\SettingTwo;
-use Carbon\Carbon;
+use DateInterval;
+use DatePeriod;
+use DateTimeImmutable;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -22,7 +25,7 @@ class Helper
 {
     use Traits\HasApiKeys;
 
-    public static function octaneReload()
+    public static function octaneReload(): void
     {
         try {
             shell_exec('cd ' . base_path() . ' && php artisan octane:reload 2>&1');
@@ -78,30 +81,39 @@ class Helper
         $extensionsCollection = collect(
             $extensions ?: app(ExtensionRepositoryInterface::class)->extensions()
         )
-            ->where('is_theme', request()->routeIs('dashboard.admin.themes.*'))
+            ->where('is_theme', request()?->routeIs('dashboard.admin.themes.*'))
             ->where('licensed', true)
             ->where('price', '>', 0);
 
         return $extensionsCollection->isNotEmpty();
     }
 
-    public static function showIntercomForVipMembership(): bool
+    public static function isUserVIP(): bool
     {
-        if (! Auth::user()->isAdmin()) {
-            return false;
-        }
-
-        if (! Auth::user()?->isSuperAdmin()) {
-            if (! Auth::user()->checkPermission('VIP_CHAT_WIDGET')) {
-                return false;
-            }
-        }
-
         return (bool) Cache::remember('vip_membership', 300, function () {
             $marketSubscription = app(ExtensionRepositoryInterface::class)->subscription()->json();
 
             return data_get($marketSubscription, 'data.stripe_status') === 'active';
         });
+    }
+
+    public static function showIntercomForVipMembership(): bool
+    {
+        if (self::appIsDemo()) {
+            return false;
+        }
+
+        $user = Auth::user();
+
+        if (! $user?->isAdmin()) {
+            return false;
+        }
+
+        if (! $user->isSuperAdmin() && ! $user->checkPermission('VIP_CHAT_WIDGET')) {
+            return false;
+        }
+
+        return self::isUserVIP();
     }
 
     public static function marketplacePaymentMessage(string $status): string
@@ -115,11 +127,7 @@ class Helper
 
     public static function hasRoute($route = null): bool
     {
-        if ($route && Route::has($route)) {
-            return true;
-        }
-
-        return false;
+        return $route && Route::has($route);
     }
 
     public static function arrayMerge($merge = true, array $array = [], array ...$mergeArray): array
@@ -252,7 +260,7 @@ class Helper
 
     public static function appIsDemoForChatbot(): bool
     {
-        return self::appIsDemo() && in_array(request()->getHost(), ['magicai.test', 'magicai.liquid-themes.com', 'demo.magicproject.ai']);
+        return self::appIsDemo() && in_array(request()->getHost(), ['magicai.liquid-themes.com', 'demo.magicproject.ai']);
     }
 
     public static function appIsDemo(): bool
@@ -265,36 +273,143 @@ class Helper
         return config('app.status') !== 'Demo';
     }
 
-    public static function checkImageDailyLimit()
+    public static function generateFakeDataNewCustomer(): array
+    {
+        $days = collect();
+
+        for ($i = 9; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $days->put($date, [
+                'date' => $date,
+                'paid' => rand(0, 5),
+                'free' => rand(0, 3),
+            ]);
+        }
+
+        return $days->toArray();
+    }
+
+    public static function generateFakeDataLastMonth(): array
+    {
+        $now = new DateTimeImmutable; // Şu anki tarih
+        $startDate = $now->modify('-1 month'); // 1 ay öncesi
+        $interval = new DateInterval('P1D'); // Günlük adım
+        $dateRange = new DatePeriod($startDate, $interval, $now->modify('+1 day')); // 1 ay boyunca
+
+        $data = [];
+
+        foreach ($dateRange as $date) {
+            $data[] = [
+                'sums' => rand(0, 100), // İstersen bu aralığı değiştirebilirsin
+                'days' => $date->format('Y-m-d'),
+            ];
+        }
+
+        return $data;
+    }
+
+    public static function demoDataForAdminDashboardPopularPlans(): array
+    {
+        return [
+            [
+                'label' => 'Lifetime',
+                'value' => 67,
+                'color' => '#4CAF50', // Yeşil
+            ],
+            [
+                'label' => 'Yearly',
+                'value' => 83,
+                'color' => '#2196F3', // Mavi
+            ],
+            [
+                'label' => 'Monthly',
+                'value' => 280,
+                'color' => '#FFC107', // Amber / Sarımsı
+            ],
+            [
+                'label' => 'Prepaid',
+                'value' => 120,
+                'color' => '#F44336', // Kırmızı
+            ],
+        ];
+    }
+
+    public static function demoDataForAdminDashboardTopCountries(): false|string
+    {
+        $sites = [
+            [
+                'country'  => 'United Kingdom',
+                'total'    => 2132,
+            ],
+            [
+                'country'  => 'Germany',
+                'total'    => 754,
+            ],
+            [
+                'country'  => 'Brazil',
+                'total'    => 244,
+            ],
+            [
+                'country'  => 'US',
+                'total'    => 232,
+            ],
+        ];
+
+        return json_encode($sites);
+    }
+
+    public static function demoDataForAdminDashboardUserTraffic(): false|string
+    {
+        //			'google.com', 'codecanyon.com', 'bing.com', 'yandex.com', 'openai.com'
+        $sites = [
+            [
+                'users'  => 1232,
+                'domain' => 'google.com',
+            ],
+            [
+                'users'  => 3423,
+                'domain' => 'codecanyon.com',
+            ],
+            [
+                'users'  => 423,
+                'domain' => 'bing.com',
+            ],
+            [
+                'users'  => 2323,
+                'domain' => 'yandex.com',
+            ],
+            [
+                'users'  => 350,
+                'domain' => 'openai.com',
+            ],
+        ];
+
+        return json_encode($sites);
+    }
+
+    public static function checkImageDailyLimit($lockKey = 'default_lock_key'): JsonResponse
     {
         $settings_two = SettingTwo::getCache();
 
         if ($settings_two->daily_limit_enabled) {
-            if (Helper::appIsDemo()) {
+            if (self::appIsDemo()) {
                 $msg = __('You have reached the maximum number of image generation allowed on the demo.');
             } else {
                 $msg = __('You have reached the maximum number of image generation allowed.');
             }
-            $ipAddress = isset($_SERVER['HTTP_CF_CONNECTING_IP']) ? $_SERVER['HTTP_CF_CONNECTING_IP'] : request()->ip();
-            $db_ip_address = RateLimit::where('ip_address', $ipAddress)->where('type', 'image')->first();
-            if ($db_ip_address) {
-                if (now()->diffInDays(Carbon::parse($db_ip_address->last_attempt_at)->format('Y-m-d')) > 0) {
-                    $db_ip_address->attempts = 0;
-                }
-            } else {
-                $db_ip_address = new RateLimit(['ip_address' => $ipAddress]);
+
+            if (! Cache::lock($lockKey, 10)->get()) { // Attempt to acquire lock
+                return response()->json(['message' => 'Image generation in progress. Please try again later.'], 409);
             }
 
-            if ($db_ip_address->attempts >= $settings_two->allowed_images_count) {
-                $data = [
-                    'errors' => [$msg],
-                ];
+            $clientIp = self::getRequestIp();
+            $rateLimiter = new RateLimiter('ai_image_generator_rate_limit', 3);
 
-                return response()->json($data, 429);
-            } else {
-                $db_ip_address->attempts++;
-                $db_ip_address->last_attempt_at = now();
-                $db_ip_address->save();
+            if (! $rateLimiter->attempt($clientIp)) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => $msg,
+                ], 429);
             }
         }
 
@@ -368,5 +483,40 @@ class Helper
         }
 
         return $currency->$column;
+    }
+
+    public static function generateNumberForDemo($default = '---')
+    {
+        return self::appIsDemo() ? random_int(1, 100) : $default;
+    }
+
+    public static function getRequestCountryCode(): ?string
+    {
+        $request = request();
+
+        if ($request->hasHeader('cf-ipcountry')) {
+            return $request->headers->get('cf-ipcountry');
+        }
+
+        return null;
+    }
+
+    public static function getRequestIp(): string
+    {
+        $request = request();
+
+        return $request->header('CF-Connecting-IP')
+            ?? $request->header('X-Forwarded-For')
+            ?? $request->header('X-Real-IP')
+            ?? $request->ip();
+    }
+
+    public static function clearEmptyConversations(): void
+    {
+        $chats = Auth::user()?->openaiChat()->where('is_empty', true)->get();
+        foreach ($chats ?? [] as $chat) {
+            $chat?->messages()?->delete();
+            $chat?->delete();
+        }
     }
 }

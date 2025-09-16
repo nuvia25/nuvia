@@ -17,7 +17,7 @@
                 id="{{ $field['name'] }}"
                 type="{{ $field['type'] }}"
                 name="{{ $field['name'] }}"
-                value="{{ $field['value'] ?? '' }}"
+                value="{{ $app_is_demo ?  '******' : ($field['value'] ?? '') }}"
                 label="{{ $field['label'] }}"
                 size="lg"
             />
