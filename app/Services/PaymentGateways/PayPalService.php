@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Subscription as Subscriptions;
 use Srmklive\PayPal\Services\PayPal as PayPalClient;
+use Throwable;
 
 // use App\Models\Subscriptions;
 // use App\Models\SubscriptionItems;
@@ -71,6 +72,43 @@ class PayPalService
 
             return back()->with(['message' => $ex->getMessage(), 'type' => 'error']);
         }
+    }
+
+    public static function getPlansPriceIdsForMigration(): void
+    {
+        try {
+            $paypal = self::getPaypalProvider();
+            DB::beginTransaction();
+            $plans = Plan::query()->where('active', 1)->get();
+            foreach ($plans as $plan) {
+                $product = GatewayProducts::where([
+                    'plan_id'      => $plan->id,
+                    'gateway_code' => self::$GATEWAY_CODE,
+                ])->first();
+                if (! $product) {
+                    continue;
+                }
+                $productId = $product->getAttribute('product_id');
+                $filteredPlans = collect($paypal->listPlans()['plans'] ?? [])
+                    ->where('product_id', $productId)
+                    ->values();
+                if ($filteredPlans->isNotEmpty()) {
+                    $priceId = $filteredPlans->first()['id'];
+                    $product->price_id = $priceId;
+                    $product->save();
+                }
+            }
+
+            DB::commit();
+        } catch (Exception|Throwable $ex) {
+            Log::error(self::$GATEWAY_CODE . '-> getPlansPriceIdsForMigration(): ' . $ex->getMessage());
+            DB::rollBack();
+        }
+    }
+
+    public static function getUsersCustomerIdsForMigration(Subscriptions $subscription): null
+    {
+        return null;
     }
 
     public static function saveProduct($plan)

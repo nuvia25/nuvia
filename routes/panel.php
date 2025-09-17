@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\Config\GdprController;
 use App\Http\Controllers\Admin\Config\GeneralController;
 use App\Http\Controllers\Admin\Config\LoginController;
 use App\Http\Controllers\Admin\Config\MoreController;
+use App\Http\Controllers\Admin\Config\PremiumAdvantagesController;
 use App\Http\Controllers\Admin\Config\SeoController;
 use App\Http\Controllers\Admin\Config\SmtpController;
 use App\Http\Controllers\Admin\Config\StorageController;
@@ -87,6 +88,7 @@ Route::middleware(['auth', 'updateUserActivity'])
                 Route::get('', [UserController::class, 'index'])->name('index');
 
                 Route::get('check/payment', [PaymentProcessController::class, 'checkSubscriptionStatusFromAjax'])->name('check.payment');
+                Route::get('check/update-available', [UserController::class, 'updateAvailable'])->name('check.update-available');
 
                 Route::post('mark-tour-seen', [UserController::class, 'markTourSeen'])->name('markTourSeen');
                 Route::group([
@@ -415,6 +417,11 @@ Route::middleware(['auth', 'updateUserActivity'])
                     'controller' => MarketPlaceController::class,
                 ], function () {
 
+                    Route::get('cart/delete-coupon', [MarketPlaceController::class, 'deleteCoupon'])->name('cart.delete.coupon');
+                    Route::post('cart/coupon', [MarketPlaceController::class, 'cartCoupon'])->name('cart.coupon');
+
+                    Route::get('cart', [MarketPlaceController::class, 'cart'])->name('cart');
+
                     Route::get('cart', [MarketPlaceController::class, 'cart'])->name('cart');
 
                     Route::get(
@@ -601,6 +608,8 @@ Route::middleware(['auth', 'updateUserActivity'])
                     Route::resource('branding', BrandingController::class)->only(['index', 'store']);
                     Route::post('branding/favicon', [BrandingController::class, 'favicon'])->name('branding.favicon');
                     Route::resource('', GeneralController::class)->parameter('', 'id')->only(['index']);
+
+                    Route::resource('premium-advantages', PremiumAdvantagesController::class)->only(['index', 'store']);
                 });
 
                 // Settings

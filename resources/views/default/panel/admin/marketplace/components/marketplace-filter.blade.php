@@ -22,7 +22,7 @@
                 <x-button
                     data-filter="{{ $filter }}"
                     @class([
-                        'lqd-filter-btn addons_filter inline-flex rounded-full px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5',
+                        'lqd-filter-btn addons_filter inline-flex px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5',
                         'active' => $loop->first,
                     ])
                     tag="button"

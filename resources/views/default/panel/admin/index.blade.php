@@ -7,12 +7,17 @@
     $popular_tools_data = cache('popular_tools_data');
     $currencySymbol = currency()->symbol;
 
-    // TODO: get the list from db
     $premium_features = [
-        'VIP Priority Support',
-        'All Current and Upcoming Extensions and Themes',
-        '5 Hours of Free Development Each Month',
-        'Direct Access to Our Development Team',
+        'VIP Support' => 'Get instant help whenever you need it.',
+        'Access to All Current & Future Extensions <span class="font-bold text-[#6977DE]">worth $900+</span>' => 'Always stay ahead with the latest features.' ,
+        'Access to All Current & Future Themes <span class="font-bold text-[#6977DE]">worth $390</span>'=> 'Always stay ahead with the latest designs.' ,
+        '10 Hours of Custom Development Every Month' => 'Tailored improvements, at no extra cost.' ,
+        'Direct Communication with Our Development Team' => 'No middlemen, just solutions.' ,
+        'Exclusive Extensions Not Available to Others' => 'Stay ahead of competition, reserved for VIPs only.' ,
+        'Complimentary Logo Design' => 'A custom logo to elevate your brand.' ,
+        'Personalized Onboarding Assistance' => 'We’ll help you get up and running smoothly.' ,
+        'Free Setup & Configuration Services' => 'Let us handle the technical details for you.' ,
+        'Get the Mobile App Free in Your 4th Month!' => 'Enjoy a free mobile app after your third month of subscription.' ,
     ];
 @endphp
 
@@ -26,8 +31,7 @@
                 <p>
                     {{ __('Gateway is set to use sandbox. Please set mode to development!') }}<br><br>
                 </p>
-                <ul
-                    class="flex list-inside list-disc flex-col gap-3 [&_ol]:mt-2 [&_ol]:flex [&_ol]:list-inside [&_ol]:list-decimal [&_ol]:flex-col [&_ol]:gap-1 [&_ol]:ps-4">
+                <ul class="flex list-inside list-disc flex-col gap-3 [&_ol]:mt-2 [&_ol]:flex [&_ol]:list-inside [&_ol]:list-decimal [&_ol]:flex-col [&_ol]:gap-1 [&_ol]:ps-4">
                     <li>
                         {{ __('To use live settings:') }}
                         <ol>
@@ -77,11 +81,9 @@
                                     id="{{ 'menu-' . $widget['id'] }}"
                                     data-name="{{ $widget->name->value }}"
                                 >
-                                    <div
-                                        class="items-center gap-5 rounded-xl border bg-background px-4 py-3 transition-all hover:shadow-lg hover:shadow-black/5">
+                                    <div class="items-center gap-5 rounded-xl border bg-background px-4 py-3 transition-all hover:shadow-lg hover:shadow-black/5">
                                         <div class="flex w-full items-center gap-5">
-                                            <div
-                                                class="lqd-menu-item-handle flex size-6 cursor-grab items-center justify-center">
+                                            <div class="lqd-menu-item-handle flex size-6 cursor-grab items-center justify-center">
                                                 <svg
                                                     width="10"
                                                     height="16"
@@ -161,7 +163,7 @@
             {{-- end: brand --}}
 
             {{-- begin: group-widgets --}}
-            <div class="grid grid-cols-1 gap-11 md:grid-cols-2">
+            <div class="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-11">
                 @php
                     $widgets = cache('dashboard_widgets', []);
                 @endphp
@@ -589,7 +591,7 @@
                     name: '{{ __('Percent') }}',
                     data: []
                 }],
-                colors: ['#EDD3FD'],
+                colors: ['hsl(var(--secondary))'],
                 chart: {
                     type: 'bar',
                     height: 350,
@@ -671,7 +673,7 @@
                     name: 'Users',
                     data: []
                 }],
-                colors: ['#EDD3FD'],
+                colors: ['hsl(var(--secondary))'],
                 chart: {
                     type: 'bar',
                     height: 350,
@@ -709,7 +711,7 @@
                         fontFamily: 'var(--font-heading)',
                         fontSize: '15px',
                         fontWeight: 500,
-                        colors: ['black'],
+                        colors: ['hsl(var(--secondary-foreground))'],
                     },
 
                 },
@@ -866,7 +868,7 @@
                     name: 'Visit',
                     data: []
                 }],
-                colors: ['#EDD3FD'],
+                colors: ['hsl(var(--secondary))'],
                 chart: {
                     type: 'bar',
                     height: 350,
@@ -907,7 +909,7 @@
                         fontFamily: 'var(--font-heading)',
                         fontSize: '15px',
                         fontWeight: 500,
-                        colors: ['black'],
+                        colors: ['hsl(var(--secondary-foreground))'],
                     },
                 },
                 xaxis: {
@@ -1035,7 +1037,7 @@
                     name: 'Paid',
                     data: []
                 }],
-                colors: ['#E2C5F3', 'hsl(var(--primary))'],
+                colors: ['hsl(var(--secondary))', 'hsl(var(--primary))'],
                 chart: {
                     type: 'bar',
                     height: 350,

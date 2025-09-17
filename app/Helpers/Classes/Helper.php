@@ -22,6 +22,14 @@ class Helper
 {
     use Traits\HasApiKeys;
 
+    public static function octaneReload()
+    {
+        try {
+            shell_exec('cd ' . base_path() . ' && php artisan octane:reload 2>&1');
+        } catch (Exception $exception) {
+        }
+    }
+
     public static function adminPermissions(string $key)
     {
         $permissions = Cache::remember('admin_permissions', 3600 * 24, function () {

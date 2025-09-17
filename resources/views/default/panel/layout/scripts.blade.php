@@ -1,4 +1,4 @@
-<!-- AJAX CALLS -->
+<script src="{{ custom_theme_url('/assets/libs/underscore/underscore-umd-min.js') }}"></script>
 <script src="{{ custom_theme_url('/assets/libs/jquery/jquery.min.js') }}"></script>
 <script src="{{ custom_theme_url('/assets/libs/toastr/toastr.min.js') }}"></script>
 <script>
@@ -102,9 +102,9 @@
         change_style_to: @json(__('Change Style to')),
         change_tone_to: @json(__('Change Tone to')),
         fix_grammatical_mistakes: @json(__('Fix Grammatical Mistakes')),
-		conversation_unpinned: @json(__('Chat unpinned successfully.')),
-		conversation_pinned: @json(__('Chat pinned successfully.')),
-		conversation_pin_error: @json(__('An error occurred while updating the pin status.')),
+        conversation_unpinned: @json(__('Chat unpinned successfully.')),
+        conversation_pinned: @json(__('Chat pinned successfully.')),
+        conversation_pin_error: @json(__('An error occurred while updating the pin status.')),
     }
     Object.assign(magicai_localize, magicai_localize_second_part);
 </script>

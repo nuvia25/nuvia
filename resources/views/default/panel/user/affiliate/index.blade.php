@@ -47,8 +47,7 @@
                         </div>
                     </div>
 
-                    <div
-                        class="ms-auto w-full text-center font-semibold text-heading-foreground max-md:-order-1 max-md:mb-3 max-md:!text-start md:w-4/12">
+                    <div class="ms-auto w-full text-center font-semibold text-heading-foreground max-md:-order-1 max-md:mb-3 max-md:!text-start md:w-4/12">
                         <h4 class="mb-0 text-base">
                             {{ __('Earnings') }}
                         </h4>
@@ -89,25 +88,19 @@
 
                 <ol class="mb-12 flex flex-col gap-4 text-heading-foreground">
                     <li>
-                        <span
-                            class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary"
-                        >
+                        <span class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary">
                             1
                         </span>
                         {!! __('You <strong>send your invitation link</strong> to your friends.') !!}
                     </li>
                     <li>
-                        <span
-                            class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary"
-                        >
+                        <span class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary">
                             2
                         </span>
                         {!! __('<strong>They subscribe</strong> to a paid plan by using your refferral link.') !!}
                     </li>
                     <li>
-                        <span
-                            class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary"
-                        >
+                        <span class="me-2 inline-flex size-7 items-center justify-center rounded-full bg-primary/10 font-extrabold text-primary">
                             3
                         </span>
                         @if ($is_onetime_commission)
@@ -139,7 +132,7 @@
                     </x-forms.input>
 
                     <x-button
-                        class="w-full rounded-xl"
+                        class="w-full"
                         id="send_invitation_button"
                         type="submit"
                         form="send_invitation_form"
@@ -178,7 +171,7 @@
                     />
 
                     <x-button
-                        class="w-full rounded-xl"
+                        class="w-full"
                         id="send_request_button"
                         type="submit"
                     >

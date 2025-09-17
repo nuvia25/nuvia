@@ -188,7 +188,7 @@
                                         </span>
                                     @else
                                         <span id="button-text">{{ __('Pay') }}
-                                            {!! displayCurr(currency()->symbol, $plan->price, $taxValue, $newDiscountedPrice) !!}
+                                            {!! displayCurr(currency()->symbol, $plan->price, $taxValue, $newDiscountedPrice, tax_included: $plan->price_tax_included) !!}
                                             {{ __('with') }}
                                             <img
                                                 class="h-auto w-24"

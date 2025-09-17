@@ -24,7 +24,7 @@
 
         <a
             class="flex shrink-0 basis-1/3 items-center justify-center text-center"
-            href="{{  (route('dashboard.index')) }}"
+            href="{{ route('dashboard.index') }}"
         >
             @if (isset($setting->logo_dashboard))
                 <img
@@ -79,7 +79,7 @@
                 {{ __('Back to Dashboard') }}
             </a>
 
-            <hr class="m-0 h-full w-px border-none bg-foreground/5">
+            <hr class="m-0 h-full w-px border-none bg-border">
 
             <form
                 class="relative grow"
@@ -99,7 +99,7 @@
                 </span>
             </form>
 
-            <hr class="m-0 h-full w-px border-none bg-foreground/5">
+            <hr class="m-0 h-full w-px border-none bg-border">
         </div>
 
         <div
@@ -107,7 +107,7 @@
             <div class="flex w-full items-center justify-center text-center">
                 <a
                     class="shrink-0"
-                    href="{{  (route('dashboard.index')) }}"
+                    href="{{ route('dashboard.index') }}"
                 >
                     @if (isset($setting->logo_dashboard))
                         <img
@@ -142,7 +142,7 @@
 
         <div
             class="lqd-generator-actions-top-bar-col-end flex min-w-[--sidebar-w] justify-end transition-opacity duration-[0.4s] group-[&:not(.lqd-generator-sidebar-collapsed)]/generator:pointer-events-none group-[&:not(.lqd-generator-sidebar-collapsed)]/generator:opacity-10 max-lg:flex-col max-lg:!opacity-100">
-            <hr class="m-0 h-full w-px border-none bg-foreground/5">
+            <hr class="m-0 h-full w-px border-none bg-border">
 
             <div class="flex items-center gap-2 px-7 max-lg:justify-center max-lg:py-2">
                 <div class="flex gap-1 rtl:flex-row-reverse">
@@ -234,7 +234,7 @@
 
             </div>
 
-            <hr class="m-0 h-full w-px border-none bg-foreground/5">
+            <hr class="m-0 h-full w-px border-none bg-border">
 
             {{-- There is a separate save button for mobile on top --}}
             <a

@@ -1,16 +1,16 @@
 @extends('panel.layout.app', ['layout_wide' => true, 'disable_tblr' => true])
 @section('title', __('AI Chat'))
 @section('titlebar_actions')
-	@php
-		$route = 'dashboard.user.chat-setting.chat-template.create';
-		$customChat = \Illuminate\Support\Facades\Route::has($route) && (setting('chat_setting_for_customer', 1) == 1);
-	@endphp
-	@if($customChat)
-		<x-button href="{{  (route($route)) }}">
-			<x-tabler-plus class="size-4" />
-			{{ __('New') }}
-		</x-button>
-	@endif
+    @php
+        $route = 'dashboard.user.chat-setting.chat-template.create';
+        $customChat = \Illuminate\Support\Facades\Route::has($route) && setting('chat_setting_for_customer', 1) == 1;
+    @endphp
+    @if ($customChat)
+        <x-button href="{{ route($route) }}">
+            <x-tabler-plus class="size-4" />
+            {{ __('New') }}
+        </x-button>
+    @endif
 @endsection
 @section('titlebar_after')
     <div class="flex flex-col gap-4 md:flex-row md:items-center">
@@ -33,7 +33,7 @@
         >
             <li>
                 <x-button
-                    class="lqd-filter-btn inline-flex rounded-full px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
+                    class="lqd-filter-btn inline-flex px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
                     tag="button"
                     type="button"
                     name="filter"
@@ -47,7 +47,7 @@
             </li>
             <li>
                 <x-button
-                    class="lqd-filter-btn inline-flex rounded-full px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
+                    class="lqd-filter-btn inline-flex px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
                     tag="button"
                     type="button"
                     name="filter"
@@ -63,7 +63,7 @@
             @foreach ($categoryList as $category)
                 <li>
                     <x-button
-                        class="lqd-filter-btn inline-flex rounded-full px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
+                        class="lqd-filter-btn inline-flex px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
                         tag="button"
                         type="button"
                         name="filter"

@@ -9,7 +9,7 @@
         variant="secondary"
     >
         {{ $this->hasNextStep() ? __('Next') : __('Save') }}
-        <span class="size-7 inline-grid place-content-center rounded-full bg-background dark:bg-heading-foreground dark:text-header-background">
+        <span class="inline-grid size-7 place-content-center rounded-full bg-background text-foreground dark:bg-heading-foreground dark:text-header-background">
             <x-tabler-chevron-right class="size-4" />
         </span>
     </x-button>

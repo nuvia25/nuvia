@@ -19,6 +19,16 @@
             const focusModeEnabled = localStorage.getItem(currentTheme + ":lqdFocusModeEnabled");
 
             document.body.classList.toggle("focus-mode", focusModeEnabled == "true");
+
+            // TODO: output this if customizer is enabled
+            const customizerEdits = localStorage.getItem(`${currentTheme}:lqdCustomizerStyle`);
+            if (customizerEdits) {
+                const styleTag = document.querySelector('#lqd-customizer-style');
+
+                if (styleTag) {
+                    styleTag.innerText = customizerEdits;
+                }
+            }
         })
         ();
     </script>

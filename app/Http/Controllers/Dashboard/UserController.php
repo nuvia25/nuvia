@@ -6,6 +6,7 @@ use App\Actions\CreateActivity;
 use App\Console\Commands\FluxProQueueCheck;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Entity\Models\Entity;
+use App\Domains\Marketplace\Repositories\Contracts\ExtensionRepositoryInterface;
 use App\Enums\Plan\FrequencyEnum;
 use App\Enums\Plan\TypeEnum;
 use App\Helpers\Classes\ApiHelper;
@@ -42,6 +43,7 @@ use App\Services\Orders\OrdersExportService;
 use enshrined\svgSanitize\Sanitizer;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -50,6 +52,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use MagicAI\Updater\Facades\Updater;
 use Throwable;
 
 class UserController extends Controller
@@ -343,6 +346,7 @@ class UserController extends Controller
 
         $elevenlabServiceVoice = [];
         $elevenlabs = null;
+        $matchedVoices = [];
 
         if ($openai->type === 'voiceover' || $openai->type === 'isolator') {
             $elevenlabs = ElevenlabVoice::query()
@@ -353,10 +357,18 @@ class UserController extends Controller
                 ->get();
 
             $service = new ElevenlabsService;
-            if ($service->getVoices() !== []) {
+            if (! is_array($service->getVoices()) && ! empty($service->getVoices())) {
                 $elevenlabServiceVoice = json_decode($service->getVoices(), true);
             }
+
+            $userVoiceIds = $elevenlabs->pluck('voice_id')->toArray();
+            foreach ($elevenlabServiceVoice as $key => $voice) {
+                if (! in_array($voice['voice_id'], $userVoiceIds) && $voice['category'] != 'premade') {
+                    unset($elevenlabServiceVoice[$key]);
+                }
+            }
         }
+
         $list = OpenAIGenerator::query()
             ->where(function ($query) {
                 $query->where('user_id', Auth::id())
@@ -605,7 +617,7 @@ class UserController extends Controller
 
             $image->move($path, $image_name);
 
-            $user->avatar = '/' . $path . $image_name;
+            $user->avatar = $path . $image_name;
         }
 
         CreateActivity::for($user, 'Updated', 'Profile Information');
@@ -1188,5 +1200,25 @@ class UserController extends Controller
             'csv'   => $service->exportAsCsv(),
             default => redirect()->back()->with('error', 'Invalid export type'),
         };
+    }
+
+    /**
+     * check if version or extension update is available
+     */
+    public function updateAvailable(ExtensionRepositoryInterface $extensionRepository): JsonResponse
+    {
+        $versionUpdateAvailable = false;
+        $extensionUpdateAvailable = false;
+        $updateAvailableExtensions = [];
+
+        if (Updater::versionCheck()) {
+            $extensionItems = $extensionRepository->extensions();
+            $updateAvailableExtensions = array_filter($extensionItems, fn ($item) => $item['installed'] && $item['upgradable']);
+            $extensionUpdateAvailable = (bool) count($updateAvailableExtensions);
+        } else {
+            $versionUpdateAvailable = true;
+        }
+
+        return response()->json(compact('versionUpdateAvailable', 'extensionUpdateAvailable', 'updateAvailableExtensions'));
     }
 }

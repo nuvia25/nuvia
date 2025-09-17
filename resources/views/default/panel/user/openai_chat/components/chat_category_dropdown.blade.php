@@ -29,9 +29,7 @@
             @endif
         </span>
         <span class="lqd-chat-category-info m-0 flex flex-col gap-1 text-xs">
-            <span
-                class="lqd-chat-category-name flex items-center justify-center gap-1 rounded-full bg-heading-foreground/5 px-2 py-1 font-semibold leading-tight max-sm:size-6 max-sm:p-0"
-            >
+            <span class="lqd-chat-category-name flex items-center justify-center gap-1 rounded-full bg-foreground/5 px-2 py-1 font-semibold leading-tight max-sm:size-6 max-sm:p-0">
                 <span class="max-sm:hidden">
                     {{ $category->name }}
                 </span>

@@ -30,7 +30,7 @@ class SearchController extends Controller
                 $result = 'null';
             }
         }
-        $html = view('panel.layout.components.search_results', compact('template_search', 'workbook_search', 'ai_chat_search', 'result'))->render();
+        $html = view('panel.layout.includes.search-results', compact('template_search', 'workbook_search', 'ai_chat_search', 'result'))->render();
 
         return response()->json(compact('html'));
     }

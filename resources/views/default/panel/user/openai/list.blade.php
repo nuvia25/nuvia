@@ -203,7 +203,7 @@
     >
         <li>
             <x-button
-                class="lqd-filter-btn inline-flex rounded-full px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
+                class="lqd-filter-btn inline-flex px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
                 data-filter="all"
                 tag="button"
                 type="button"
@@ -218,7 +218,7 @@
         </li>
         <li>
             <x-button
-                class="lqd-filter-btn inline-flex rounded-full px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
+                class="lqd-filter-btn inline-flex px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
                 data-filter="favorite"
                 tag="button"
                 type="button"
@@ -236,7 +236,7 @@
             @if (in_array($filter->name, $filter_check))
                 <li>
                     <x-button
-                        class="lqd-filter-btn inline-flex rounded-full px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
+                        class="lqd-filter-btn inline-flex px-2.5 py-0.5 text-2xs leading-tight transition-colors hover:translate-y-0 hover:bg-foreground/5 [&.active]:bg-foreground/5"
                         data-filter="{{ $filter->name }}"
                         tag="button"
                         type="button"

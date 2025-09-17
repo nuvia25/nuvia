@@ -28,7 +28,7 @@
                         @csrf
                         <div class="section">
                             <x-button class="btn btn-info w-full" type="button" onclick="pay()">
-                                <span id="button-text">{{ __('Pay') }} {!! displayCurr(currency()->symbol, $plan->price) !!} {{ __('with') }} </span>
+                                <span id="button-text">{{ __('Pay') }} {!! displayCurr(currency()->symbol, $plan->price, tax_included: $plan->price_tax_included) !!} {{ __('with') }} </span>
                             </x-button>
                         </div>
                         <input type="hidden" name="orderID" value="{{ $orderId }}">

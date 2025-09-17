@@ -10,18 +10,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $modelsToBeRemoved = ['gemini-pro-vision', 'gemini-pro', 'gemini-1.5-pro-latest'];
+        try {
+            $modelsToBeRemoved = [
+                'gemini-pro-vision',
+                'gemini-pro',
+                'gemini-1.5-pro-latest',
+            ];
 
-        foreach ($modelsToBeRemoved as $model) {
-            EntityRemover::removeEntity($model);
-        }
+            foreach ($modelsToBeRemoved as $model) {
+                EntityRemover::removeEntity($model);
+            }
 
-        $default = setting('gemini_default_model');
-        if (in_array($default, $modelsToBeRemoved, true)) {
-            $newDefault = 'gemini-1.5-flash';
-            setting([
-                'gemini_default_model' => $newDefault,
-            ])->save();
+            $modelsToBeRemoved[] = 'gemini-1__5-pro-latest';
+
+            $default = setting('gemini_default_model');
+            if (in_array($default, $modelsToBeRemoved, true)) {
+                $newDefault = 'gemini-1.5-flash';
+                setting([
+                    'gemini_default_model' => $newDefault,
+                ])->save();
+            }
+        } catch (\Throwable $exception) {
         }
     }
 

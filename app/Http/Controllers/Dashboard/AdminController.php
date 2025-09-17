@@ -1013,6 +1013,7 @@ class AdminController extends Controller
             $plan->trial_days = $request->trial_days;
             $plan->type = $request->type;
             $plan->is_team_plan = (bool) $request->is_team_plan;
+            $plan->price_tax_included = $request->price_tax_included;
             $plan->plan_allow_seat = (int) $request->plan_allow_seat;
             $plan->open_ai_items = $request->openaiItems;
             $plan->currency = currency()->code ?: 'USD';
@@ -1030,6 +1031,7 @@ class AdminController extends Controller
             $plan->features = $request->features;
             $plan->type = $request->type;
             $plan->is_team_plan = (bool) $request->is_team_plan;
+            $plan->price_tax_included = $request->price_tax_included;
             $plan->plan_allow_seat = (int) $request->plan_allow_seat;
             $plan->open_ai_items = $request->openaiItems;
             $plan->currency = currency()->code ?: 'USD';

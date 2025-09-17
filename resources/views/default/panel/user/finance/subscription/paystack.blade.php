@@ -27,7 +27,7 @@
                                 <button class="btn btn-info w-full"
                                     @if ($app_is_demo) type="button" onclick="return toastr.info('This feature is disabled in Demo version.')" @else type="submit" @endif>
                                     <span id="button-text">{{ __('Pay') }}
-                                        {!! displayCurr(currency()->symbol, $plan->price, $taxValue, $newDiscountedPrice) !!}
+                                        {!! displayCurr(currency()->symbol, $plan->price, $taxValue, $newDiscountedPrice, tax_included: $plan->price_tax_included) !!}
                                         {{ __('with') }} &nbsp;&nbsp;
                                         <img src="{{ custom_theme_url('/images/payment/paystack-2.svg') }}" height="60"
                                             alt="Paystack">

@@ -8,11 +8,11 @@
     $variations = [
         'variant' => [
             'none' => 'lqd-table-variant-none shadow-none p-0',
-            'solid' => 'lqd-table-solid rounded-xl bg-table-background pt-1',
-            'outline' => 'lqd-table-outline rounded-xl border border-table-border pt-1',
-            'shadow' => 'lqd-table-shadow rounded-xl shadow-table bg-table-background pt-1',
+            'solid' => 'lqd-table-solid rounded-card bg-card-background pt-1',
+            'outline' => 'lqd-table-outline rounded-card border border-card-border pt-1',
+            'shadow' => 'lqd-table-shadow rounded-card shadow-card bg-card-background pt-1',
             'plain' => 'lqd-table-plain',
-            'outline-shadow' => 'lqd-table-outline-shadow rounded-xl border border-table-border pt-1 shadow-table bg-table-background',
+            'outline-shadow' => 'lqd-table-outline-shadow rounded-card border border-card-border pt-1 shadow-card bg-card-background',
         ],
     ];
 

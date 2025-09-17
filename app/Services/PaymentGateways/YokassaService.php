@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Laravel\Cashier\Subscription as Subscriptions;
 use YooKassa\Client;
 
 /**
@@ -56,6 +57,16 @@ class YokassaService
     public static function saveProduct($plan)
     {
         return true;
+    }
+
+    public static function getPlansPriceIdsForMigration(): null
+    {
+        return null;
+    }
+
+    public static function getUsersCustomerIdsForMigration(Subscriptions $subscription): null
+    {
+        return null;
     }
 
     public static function subscribe($plan)

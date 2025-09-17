@@ -33,7 +33,11 @@ COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY . /var/www
 
-RUN chmod +x /usr/local/bin/entrypoint.sh && \
+# Normalize script line endings, ensure executable, and validate shebang/exec at build time
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh && \
+    chmod +x /usr/local/bin/entrypoint.sh && \
+    head -n1 /usr/local/bin/entrypoint.sh | grep -q "^#!\/bin\/sh" && \
+    test -x /usr/local/bin/entrypoint.sh && \
     chown -R $user:$user /var/www && \
     chmod -R 755 /var/www/storage /var/www/bootstrap/cache && \
     mkdir -p /var/log/php-fpm && \
@@ -49,5 +53,22 @@ RUN apk add --no-cache bash nano $PHPIZE_DEPS && \
 COPY docker/php/xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
 USER root
+EXPOSE 9000
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Production image: no xdebug, optimized dependencies and assets
+FROM base AS production
+ENV APP_ENV=production \
+    APP_DEBUG=false
+
+# Install PHP dependencies without dev and optimize autoloader
+RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
+
+# Build frontend assets (if present)
+RUN if [ -f package.json ]; then npm ci || npm install; npm run build; fi
+
+# Cache Laravel config/routes/views if artisan exists
+RUN if [ -f artisan ]; then php artisan config:cache || true; php artisan route:cache || true; php artisan view:cache || true; fi
+
 EXPOSE 9000
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

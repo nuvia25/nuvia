@@ -78,7 +78,7 @@ export default (prompt1, prompt2, prompt3) => ({
 		this.processAudioRecordingBuffer = this.processAudioRecordingBuffer.bind(this);
 	},
 	async start() {
-		this.checkBalance(true).then(result => {
+		this.checkBalanceRealtime(true).then(result => {
 			if (result.shouldStop) {
 				toastr.error(result.errorMsg);
 				this.stop();
@@ -199,7 +199,7 @@ export default (prompt1, prompt2, prompt3) => ({
 					this.switchVisualizers('idle');
 					break;
 				case 'response.content_part.added':
-					this.checkBalance(true).then(result => {
+					this.checkBalanceRealtime(true).then(result => {
 						if (result.shouldStop) {
 							toastr.error(result.errorMsg);
 							this.stop();
@@ -468,10 +468,10 @@ export default (prompt1, prompt2, prompt3) => ({
 
 		animate();
 	},
-	checkBalance(onStart = false) {
+	checkBalanceRealtime(onStart = false) {
 		return new Promise((resolve) => {
 			$.ajax({
-				url: '/dashboard/user/realtime/chat/checkBalance',
+				url: '/dashboard/user/realtime/chat/checkBalanceRealtime',
 				type: 'POST',
 				data: {
 					onStart: onStart,

@@ -204,7 +204,7 @@
                                 class="lqd-generator-filter-trigger flex w-full items-center justify-between gap-2 border-t px-5 py-6 font-semibold leading-tight text-heading-foreground group-first/cat:border-t-0"
                                 @click.prevent="activeFilter === '{{ $filter->name }}' ? activeFilter = '' : activeFilter = '{{ $filter->name }}'"
                             >
-                                {{ str()->ucfirst($filter->name) }}
+                                {{ __(str()->ucfirst($filter->name)) }}
                                 <x-tabler-chevron-up
                                     class="size-4 transition-transform group-[&.lqd-showing-search-results]/sidebar:!rotate-0"
                                     ::class="{ 'rotate-180': activeFilter !== '{{ $filter->name }}' }"

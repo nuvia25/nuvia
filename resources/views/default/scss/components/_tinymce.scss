@@ -70,9 +70,9 @@ div.tox {
 	}
 
 	.tox-tbtn {
-        width: 24px;
-        height: 24px;
-    }
+		width: 24px;
+		height: 24px;
+	}
 
 	.tox-mbtn,
 	.tox-tbtn {
@@ -88,6 +88,7 @@ div.tox {
 			background: hsl(var(--foreground) / 10%);
 			color: hsl(var(--foreground));
 		}
+
 		&--enabled,
 		&--enabled:hover {
 			background: hsl(var(--primary) / 10%);
@@ -138,7 +139,7 @@ div.tox {
 					padding: 0 16px;
 					background: none;
 					border: 1px solid hsl(var(--border));
-					border-radius: 0.75rem;
+					border-radius: var(--input-rounded);
 				}
 			}
 
@@ -344,6 +345,7 @@ html[dir='rtl'] {
 			}
 		}
 	}
+
 	.lqd-tinymce-toolbar-fixed {
 		--header-translateX: calc(var(--sidebar-w) * -1);
 	}

@@ -18,8 +18,12 @@
 }
 
 .header-search-border-play-inner {
-	--color-1: #A2A4EF;
-	--color-2: #1EC59F;
-	background: conic-gradient(from 0deg, transparent 0%, var(--color-1) 10%, var(--color-2) 20%, transparent 30%);
+	--color-1: hsl(var(--gradient-via));
+	--color-2: hsl(var(--gradient-from));
+	background: conic-gradient(from 0deg, transparent 0%, var(--color-1) 20%, var(--color-2) 30%, transparent 40%);
 	animation: search-border-play 4.5s linear 1;
+}
+
+.header-search {
+	--input-rounded-multiplier: 2;
 }

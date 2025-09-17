@@ -242,6 +242,7 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
                 EntityEnum::fromSlug(setting('fal_ai_default_model', EntityEnum::FLUX_PRO->slug())),
                 EntityEnum::VEO_2,
                 EntityEnum::KLING,
+                EntityEnum::KLING_2_1,
                 EntityEnum::KLING_IMAGE,
                 EntityEnum::LUMA_DREAM_MACHINE,
                 EntityEnum::MINIMAX,

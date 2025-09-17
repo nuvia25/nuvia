@@ -22,15 +22,15 @@
             <hr>
             <li class="mb-[0.625em] flex">
                 <div class="flex-1 text-start">{{ __('Subtotal') }}</div>
-                <div class="flex-1 text-end">{!! displayCurr(currency()->symbol, $plan->price, 0, $newDiscountedPrice ?? null) !!}</div>
+                <div class="flex-1 text-end">{!! displayCurr(currency()->symbol, $plan->price, 0, $newDiscountedPrice ?? null, tax_included: $plan->price_tax_included) !!}</div>
             </li>
             <li class="mb-[0.625em] flex">
                 <div class="flex-1 text-start">{{ __('Tax') }} ({{ $taxRate ?? 0 }}%)</div>
-                <div class="flex-1 text-end">{!! displayCurr(currency()->symbol, $taxValue ?? null) !!}</div>
+                <div class="flex-1 text-end">{!! displayCurr(currency()->symbol, $taxValue ?? null, tax_included: $plan->price_tax_included) !!}</div>
             </li>
             <li class="mb-[0.625em] flex">
                 <div class="flex-1 text-start">{{ __('Total') }}</div>
-                <div class="flex-1 text-end">{!! displayCurr(currency()->symbol, $plan->price, $taxValue ?? 0, $newDiscountedPrice ?? null) !!}</div>
+                <div class="flex-1 text-end">{!! displayCurr(currency()->symbol, $plan->price, $taxValue ?? 0, $newDiscountedPrice ?? null, tax_included: $plan->price_tax_included) !!}</div>
             </li>
             <hr>
         </ul>

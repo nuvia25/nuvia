@@ -16,6 +16,7 @@ use App\Models\UserOpenai;
 use App\Models\UserOrder;
 use App\Models\UserSupport;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -257,7 +258,7 @@ class DashboardService
     public function setCostManagement(): static
     {
         $totalEarn = cache('total_sales') ?? 0;
-        $totalUser = User::count();
+        $totalUser = cache('total_users') ?? 0;
         $totalSpend = setting('total_spend', 0);
         $this->cache('cost_per_user', function () use ($totalSpend, $totalUser) {
             return $totalUser == 0 ? 0 : round($totalSpend / $totalUser, 1);
@@ -332,6 +333,18 @@ class DashboardService
         $lastWeek = Carbon::today()->subWeek();
         $startOfLastWeek = Carbon::today()->subWeek()->startOfWeek();
         $endOfLastWeek = Carbon::today()->subWeek()->endOfWeek();
+
+        $this->cache('this_week_new_users', function () use ($lastWeek) {
+            return User::where('created_at', '>=', $lastWeek)
+                ->groupBy('email')
+                ->count();
+        });
+
+        $this->cache('last_week_new_users', function () use ($startOfLastWeek, $endOfLastWeek) {
+            return User::whereBetween('created_at', [$startOfLastWeek, $endOfLastWeek])
+                ->groupBy('email')
+                ->count();
+        });
 
         $this->cache('this_week_subscribers', function () use ($lastWeek) {
             return Subscription::where('created_at', '>=', $lastWeek)
@@ -414,12 +427,18 @@ class DashboardService
     // available disk
     public function setAvailableDiskspace(): static
     {
-        $this->cache('available_diskspace', function () {
-            $total_space = disk_total_space('/');
-            $free_space = disk_free_space('/');
+        try {
+            $this->cache('available_diskspace', function () {
+                $total_space = disk_total_space('/');
+                $free_space = disk_free_space('/');
 
-            return round(($free_space / $total_space) * 100);
-        });
+                return round(($free_space / $total_space) * 100);
+            });
+        } catch (Exception $e) {
+            $this->cache('available_diskspace', function () {
+                return 0;
+            });
+        }
 
         return $this;
     }

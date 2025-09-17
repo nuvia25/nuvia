@@ -34,6 +34,8 @@ class UpdaterServiceProvider extends PackageServiceProvider
                 $router->get('check', [UpdaterController::class, 'check'])->name('check');
                 $router->post('update', [UpdaterController::class, 'update'])->name('update');
                 $router->any('backup', [UpdaterController::class, 'backup'])->name('backup');
+                $router->any('download-step', [UpdaterController::class, 'downloadStep'])->name('download-step');
+                $router->any('download', [UpdaterController::class, 'download'])->name('download');
                 $router->any('upgrade', [UpdaterController::class, 'upgrade'])->name('upgrade');
                 $router->get('for-panel', [UpdaterController::class, 'forPanel'])->name('for.panel');
                 $router->get('version-check', [UpdaterController::class, 'versionCheck'])->name('version-check');

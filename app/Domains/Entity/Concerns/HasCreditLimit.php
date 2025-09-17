@@ -123,7 +123,7 @@ trait HasCreditLimit
 
     public function guestHasAttempts(): bool
     {
-        $key = 'guest-attempt:' . request()?->ip();
+        $key = 'guest-attempt:' . ($_SERVER['HTTP_CF_CONNECTING_IP'] ?? request()?->ip());
         $tryCount = (int) setting('guest_user_daily_message_limit', '10') + 1;
         if (! RateLimiter::tooManyAttempts($key, $tryCount)) {
             RateLimiter::hit($key, 60 * 60 * 24);

@@ -1,3 +1,4 @@
+@php use App\Domains\Engine\Enums\EngineEnum;use App\Domains\Entity\Enums\EntityEnum; @endphp
 @extends('panel.layout.settings')
 @section('title', __('Login Settings'))
 @section('titlebar_actions', '')
@@ -147,7 +148,13 @@
 								data-bs-parent="#accordionExample"
 							>
 								<div class="accordion-body">
-									@livewire('assign-view-credits', ['entities' => setting('freeCreditsUponRegistration', \App\Models\User::getFreshCredits())])
+									@php
+										$freshCredits = \App\Models\User::getFreshCredits();
+										$registrationCredits = setting('freeCreditsUponRegistration', []);
+										$entities = deepMerge($freshCredits, $registrationCredits);
+									@endphp
+
+									@livewire('assign-view-credits', ['entities' => $entities])
 								</div>
 							</div>
 						</div>

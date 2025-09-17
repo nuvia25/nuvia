@@ -9,6 +9,8 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    'menu_cache_by_user_id' => env('MENU_CACHE_BY_USER_ID', false),
+
     'status' => env('APP_STATUS', null),
 
     'show_load_time' => env('SHOW_LOAD_TIME', false),

@@ -1451,6 +1451,7 @@ class AIController extends Controller
             'size'        => $this->getDemoImageSize($model),
             'quality'     => 'standard',
         ];
+
         $imageDetails = $this->processOpenAIImage($model, $param);
         $savePath = $this->saveImageOutputToStorage($imageDetails);
 
@@ -1522,14 +1523,21 @@ class AIController extends Controller
             'mood'     => $mood ? "$mood mood" : null,
         ];
         $prompt .= ' ' . implode(' ', array_filter($attributes));
-        $response = FacadesOpenAI::images()->create([
+
+        $data = [
             'model'           => $model,
             'prompt'          => $prompt,
             'size'            => $is_demo ? $this->getDemoImageSize($model) : $size,
             'response_format' => 'b64_json',
-            'quality'         => $is_demo ? 'standard' : $quality,
             'n'               => 1,
-        ]);
+        ];
+
+        if ($model !== EntityEnum::DALL_E_2) {
+            $data['quality'] = $is_demo ? 'standard' : $quality;
+        }
+
+        $response = FacadesOpenAI::images()->create($data);
+
         $contents = base64_decode($response['data'][0]['b64_json']);
         $nameOfImage = Str::random(12) . '-DALL-E-' . Str::slug(explode(' ', mb_substr($prompt, 0, 15))[0]) . '.png';
 
@@ -1705,10 +1713,6 @@ class AIController extends Controller
             if ($isV2BetaModels && in_array($stable_type, ['text-to-image', 'image-to-image'], true)) {
                 $defaultSdModel = 'sd3';
                 $sd3Payload[] = ['name' => 'model', 'contents' => $defaultSdModel];
-                $sd3Payload[] = [
-                    'name'     => 'aspect_ratio',
-                    'contents' => $width . ':' . $height,
-                ];
 
                 $response = $client->post($defaultSdModel, [
                     'headers'   => ['accept' => 'application/json'],

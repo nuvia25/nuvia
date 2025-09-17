@@ -24,6 +24,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Subscription as Subscriptions;
+use RuntimeException;
+use Throwable;
 
 /**
  * Base functions foreach payment gateway
@@ -77,7 +79,53 @@ class PaystackService
 
     }
 
-    // tested
+    public static function getPlansPriceIdsForMigration(): void
+    {
+        try {
+            $gateway = Gateways::where('code', self::$GATEWAY_CODE)->where('is_active', 1)->first();
+            if (! $gateway) {
+                throw new Exception('Active Paystack gateway not found.');
+            }
+
+            $key = self::getKey($gateway);
+            $paystackPlansResponse = self::curl_req(self::$plan_endpoint . '?perPage=100', $key, [], 'GET');
+            if (! isset($paystackPlansResponse['data'])) {
+                throw new RuntimeException('Could not fetch plans from Paystack.');
+            }
+            $paystackPlans = collect($paystackPlansResponse['data']);
+            DB::beginTransaction();
+            $plans = Plan::query()->where('active', 1)->get();
+            foreach ($plans as $plan) {
+                $product = GatewayProducts::where([
+                    'plan_id'      => $plan->id,
+                    'gateway_code' => self::$GATEWAY_CODE,
+                ])->first();
+                if (! $product) {
+                    continue;
+                }
+                $productId = $product->getAttribute('product_id');
+                $matchedPlan = $paystackPlans->firstWhere('description', $productId);
+                if ($matchedPlan) {
+                    $priceId = $matchedPlan['plan_code'];
+                    if ($product->price_id !== $priceId) {
+                        $product->price_id = $priceId;
+                        $product->save();
+                    }
+                }
+            }
+
+            DB::commit();
+        } catch (Exception|Throwable $ex) {
+            Log::error(self::$GATEWAY_CODE . '-> getPlansPriceIdsForMigration(): ' . $ex->getMessage());
+            DB::rollBack();
+        }
+    }
+
+    public static function getUsersCustomerIdsForMigration(Subscriptions $subscription): null
+    {
+        return null;
+    }
+
     public static function saveProduct($plan)
     {
         $gateway = Gateways::where('code', self::$GATEWAY_CODE)->where('is_active', 1)->first() ?? abort(404);

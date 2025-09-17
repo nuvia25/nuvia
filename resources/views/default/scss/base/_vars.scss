@@ -33,6 +33,8 @@
 		--tblr-danger-rgb: 161, 61, 85;
 		--tblr-muted: #667085;
 
+		--tblr-bg-forms: var(--input-background);
+
 		--tblr-nav-link-font-size: 0.875rem;
 
 		--tblr-dark-mode-border-color: rgb(255 255 255 / 4%);
@@ -68,10 +70,13 @@
 		--lqd-faded-out: rgb(255 255 255 / 20%);
 		--lqd-faded-out-more: rgb(255 255 255 / 7%);
 
+		--tblr-bg-forms: var(--input-background);
+
 		--tblr-bg-surface: #1f2228;
 
 		background-color: var(--tblr-body-bg);
 	}
+
 	// End BC
 
 	:root {
@@ -84,25 +89,24 @@
 		--primary-foreground: 0 0% 100%;
 		--secondary: 278 87% 94%;
 		--secondary-foreground: 0 0% 0%;
+		--accent: 280 60% 50%;
+		--accent-foreground: 0 0% 100%;
 		--background: 0 0% 100%;
 		--foreground: 222 14% 29%;
-        --gradient-from: 189 84% 73%;
-        --gradient-to: 240 73% 74%;
+		--gradient-from: 189 84% 73%;
+		--gradient-via: 240 73% 74%;
+		--gradient-to: 233 64% 64%;
 		--border: 200 12% 95%;
 		--shadow: 0 4px 7px theme('colors.black/4%');
 		--heading-background: 0 0% 100%;
 		--heading-foreground: 213 13% 14%;
-		--input-background: 0 0% 100%;
+		--input-background: var(--background);
 		--input-foreground: 0 0% 0%;
-		--input-border: 0 0% 92%;
+		--input-border: var(--border);
 		--card-background: var(--background);
 		--card-foreground: var(--foreground);
 		--card-border: var(--border);
-		--card-shadow: var(--shadow);
-		--table-background: var(--card-background);
-		--table-foreground: var(--card-foreground);
-		--table-border: var(--card-border);
-		--table-shadow: var(--card-shadow);
+		--card-shadow: none;
 		--folder-background: 0 0 0% / 6%;
 		--folder-foreground: var(--card-foreground);
 		--folder-border: var(--card-border);
@@ -172,6 +176,7 @@
 		--navbar-link-pe: theme('spacing.5');
 		--navbar-link-pb: theme('spacing.2');
 		--navbar-link-ps: theme('spacing.5');
+		--navbar-link-rounded: theme('borderRadius.xl');
 		--navbar-icon-background: 0 0% 0% / 0%;
 		--navbar-icon-foreground: ;
 		--navbar-icon-background-hover: ;
@@ -186,6 +191,13 @@
 		--switcher-ball-active: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23ffffff'/%3e%3c/svg%3e");
 
 		--top-notice-bar-height: 2.25rem;
+
+		--button-border: var(--border);
+		--button-rounded: theme('borderRadius.full');
+
+		--card-rounded: theme('borderRadius.xl');
+
+		--input-rounded: calc(theme('borderRadius.xl') * var(--input-rounded-multiplier, 1));
 
 		font-size: 16px;
 	}
@@ -206,17 +218,13 @@
 		--border: 223 9% 15%;
 		--heading-background: 220 8% 15%;
 		--heading-foreground: 0 0% 100%;
-		--input-background: 216 19% 11%;
+		--input-background: var(--background);
 		--input-foreground: 216 6% 85%;
-		--input-border: 214 10% 14%;
+		--input-border: var(--border);
 		--card-background: var(--background);
 		--card-foreground: var(--foreground);
 		--card-border: var(--border);
-		--card-shadow: var(--shadow);
-		--table-background: var(--card-background);
-		--table-foreground: var(--card-foreground);
-		--table-border: var(--card-border);
-		--table-shadow: var(--card-shadow);
+		--card-shadow: none;
 		--folder-background: 0 0 100% / 5%;
 		--folder-foreground: var(--card-foreground);
 		--folder-border: var(--card-border);
@@ -241,5 +249,7 @@
 		--navbar-foreground-active: var(--primary);
 		--navbar-border: var(--border);
 		--navbar-divider: var(--border);
+
+		--button-border: var(--border);
 	}
 }

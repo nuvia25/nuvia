@@ -22,6 +22,8 @@ class FalAIService
 
     public const KLING_URL = 'https://queue.fal.run/fal-ai/kling-video/v1/standard/text-to-video';
 
+    public const KLING_V21_URL = 'https://queue.fal.run/fal-ai/kling-video/v2.1/master/image-to-video';
+
     public const KLING_IMAGE_URL = 'https://queue.fal.run/fal-ai/kling-video/v1.6/pro/image-to-video';
 
     public const LUMA_URL = 'https://queue.fal.run/fal-ai/luma-dream-machine';
@@ -185,6 +187,25 @@ class FalAIService
             'Authorization' => 'Key ' . ApiHelper::setFalAIKey(),
         ])
             ->post(self::KLING_IMAGE_URL,
+                [
+                    'prompt'    => $prompt,
+                    'image_url' => $imageUrl,
+                ]);
+
+        return $response->json();
+    }
+
+    public static function klingV21Generate(string $prompt, string $imageUrl)
+    {
+        set_time_limit(0);
+        ini_set('max_execution_time', 540);
+
+        $response = Http::withHeaders([
+            'Content-Type'  => 'application/json',
+            'Accept'        => 'application/json',
+            'Authorization' => 'Key ' . ApiHelper::setFalAIKey(),
+        ])
+            ->post(self::KLING_V21_URL,
                 [
                     'prompt'    => $prompt,
                     'image_url' => $imageUrl,

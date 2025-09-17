@@ -175,6 +175,10 @@
                                     :class="{ 'lqd-is-active': $store.plansFilter.isActive('{{ $filter }}') }"
                                 >
                                     @lang($filter)
+
+									@if($filter === 'Yearly')
+										<span class="ml-1 inline-block rounded-md bg-[#684AE2] bg-opacity-10 p-[0.275rem] px-1 text-[#684AE2]">{{ $fSectSettings?->pricing_save_percent }}</span>
+									@endif
                                 </button>
                             </li>
                         @endforeach

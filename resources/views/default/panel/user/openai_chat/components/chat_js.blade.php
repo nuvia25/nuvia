@@ -35,7 +35,7 @@
             messages.push(message);
             message = {
                 role: "assistant",
-                content: @json($entry->output)
+                content:@json(str_replace('/http', 'http', $entry->output))
             };
             messages.push(message);
         @endforeach

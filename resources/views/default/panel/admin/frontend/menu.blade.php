@@ -114,7 +114,7 @@
                                 @endif
                                 <div class="mb-3">
                                     <label class="form-check form-switch">
-                                        <span class="form-check-label mr-2">{{ __('Open In New Tab') }}</span>
+                                        <span class="form-check-label me-2">{{ __('Open In New Tab') }}</span>
                                         <input
                                             class="form-check-input menu-target"
                                             type="checkbox"
@@ -188,7 +188,7 @@
 					@endif
 					<div class="mb-3">
 						<label class="form-check form-switch">
-							<span class="form-check-label mr-2">{{ __('Open In New Tab') }}</span>
+							<span class="form-check-label me-2">{{ __('Open In New Tab') }}</span>
 							<input class="form-check-input menu-target" type="checkbox">
 						</label>
 					</div>

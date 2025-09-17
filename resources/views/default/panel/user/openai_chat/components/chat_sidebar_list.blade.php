@@ -62,7 +62,7 @@
                 <button
                     @class([
                         'chat-item-pin' => !$disable_actions,
-                        'flex size-7 items-center relative z-1 justify-center rounded-full border bg-background transition-all dark:bg-primary dark:text-primary-foreground dark:border-primary hover:scale-110  group-[&.edit-mode]:hidden',
+                        'flex size-7 items-center relative z-1 justify-center rounded-button border bg-background transition-all dark:bg-primary dark:text-primary-foreground dark:border-primary hover:scale-110  group-[&.edit-mode]:hidden',
                     ])
                     @if ($disable_actions) onclick="return toastr.info('{{ __('This feature is disabled in Demo version.') }}')" @endif
                 >
@@ -72,7 +72,7 @@
                 <button
                     @class([
                         'chat-item-update-title' => !$disable_actions,
-                        'flex size-7 items-center relative z-1 justify-center rounded-full border bg-background transition-all dark:bg-primary dark:text-primary-foreground dark:border-primary hover:scale-110 group-[&.edit-mode]:bg-emerald-500 group-[&.edit-mode]:border-emerald-500 group-[&.edit-mode]:text-white',
+                        'flex size-7 items-center relative z-1 justify-center rounded-button border bg-background transition-all dark:bg-primary dark:text-primary-foreground dark:border-primary hover:scale-110 group-[&.edit-mode]:bg-emerald-500 group-[&.edit-mode]:border-emerald-500 group-[&.edit-mode]:text-white',
                     ])
                     @if ($disable_actions) onclick="return toastr.info('{{ __('This feature is disabled in Demo version.') }}')" @endif
                 >
@@ -82,7 +82,7 @@
                 <button
                     @class([
                         'chat-item-delete' => !$disable_actions,
-                        'flex size-7 items-center relative z-1 justify-center rounded-full border border-red-600 bg-red-600 text-white transition-all hover:scale-110 group-[&.edit-mode]:hidden',
+                        'flex size-7 items-center relative z-1 justify-center rounded-button border border-red-600 bg-red-600 text-white transition-all hover:scale-110 group-[&.edit-mode]:hidden',
                     ])
                     @if ($disable_actions) onclick="return toastr.info('{{ __('This feature is disabled in Demo version.') }}')" @endif
                 >

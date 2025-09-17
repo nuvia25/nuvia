@@ -4,7 +4,7 @@
 
 @section('settings')
     <div class="mb-10 flex items-center !gap-3 rounded-xl bg-[rgba(157,107,221,0.1)] !p-4 !py-3 text-[17px] font-semibold">
-        <span class="inline-flex !h-6 !w-6 items-center justify-center rounded-full bg-[#9D6BDD] text-[15px] font-bold text-white">1</span>
+        <span class="inline-flex !h-6 !w-6 items-center justify-center rounded-full bg-[#9D6BDD] text-sm font-bold text-white">1</span>
         {{ __('User Information') }}
     </div>
     <div class="mb-3">
@@ -45,7 +45,7 @@
     </div>
 
     <div class="mb-10 mt-4 flex items-center !gap-3 rounded-xl bg-[rgba(157,107,221,0.1)] !p-4 !py-3 text-[17px] font-semibold">
-        <span class="inline-flex !h-6 !w-6 items-center justify-center rounded-full bg-[#9D6BDD] text-[15px] font-bold text-white">2</span>
+        <span class="inline-flex !h-6 !w-6 items-center justify-center rounded-full bg-[#9D6BDD] text-sm font-bold text-white">2</span>
         {{ __('Manage Subscription') }}
     </div>
     <div class="card mb-10">
@@ -132,11 +132,11 @@
 
     <form
         method="POST"
-        action="{{  (route('dashboard.user.payment.assignTokenByAdmin')) }}"
+        action="{{ route('dashboard.user.payment.assignTokenByAdmin') }}"
     >
         @csrf
         <div class="mb-10 mt-4 flex items-center !gap-3 rounded-xl bg-[rgba(157,107,221,0.1)] !p-4 !py-3 text-[17px] font-semibold">
-            <span class="inline-flex !h-6 !w-6 items-center justify-center rounded-full bg-[#9D6BDD] text-[15px] font-bold text-white">3</span>
+            <span class="inline-flex !h-6 !w-6 items-center justify-center rounded-full bg-[#9D6BDD] text-sm font-bold text-white">3</span>
             {{ __('Token Pack') }}
         </div>
         <div class="card mb-10">
@@ -218,7 +218,7 @@
                 <form
                     id="deleteSubscriptionForm"
                     method="POST"
-                    action="{{  (route('dashboard.user.payment.cancelActiveSubscriptionByAdmin', ['id' => $user->id])) }}"
+                    action="{{ route('dashboard.user.payment.cancelActiveSubscriptionByAdmin', ['id' => $user->id]) }}"
                 >
                     @csrf
                     <div class="modal-body">
@@ -253,7 +253,7 @@
             <div class="modal-content">
                 <form
                     method="POST"
-                    action="{{  (route('dashboard.user.payment.assignPlanByAdmin')) }}"
+                    action="{{ route('dashboard.user.payment.assignPlanByAdmin') }}"
                 >
                     @csrf
                     <div class="modal-body">

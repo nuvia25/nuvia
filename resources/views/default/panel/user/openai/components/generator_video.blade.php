@@ -23,7 +23,7 @@
                 ondragover="dragOverHandler(event);"
             >
                 <label
-                    class="lqd-filepicker-label flex min-h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-foreground/10 bg-background text-center transition-colors hover:bg-background/80"
+                    class="lqd-filepicker-label flex min-h-64 w-full cursor-pointer flex-col items-center justify-center rounded-card border-2 border-dashed border-foreground/10 bg-background text-center transition-colors hover:bg-background/80"
                     for="img2img_src"
                 >
                     <div class="flex flex-col items-center justify-center py-6">
@@ -113,16 +113,16 @@
                 this.activeItemId = data.id;
                 videoItem = document.querySelector(`.lqd-modal-fig > video`);
                 currentVideoItem = document.querySelector(`.lqd-modal-fig > video > source`);
-
+        
                 const currenturl = window.location.href;
                 const server = currenturl.split('/')[0];
                 const delete_url = `${server}/dashboard/user/openai/documents/delete/image/${data.slug}`;
                 deleteVideoBtn = document.querySelector(`.lqd-modal-img-content .delete`);
                 deleteVideoBtn.href = delete_url;
-
+        
                 currentVideoItem.src = data.output;
                 videoItem.load();
-
+        
             },
             prevItem() {
                 const currentEl = document.querySelector(`.video-result[data-id='${this.activeItemId}']`);
@@ -164,7 +164,7 @@
                         <div class="lqd-video-result-actions absolute inset-0 flex w-full flex-col items-center justify-center gap-2 p-4">
                             <div class="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                                 <x-button
-                                    class="lqd-video-result-play size-9 rounded-full bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
+                                    class="lqd-video-result-play size-9 bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
                                     data-fslightbox="video-gallery"
                                     size="none"
                                     href="{{ $item->output }}"
@@ -172,7 +172,7 @@
                                     <x-tabler-player-play-filled class="size-4" />
                                 </x-button>
                                 <x-button
-                                    class="lqd-video-result-download size-9 rounded-full bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
+                                    class="lqd-video-result-download size-9 bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
                                     size="none"
                                     download="{{ $item->slug }}"
                                     href="{{ $item->output }}"
@@ -180,7 +180,7 @@
                                     <x-tabler-download class="size-5" />
                                 </x-button>
                                 <x-button
-                                    class="lqd-video-result-view size-9 rounded-full bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
+                                    class="lqd-video-result-view size-9 bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
                                     data-payload="{{ json_encode($item) }}"
                                     @click.prevent="setActiveItem( JSON.parse($el.getAttribute('data-payload') || {}) ); modalShow = true"
                                     size="none"
@@ -380,7 +380,7 @@
             <div class="lqd-video-result-actions absolute inset-0 flex w-full flex-col items-center justify-center gap-2 p-4">
                 <div class="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <x-button
-                        class="lqd-video-result-play size-9 rounded-full bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
+                        class="lqd-video-result-play size-9 bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
                         data-fslightbox="video-gallery"
                         size="none"
                         href="#"
@@ -389,7 +389,7 @@
                     </x-button>
 
                     <x-button
-                        class="lqd-video-result-download size-9 rounded-full bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
+                        class="lqd-video-result-download size-9 bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
                         size="none"
                         download="true"
                         href="#"
@@ -397,7 +397,7 @@
                         <x-tabler-download class="size-5" />
                     </x-button>
                     <x-button
-                        class="lqd-video-result-view size-9 rounded-full bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
+                        class="lqd-video-result-view size-9 bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
                         @click.prevent="setActiveItem( JSON.parse($el.getAttribute('data-payload') || {})); modalShow = true"
                         size="none"
                         href="#"

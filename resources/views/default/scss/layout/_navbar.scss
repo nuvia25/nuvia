@@ -3,7 +3,7 @@
 }
 
 .lqd-navbar-logo {
-	@apply lg:sticky top-0 start-0 z-40 lg:backdrop-blur-md lg:backdrop-brightness-105;
+	@apply lg:sticky top-0 start-0 z-40 lg:before:absolute lg:before:top-0 lg:before:-bottom-4 lg:before:-start-navbar-ps lg:before:-end-navbar-pe lg:before:backdrop-blur-2xl lg:before:[mask-image:linear-gradient(to_bottom,black,black_calc(100%-1rem),transparent_calc(100%-1rem))];
 }
 
 .chat-list-item {

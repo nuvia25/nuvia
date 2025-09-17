@@ -6,7 +6,7 @@
 </a>
 
 <button
-    class="lqd-navbar-expander fixed start-[--navbar-width] top-[calc(var(--header-height)/2)] z-[999] inline-flex size-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-0 bg-foreground/10 p-0 text-heading-foreground backdrop-blur-sm transition-all hover:bg-heading-foreground hover:text-heading-background group-[.navbar-shrinked]/body:!start-[80px] group-[.navbar-shrinked]/body:rotate-180 max-lg:hidden"
+    class="lqd-navbar-expander fixed start-[--navbar-width] top-[calc(var(--header-height)/2)] z-[999] inline-flex size-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-button border-0 bg-foreground/10 p-0 text-heading-foreground backdrop-blur-sm transition-all hover:bg-heading-foreground hover:text-heading-background group-[.navbar-shrinked]/body:!start-[80px] group-[.navbar-shrinked]/body:rotate-180 max-lg:hidden"
     x-init
     @click.prevent="$store.navbarShrink.toggle()"
 >
@@ -23,7 +23,7 @@
         <div
             class="lqd-navbar-logo relative flex min-h-[--header-height] max-w-full items-center pe-navbar-link-pe ps-navbar-link-ps group-[.navbar-shrinked]/body:w-full group-[.navbar-shrinked]/body:justify-center group-[.navbar-shrinked]/body:px-0 group-[.navbar-shrinked]/body:text-center max-lg:hidden">
             <a
-                class="block px-0"
+                class="relative z-1 block px-0"
                 href="{{ route('dashboard.index') }}"
             >
                 @if (isset($setting->logo_dashboard))
@@ -97,14 +97,18 @@
                 @endif
 
                 @if ($app_is_demo)
-                    {!! \Illuminate\Support\Facades\Cache::remember('components.navbar.partials.credit-for-menu', 3600 * 36000, function () {
-                        return view('components.navbar.partials.credit-for-menu')->render();
-                    }) !!}
+                    {!! \Illuminate\Support\Facades\Cache::remember(
+                        'components.navbar.partials.credit-for-menu',
+                        3600 * 36000,
+                        function () {
+                            return view('components.navbar.partials.credit-for-menu')->render();
+                        },
+                    ) !!}
                 @else
                     @include('components.navbar.partials.credit-for-menu')
                 @endif
 
-                @if ($setting->feature_affilates && \auth()->user()?->affiliate_status === 1)
+                @if ($setting->feature_affilates && \auth()->user()?->affiliate_status == 1)
                     <x-navbar.item class="group-[&.navbar-shrinked]/body:hidden">
                         <x-navbar.divider />
                     </x-navbar.item>
@@ -115,7 +119,9 @@
                         </x-navbar.label>
                     </x-navbar.item>
 
-                    <x-navbar.item class="pb-navbar-link-pb pe-navbar-link-pe ps-navbar-link-ps pt-navbar-link-pt group-[&.navbar-shrinked]/body:hidden">
+                    <x-navbar.item
+                        class="pb-navbar-link-pb pe-navbar-link-pe ps-navbar-link-ps pt-navbar-link-pt group-[&.navbar-shrinked]/body:hidden"
+                    >
                         <div
                             class="lqd-navbar-affiliation inline-block w-full rounded-xl border border-navbar-divider px-8 py-4 text-center text-2xs leading-tight transition-border">
                             <p class="m-0 mb-2 text-[20px] not-italic">🎁</p>

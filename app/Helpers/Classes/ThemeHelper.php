@@ -2,6 +2,7 @@
 
 namespace App\Helpers\Classes;
 
+use App\Extensions\LiveCustomizer\System\Helpers\LiveCustomizer;
 use Igaster\LaravelTheme\Facades\Theme;
 
 class ThemeHelper
@@ -10,6 +11,10 @@ class ThemeHelper
     {
         $google_fonts_string = '';
         $theme_google_fonts = Theme::getSetting($landingOrDash . '.googleFonts');
+
+        if (MarketplaceHelper::isRegistered('live-customizer')) {
+            $theme_google_fonts = array_merge(LiveCustomizer::getFontSetting(), $theme_google_fonts);
+        }
 
         $i = 0;
 

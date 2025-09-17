@@ -10,7 +10,7 @@
 
 @section('container')
     @php
-        $steps_indicators = ['Updater', 'Check Requirement', 'Backup', 'Upgrade'];
+        $steps_indicators = ['Updater', 'Check Requirement', 'Backup', 'Download', 'Upgrade'];
         $step = data_get($data, 'step');
     @endphp
 

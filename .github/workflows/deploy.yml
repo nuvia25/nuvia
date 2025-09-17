@@ -1,0 +1,63 @@
+name: Laravel Production Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Production
+
+    steps:
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+      - name: Deploy to production
+        run: |
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+            cd ${{ secrets.APP_PATH }} &&
+            echo '🚀 Iniciando deploy...' &&
+            echo '🛑 Parando containers Docker...' &&
+            docker stop \$(docker ps -q) 2>/dev/null || true &&
+            echo '🧹 Limpando modificações com stash...' &&
+            git add . &&
+            git stash push -m 'Deploy cleanup \$(date)' &&
+            git stash drop || true &&
+            echo '📥 Fazendo pull do GitHub...' &&
+            git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git &&
+            echo '📦 Executando deploy em produção...' &&
+            MODE=prod make deploy &&
+            echo '✅ Deploy concluído!'
+          "
+
+      - name: Health check
+        run: |
+          echo "⏳ Aguardando aplicação inicializar..."
+          sleep 30
+          
+          echo "🩺 Testando conectividade HTTP..."
+          if curl -f -s http://${{ secrets.SSH_HOST }}/health > /dev/null; then
+            echo "✅ Aplicação está respondendo!"
+            echo "🌐 Acesse: http://${{ secrets.SSH_HOST }}"
+          else
+            echo "⚠️ Aplicação não está respondendo ainda - pode precisar de mais tempo"
+            echo "📋 Para verificar: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'cd ${{ secrets.APP_PATH }} && make logs'"
+          fi
+
+      - name: Show deployment info
+        if: success()
+        run: |
+          echo "🎉 Deploy realizado com sucesso!"
+          echo "📍 Servidor: ${{ secrets.SSH_HOST }}"
+          echo "📁 Caminho: ${{ secrets.APP_PATH }}"
+          echo "🌐 URL: http://${{ secrets.SSH_HOST }}"
+          echo ""
+          echo "🔧 Comandos úteis:"
+          echo "   • Ver logs: make logs"
+          echo "   • Status: docker compose -f docker-compose.prod.yml ps"
+          echo "   • Restart: MODE=prod make restart"

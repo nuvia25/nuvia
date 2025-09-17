@@ -162,3 +162,7 @@
     value="vi-VN"
     {{ $setting->openai_default_language == 'vi-VN' ? 'selected' : null }}
 >{{ __('Vietnamese (Vietnam)') }}</option>
+<option
+    value="uk-UA"
+    {{ $setting->openai_default_language == 'uk-UA' ? 'selected' : null }}
+>{{ __('Ukraine') }}</option>

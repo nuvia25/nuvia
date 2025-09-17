@@ -121,8 +121,12 @@
         @if (session('message') || session()->has('errors'))
             <div class="relative mx-auto w-1/3 px-10 text-start">
                 <div class="mb-8 mt-3 flex flex-col">
+
+                    @php
+                        $session = session('type') === 'success' ? 'success' : 'danger';
+                    @endphp
                     @if (session('message'))
-                        <x-alert variant="success">
+                        <x-alert :variant="$session">
                             {{ session('message') }}
                         </x-alert>
                     @endif
@@ -292,13 +296,13 @@
             </div>
             <?php
             $back_href = '';
-            if (Request::is('install/requirements')) {
-                $back_href = route('LaravelInstaller::welcome');
-            }
-            if (Request::is('install/environment/wizard')) {
-                $back_href = route('LaravelInstaller::requirements');
-            }
-            ?>
+        if (Request::is('install/requirements')) {
+            $back_href = route('LaravelInstaller::welcome');
+        }
+        if (Request::is('install/environment/wizard')) {
+            $back_href = route('LaravelInstaller::requirements');
+        }
+        ?>
             @if (!empty($back_href))
                 <div class="mt-8 text-center">
                     <a

@@ -18,15 +18,15 @@
                     rows="20"
                 >
 			@php
-				echo PHP_EOL . '== ' . __('LOGS') . '==' . PHP_EOL;
-				$logFile = storage_path('logs/laravel.log');
-				if (file_exists($logFile)) {
-					$logContent = file_get_contents($logFile);
-					echo htmlentities($logContent);
-				} else {
-					echo __('No logged any data.');
-				}
-			@endphp 
+       echo PHP_EOL . '== ' . __('LOGS') . '==' . PHP_EOL;
+       $logFile = storage_path('logs/laravel.log');
+       if (file_exists($logFile)) {
+           $logContent = file_get_contents($logFile);
+           echo htmlentities($logContent);
+       } else {
+           echo __('No logged any data.');
+       }
+   @endphp
 			</textarea>
 
                 <div class="!mt-5 space-x-2">
@@ -35,7 +35,7 @@
                         variant="outline"
                     >
                         <svg
-                            class="mr-2"
+                            class="me-2"
                             xmlns="http://www.w3.org/2000/svg"
                             width="18"
                             height="18"
@@ -61,7 +61,7 @@
                         variant="outline"
                     >
                         <svg
-                            class="mr-2"
+                            class="me-2"
                             xmlns="http://www.w3.org/2000/svg"
                             width="18"
                             height="18"

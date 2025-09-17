@@ -1,79 +1,85 @@
-# Definição de variáveis
-ENV_FILE := .env
-DOCKER_COMPOSE := docker compose --env-file $(ENV_FILE) -f docker-compose.dev.yml
-DOCKER_COMPOSE_EXEC := $(DOCKER_COMPOSE) exec app
+MODE ?= dev
 
-.PHONY: prepare
-build:
-	@which docker >/dev/null 2>&1 || (echo "Docker não está em execução!" && exit 1 )
-	sudo rm -rf node_modules
-	sudo rm -rf vendor
-	$(DOCKER_COMPOSE) build --no-cache
+ifeq (,$(filter $(MODE),dev prod))
+$(error Invalid MODE '$(MODE)'. Use MODE=dev or MODE=prod)
+endif
 
-.PHONY: up
+ifneq ($(shell command -v docker-compose 2>/dev/null),)
+  DC := docker-compose
+else ifneq ($(shell docker compose version 2>/dev/null),)
+  DC := docker compose
+else
+$(error Docker Compose not found. Install docker-compose v1 or docker compose v2)
+endif
+
+COMPOSE_FILE := docker-compose.$(MODE).yml
+APP_SERVICE ?= app
+
+ARGS := $(filter-out $@,$(MAKECMDGOALS))
+
+
 up:
-	@test -f $(ENV_FILE) || (echo "Arquivo $(ENV_FILE) não encontrado!" && exit 1)
-	$(DOCKER_COMPOSE) up -d
+	@echo "Starting (MODE=$(MODE)) using $(COMPOSE_FILE)"
+	@$(DC) -f $(COMPOSE_FILE) up -d
 
-.PHONY: down
 down:
-	$(DOCKER_COMPOSE) down
+	@$(DC) -f $(COMPOSE_FILE) down
 
-.PHONY: prune
+build:
+	@$(DC) -f $(COMPOSE_FILE) build
+
 prune:
-	$(DOCKER_COMPOSE) down --rmi all -v --remove-orphans
+	@$(DC) -f $(COMPOSE_FILE) down -v --remove-orphans
+	@docker system prune -f
 
-.PHONY: restart
 restart:
-	$(DOCKER_COMPOSE) restart
+	@$(DC) -f $(COMPOSE_FILE) restart
 
-.PHONY: sh
-sh:
-	$(DOCKER_COMPOSE) exec -it app /bin/bash
+logs:
+	@$(DC) -f $(COMPOSE_FILE) logs -f --tail=100
 
-.PHONY: app_logs
-app_logs:
-	$(DOCKER_COMPOSE) logs -f app
+install-deps:
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) git config --global --add safe.directory /var/www
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) composer install --no-interaction
 
-.PHONY: nginx_logs
-nginx_logs:
-	$(DOCKER_COMPOSE) logs -f nginx
+composer:
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) composer $(ARGS)
 
-.PHONY: db_migrate
-db_migrate:
-	$(DOCKER_COMPOSE_EXEC) php artisan migrate
+artisan:
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) php artisan $(ARGS)
 
-.PHONY: db_fresh
-db_fresh:
-	$(DOCKER_COMPOSE_EXEC) php artisan migrate:fresh
+shell:
+	@$(DC) -f $(COMPOSE_FILE) exec $(APP_SERVICE) sh
 
-.PHONY: db_seed
-db_seed:
-	$(DOCKER_COMPOSE_EXEC) php artisan db:seed
+permissions:
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) git config --global --add safe.directory /var/www || true
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/vendor 2>/dev/null || true
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) chmod -R 775 /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) chmod -R 755 /var/www/vendor 2>/dev/null || true
 
+deploy:
+	@if [ "$(MODE)" != "prod" ]; then echo "Deploy disponível apenas com MODE=prod"; exit 1; fi
+	@echo "Deploy (MODE=prod) using $(COMPOSE_FILE)"
+	@$(DC) -f $(COMPOSE_FILE) build
+	@$(DC) -f $(COMPOSE_FILE) up -d --remove-orphans
+	make permissions
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) sh -lc "composer install --no-dev --prefer-dist --no-interaction --no-progress"
+	@$(DC) -f $(COMPOSE_FILE) exec -T $(APP_SERVICE) php artisan migrate --force
 
-.PHONY: help
 help:
-	@echo "Uso do Makefile:"
-	@echo "  make build              - Constrói os containers"
-	@echo "  make up                 - Inicia os containers em segundo plano"
-	@echo "  make down               - Para os containers"
-	@echo "  make restart            - Reinicia os containers"
-	@echo "  make logs               - Exibe logs dos containers"
-	@echo "  make exec-app           - Acessa o bash do container da aplicação"
-	@echo "  make exec-db            - Acessa o bash do container do banco de dados"
-	@echo "  make exec-nginx         - Acessa o shell do container Nginx"
-	@echo "  make artisan cmd=...    - Executa comando Artisan (ex: make artisan cmd='migrate')"
-	@echo "  make migrate            - Executa as migrações"
-	@echo "  make migrate-fresh      - Recria e executa as migrações"
-	@echo "  make seed               - Executa os seeders"
-	@echo "  make composer-install   - Instala dependências do Composer"
-	@echo "  make composer-update    - Atualiza dependências do Composer"
-	@echo "  make npm-install        - Instala dependências do NPM"
-	@echo "  make npm-build          - Compila assets"
-	@echo "  make ps                 - Exibe status dos containers"
-	@echo "  make clean              - Remove todos os containers e volumes"
-	@echo "  make help               - Exibe esta ajuda"
+	@echo "Makefile (MODE=$(MODE))"
+	@echo "Using: $(DC) -f $(COMPOSE_FILE)"
+	@echo
+	@grep -E '^[a-zA-Z_-]+:.*?## ' $(lastword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-10s %s\n", $$1, $$2}' | sort
+	@echo
+	@echo "Examples:"
+	@echo "  make up"
+	@echo "  make artisan migrate"
+	@echo "  MODE=prod make up"
+	@echo "  MODE=prod make deploy"
 
-# Comando padrão
-.DEFAULT_GOAL := help
+# Allow passing extra arguments like: make composer install
+%:
+	@:
+
+.PHONY: up down build prune install-deps restart logs composer artisan shell deploy permissions help

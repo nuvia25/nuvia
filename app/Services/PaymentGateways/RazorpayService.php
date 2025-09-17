@@ -61,6 +61,16 @@ class RazorpayService implements BaseGatewayService, ProductInterface
         }
     }
 
+    public static function getPlansPriceIdsForMigration(): null
+    {
+        return null;
+    }
+
+    public static function getUsersCustomerIdsForMigration(Subscriptions $subscription): null
+    {
+        return null;
+    }
+
     public static function saveProduct($plan): bool|\Illuminate\Http\RedirectResponse
     {
         try {

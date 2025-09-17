@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Facade;
  * @method string backupFileNameGetFromCache()
  * @method bool versionCheck()
  * @method array backupView()
+ * @method void downloadNewVersion()
  */
 class Updater extends Facade
 {

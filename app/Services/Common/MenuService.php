@@ -5,13 +5,16 @@ namespace App\Services\Common;
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Enums\Introduction;
 use App\Helpers\Classes\Helper;
+use App\Helpers\Classes\Localization;
 use App\Helpers\Classes\MarketplaceHelper;
+use App\Helpers\Classes\PlanHelper;
 use App\Models\Common\Menu;
 use App\Models\Extension;
 use App\Models\Integration\Integration;
 use App\Models\Plan;
 use App\Models\Setting;
 use App\Models\SettingTwo;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -21,16 +24,63 @@ class MenuService
 
     public function cacheKey(): string
     {
-        return Auth::user()?->isAdmin() || Auth::user()?->isSuperAdmin() . get_theme() . '-navbar-menu';
+        $userType = Auth::user()?->isAdmin() || Auth::user()?->isSuperAdmin() ? 'admin' : 'user';
+
+        $userPlan = PlanHelper::userPlan();
+
+        $planId = 0;
+
+        if ($userPlan) {
+            $planId = $userPlan->getAttribute('id');
+        }
+
+        return $this->fullCacheKey($userType, $planId);
+    }
+
+    public function fullCacheKey($userType = null, $planId = null): string
+    {
+        $locale = Localization::getLocale();
+
+        $byUserId = config('app.menu_cache_by_user_id', false);
+
+        if ($byUserId && Auth::check()) {
+            $userId = Auth::id();
+
+            return $locale . '-' . $userType . '-' . $planId . '-' . get_theme() . '-navbar-menu-' . $userId;
+        }
+
+        return $locale . '-' . $userType . '-' . $planId . '-' . get_theme() . '-navbar-menu';
     }
 
     public function regenerate(): array
     {
+        $this->cacheClearBlade();
+
         cache()->forget(self::MENU_KEY);
 
-        cache()->forget($this->cacheKey());
-
         return $this->generate(false);
+    }
+
+    public function cacheClearBlade(): void
+    {
+        $byUserId = config('app.menu_cache_by_user_id', false);
+
+        if ($byUserId) {
+            Artisan::call('optimize:clear');
+
+            return;
+        }
+
+        Plan::query()
+            ->where('plans.type', '=', 'subscription')
+            ->get()
+            ?->map(function ($plan) {
+                cache()->forget($this->fullCacheKey('admin', $plan->getAttribute('id')));
+                cache()->forget($this->fullCacheKey('user', $plan->getAttribute('id')));
+            });
+
+        cache()->forget($this->fullCacheKey('admin'));
+        cache()->forget($this->fullCacheKey('user'));
     }
 
     public function boltMenu(): array
@@ -147,6 +197,7 @@ class MenuService
         $settings_two = SettingTwo::query()->first();
 
         $menu = [
+
             'user_label' => [
                 'parent_key'       => null,
                 'key'              => 'user_label',
@@ -214,6 +265,236 @@ class MenuService
                     'dashboard.chatbot-voice.*',
                 ],
                 'show_condition'   => MarketplaceHelper::isRegistered('chatbot-voice'),
+                'badge'            => 'new',
+            ],
+            'marketing_bot_dashboard' => [
+                'parent_key'       => null,
+                'key'              => 'marketing_bot_dashboard',
+                'route'            => 'dashboard.user.marketing-bot.dashboard',
+                'label'            => 'Marketing Bot',
+                'icon'             => 'tabler-dashboard',
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => ['dashboard.user.marketing-bot.dashboard'],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+                'is_admin'         => false,
+            ],
+            'marketing_bot_settings' => [
+                'parent_key'       => null,
+                'key'              => 'marketing_bot_settings',
+                'route'            => 'dashboard.user.marketing-bot.settings.index',
+                'label'            => 'Marketing Bot Settings',
+                'icon'             => 'tabler-settings-code',
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => ['dashboard.user.marketing-bot.settings.index'],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+                'is_admin'         => false,
+            ],
+            'marketing_bot' => [
+                'parent_key'       => null,
+                'key'              => 'marketing_bot',
+                'route'            => null,
+                'label'            => 'Marketing bot',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'label',
+                'extension'        => null,
+                'active_condition' => false,
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+            ],
+            'marketing_bot_inbox' => [
+                'parent_key'       => null,
+                'key'              => 'marketing_bot_inbox',
+                'route'            => 'dashboard.user.marketing-bot.inbox.index',
+                'label'            => 'Inbox',
+                'icon'             => 'tabler-inbox',
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => [
+                    'dashboard.user.marketing-bot.inbox.*',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+            ],
+            'marketing_bot_campaigns' => [
+                'parent_key'       => null,
+                'key'              => 'marketing_bot_campaigns',
+                'route'            => 'dashboard.user.marketing-bot.whatsapp-campaign.index',
+                'label'            => 'Campaigns',
+                'icon'             => 'tabler-flag-share',
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => [
+                    'dashboard.user.marketing-bot.whatsapp-campaign.*', 'dashboard.user.marketing-bot.telegram-campaign.*',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+            ],
+            'marketing_bot_campaigns_whatsapp' => [
+                'parent_key'       => 'marketing_bot_campaigns',
+                'key'              => 'marketing_bot_campaigns_whatsapp',
+                'route'            => 'dashboard.user.marketing-bot.whatsapp-campaign.index',
+                'label'            => 'Whatsapp',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => ['dashboard.user.marketing-bot.whatsapp-group.*'],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+            ],
+
+            'marketing_bot_campaigns_telegram' => [
+                'parent_key'       => 'marketing_bot_campaigns',
+                'key'              => 'marketing_bot_campaigns_telegram',
+                'route'            => 'dashboard.user.marketing-bot.telegram-campaign.index',
+                'label'            => 'Telegram',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => ['dashboard.user.marketing-bot.telegram-campaign.*'],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+            ],
+
+            'marketing_bot_telegram' => [
+                'parent_key'       => null,
+                'key'              => 'marketing_bot_telegram',
+                'route'            => 'dashboard.user.marketing-bot.telegram-group.index',
+                'label'            => 'Telegram',
+                'icon'             => 'tabler-brand-telegram',
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => [
+                    'dashboard.user.index',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+            ],
+
+            'marketing_bot_telegram_group' => [
+                'parent_key'       => 'marketing_bot_telegram',
+                'key'              => 'marketing_bot_telegram_group',
+                'route'            => 'dashboard.user.marketing-bot.telegram-group.index',
+                'label'            => 'Telegram Groups',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => ['dashboard.user.marketing-bot.telegram-group.*'],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+            ],
+
+            'marketing_bot_telegram_subscribers' => [
+                'parent_key'       => 'marketing_bot_telegram',
+                'key'              => 'marketing_bot_telegram_subscribers',
+                'route'            => 'dashboard.user.marketing-bot.telegram-subscriber.index',
+                'label'            => 'Telegram Subscribers',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => ['dashboard.user.marketing-bot.telegram-subscriber.*'],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+            ],
+
+            'marketing_bot_whatsapp' => [
+                'parent_key'       => null,
+                'key'              => 'marketing_bot_whatsapp',
+                'route'            => 'dashboard.user.marketing-bot.contact.index',
+                'label'            => 'Whatsapp',
+                'icon'             => 'tabler-brand-whatsapp',
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => ['dashboard.user.marketing-bot.contact.*'],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+            ],
+            'marketing_bot_whatsapp_contact' => [
+                'parent_key'       => 'marketing_bot_whatsapp',
+                'key'              => 'marketing_bot_whatsapp_contact',
+                'route'            => 'dashboard.user.marketing-bot.contact.index',
+                'label'            => 'Contact Lists',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => [
+                    'dashboard.user.marketing-bot.contact.index',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+            ],
+            'marketing_bot_whatsapp_segment' => [
+                'parent_key'       => 'marketing_bot_whatsapp',
+                'key'              => 'marketing_bot_whatsapp_segment',
+                'route'            => 'dashboard.user.marketing-bot.segment.index',
+                'label'            => 'Segments',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => [
+                    'dashboard.user.marketing-bot.contact.index',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
+            ],
+            'marketing_bot_whatsapp_contact_list' => [
+                'parent_key'       => 'marketing_bot_whatsapp',
+                'key'              => 'marketing_bot_whatsapp_contact_list',
+                'route'            => 'dashboard.user.marketing-bot.contact-list.index',
+                'label'            => 'Contacts',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 4,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => [
+                    'dashboard.user.marketing-bot.contact-list.index',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('marketing-bot'),
             ],
             'ext_chat_bot_agent' => [
                 'parent_key'       => null,
@@ -234,6 +515,7 @@ class MenuService
                 'show_condition'   => Route::has('dashboard.chatbot-agent.index'),
                 'badge'            => 'new',
             ],
+
             'ext_social_media_dropdown' => [
                 'parent_key'       => null,
                 'key'              => 'ext_social_media_dropdown',
@@ -1098,6 +1380,26 @@ class MenuService
                 'show_condition' => true,
                 'is_admin'       => true,
             ],
+            'ext_migration' => [
+                'parent_key'       => null,
+                'key'              => 'ext_migration',
+                'route'            => 'migration::welcome',
+                'label'            => 'Migration',
+                'data-name'        => Introduction::MIGRATION,
+                'icon'             => 'tabler-transfer-in',
+                'svg'              => null,
+                'order'            => 33,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => true,
+                'active_condition' => [
+                    'migration::*',
+                ],
+                'show_condition' => MarketplaceHelper::isRegistered('migration'),
+                'is_admin'       => true,
+                'badge'          => 'new',
+            ],
             'user_management' => [
                 'parent_key'       => null,
                 'key'              => 'user_management',
@@ -1411,6 +1713,24 @@ class MenuService
                 ],
                 'show_condition' => true,
                 'is_admin'       => true,
+            ],
+            'voice_chatbot_training' => [
+                'parent_key'       => 'chat_settings',
+                'key'              => 'voice_chatbot_training',
+                'route'            => 'dashboard.admin.voice-chatbot.index',
+                'label'            => 'Voice Chatbot Training',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 44,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => false,
+                'active_condition' => [
+                    'dashboard.admin.voice-chatbot.*',
+                ],
+                'show_condition'   => MarketplaceHelper::isRegistered('elevenlabs-voice-chat'),
+                'is_admin'         => true,
             ],
             'ai_assistant' => [
                 'parent_key'       => 'chat_settings',
@@ -2549,6 +2869,7 @@ class MenuService
                 'show_condition' => true,
                 'is_admin'       => true,
             ],
+
             'config' => [
                 'parent_key'       => 'settings',
                 'key'              => 'config',
@@ -2565,6 +2886,22 @@ class MenuService
                 'show_condition'   => true,
                 'is_admin'         => true,
             ],
+            'live_customizer' => [
+                'parent_key'       => null,
+                'key'              => 'live_customizer',
+                'route'            => 'dashboard.admin.live-customizer.setting',
+                'label'            => 'Live Customizer ',
+                'icon'             => 'tabler-brush',
+                'svg'              => null,
+                'order'            => 69,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => ['dashboard.admin.live-customizer.setting'],
+                'show_condition'   => MarketplaceHelper::isRegistered('live-customizer'),
+                'is_admin'         => true,
+            ],
             'thumbnail_system' => [
                 'parent_key'       => 'settings',
                 'key'              => 'thumbnail_system',
@@ -2578,6 +2915,22 @@ class MenuService
                 'type'             => 'item',
                 'extension'        => null,
                 'active_condition' => ['dashboard.admin.settings.thumbnail'],
+                'show_condition'   => true,
+                'is_admin'         => true,
+            ],
+            'premium_advantages' => [
+                'parent_key'       => 'settings',
+                'key'              => 'premium_advantages',
+                'route'            => 'dashboard.admin.config.premium-advantages.index',
+                'label'            => 'Premium Advantages',
+                'icon'             => null,
+                'svg'              => null,
+                'order'            => 79,
+                'is_active'        => true,
+                'params'           => [],
+                'type'             => 'item',
+                'extension'        => null,
+                'active_condition' => ['dashboard.admin.config.premium-advantages.index'],
                 'show_condition'   => true,
                 'is_admin'         => true,
             ],
@@ -3168,7 +3521,7 @@ class MenuService
             'ai_product_shot', 'ai_writer', 'ai_chat_all', 'ai_image_generator', 'ai_video', 'seo_tool_extension', 'ai_voiceover',
             'ai_pdf', 'ai_vision', 'ai_speech_to_text', 'photo_studio_extension', 'ai_rewriter', 'ai_editor',
             'ai_code_generator', 'ai_youtube', 'ai_chat_image', 'ai_rss', 'ai_voiceover_clone', 'ai_web_chat_extension',
-            'ai_realtime_voice_chat', 'ai_social_media_extension', 'ai_detector_extension', 'ai_plagiarism_extension', 'ai_article_wizard', 'ai_voice_isolator', 'ext_chat_bot',
+            'ai_realtime_voice_chat', 'ai_social_media_extension', 'ai_detector_extension', 'ai_plagiarism_extension', 'ai_article_wizard', 'ai_voice_isolator', 'ext_chat_bot', 'ext_voice_chatbot',
         ];
 
         $data = (new self)->generate();
