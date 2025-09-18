@@ -1,19 +1,19 @@
 @php
+	$userId = auth()->id();
 
-    $docs = cache('user_docs');
-    $docsCount = count($docs);
-    $hoursSaved = $docsCount * 3;
+	$docs = cache("user:{$userId}:user_docs");
+	$docsCount = count($docs);
+	$hoursSaved = $docsCount * 3;
 
-    $textDocsCount = $docs->filter(fn($entity) => $entity->generator?->type == 'text')?->count();
-    $imageDocsCount = $docs->filter(fn($entity) => $entity->generator?->type == 'image')?->count();
-    $audioDocsCount = $docs->filter(fn($entity) => $entity->generator?->type == 'audio')?->count();
-    $otherDocsCount = $docsCount - $textDocsCount - $imageDocsCount - $audioDocsCount;
+	$textDocsCount = $docs->filter(fn($entity) => $entity->generator?->type == 'text')?->count();
+	$imageDocsCount = $docs->filter(fn($entity) => $entity->generator?->type == 'image')?->count();
+	$audioDocsCount = $docs->filter(fn($entity) => $entity->generator?->type == 'audio')?->count();
+	$otherDocsCount = $docsCount - $textDocsCount - $imageDocsCount - $audioDocsCount;
 
-    $sum = $textDocsCount + $imageDocsCount + $audioDocsCount;
+	$sum = $textDocsCount + $imageDocsCount + $audioDocsCount;
 
-    $chatbots = cache('user_chatbots');
-    $chatbotCount = count($chatbots);
-
+	$chatbots = cache("user:{$userId}:user_chatbots");
+	$chatbotCount = count($chatbots);
 @endphp
 
 <x-card
@@ -21,20 +21,20 @@
     id="summary"
     size="lg"
 >
-    <div class="flex justify-between max-sm:flex-wrap sm:mb-7">
-        <h3 class="mb-0 inline-grid items-center text-[17px] leading-6">
+    <div class="flex justify-between max-lg:flex-wrap lg:mb-7">
+        <h3 class="items-center text-[17px] leading-6 lg:mb-0">
             @lang('Account Summary')
         </h3>
-        <div class="flex w-full justify-between max-sm:flex-wrap sm:w-1/2">
-            <div class="relative flex grow flex-col justify-center sm:ps-12 sm:after:absolute sm:after:right-0 sm:after:h-[80%] sm:after:w-px sm:after:bg-border">
+        <div class="flex w-full justify-between max-lg:flex-wrap lg:w-3/5">
+            <div class="relative flex grow flex-col justify-center lg:ps-12 lg:after:absolute lg:after:right-0 lg:after:h-[80%] lg:after:w-px lg:after:bg-border">
                 <p class="text-nowrap text-sm leading-5">@lang('Hours Saved')</p>
                 <h2>{{ $hoursSaved }}</h2>
             </div>
-            <div class="relative flex grow flex-col justify-center sm:ps-12 sm:after:absolute sm:after:right-0 sm:after:h-[80%] sm:after:w-px sm:after:bg-border">
+            <div class="relative flex grow flex-col justify-center lg:ps-12 lg:after:absolute lg:after:right-0 lg:after:h-[80%] lg:after:w-px lg:after:bg-border">
                 <p class="text-nowrap text-sm leading-5">@lang('Documents')</p>
                 <h2> {{ $docsCount }} </h2>
             </div>
-            <div class="flex grow flex-col justify-center sm:ps-12">
+            <div class="flex grow flex-col justify-center lg:ps-12">
                 <p class="text-nowrap text-sm leading-5">@lang('Chatbots')</p>
                 <h2>{{ $chatbotCount }}</h2>
             </div>

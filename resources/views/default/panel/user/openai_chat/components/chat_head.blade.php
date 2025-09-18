@@ -1,3 +1,17 @@
+@php
+    $currentUrl = url()->current();
+    $previousUrl = url()->previous();
+
+    $is_chat_pro =
+        \App\Helpers\Classes\MarketplaceHelper::isRegistered('ai-chat-pro') &&
+        (route('dashboard.user.openai.chat.pro.index') === $currentUrl ||
+            route('chat.pro') === $currentUrl ||
+            route('dashboard.user.openai.chat.pro.index') === $previousUrl ||
+            route('chat.pro') === $previousUrl);
+
+    $isOtherCategories = isset($category) && ($category->slug == 'ai_vision' || $category->slug == 'ai_pdf' || $category->slug == 'ai_chat_image');
+@endphp
+
 <div
     class="lqd-chat-head sticky -top-px z-30 flex min-h-20 items-center justify-between gap-2 rounded-se-[inherit] border-b bg-background/80 px-5 py-3 backdrop-blur-lg backdrop-saturate-150 max-md:bg-background/95 max-md:px-4">
     <div class="flex flex-col items-start justify-center text-sm">
@@ -6,7 +20,20 @@
 
     <div class="flex grow items-center justify-end gap-4">
         <div class="flex gap-2">
+            @if (!$isOtherCategories && $is_chat_pro)
+                <x-button
+                    class="lqd-mobile-model-modal-trigger group size-8 shrink-0 grid-flow-row place-items-center rounded-full shadow-md max-md:grid md:hidden"
+                    variant="none"
+                    size="none"
+                    x-data=""
+                    @click.prevent="document.querySelector('.select-ai-model-modal') && Alpine.$data(document.querySelector('.select-ai-model-modal')).toggleModal()"
+                >
+                    <x-tabler-brand-openai class="size-5" />
+                </x-button>
+            @endif
+
             @includeFirst(['chat-share::share-button-include', 'panel.user.openai_chat.includes.share-button-include', 'vendor.empty'])
+
             @if (view()->hasSection('chat_head_actions'))
                 @yield('chat_head_actions')
             @else

@@ -5,12 +5,14 @@ use App\Enums\Plan\TypeEnum;
 use App\Helpers\Classes\Helper;
 use App\Http\Controllers\Finance\PaymentProcessController;
 use App\Models\Coupon;
+use App\Models\Currency;
 use App\Models\Finance\YokassaSubscription;
 use App\Models\Gateways;
 use App\Models\PaymentProof;
 use App\Models\Plan;
 use App\Models\PrivacyTerms;
 use App\Models\UserOrder;
+use Datlechin\GoogleTranslate\Facades\GoogleTranslate;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -101,13 +103,24 @@ function formatCamelCase($input)
 function checkCouponInRequest($code = null)
 {
     if ($code !== null) {
-        $coupon = Coupon::where('code', $code)->first();
+        $coupon = Coupon::where('code', $code)->where('is_offer', false)->first();
     } else {
-        $couponCode = request()->input('coupon');
+        $couponCode = request()?->input('coupon');
         if ($couponCode) {
-            $coupon = Coupon::where('code', $couponCode)->first();
+            $coupon = Coupon::where('code', $couponCode)->where('is_offer', false)->first();
         } else {
             $coupon = null;
+        }
+    }
+
+    if (! $coupon) {
+        $discountCoupon = null;
+        if (\App\Helpers\Classes\MarketplaceHelper::isRegistered('discount-manager')) {
+            $discountCoupon = \App\Extensions\DiscountManager\System\Services\DiscountService::applyDiscountCoupon();
+        }
+
+        if (! is_null($discountCoupon)) {
+            return $discountCoupon;
         }
     }
 
@@ -128,15 +141,15 @@ function displayCurr($symbol, $price, $taxValue = 0, $discountedprice = null, $t
     try {
         if (in_array($symbol, config('currency.currencies_with_right_symbols'))) {
             if ($discountedprice !== null && $discountedprice < $price) {
-                return "<span style='text-decoration: line-through; color:red;'>" . $newPrice . $symbol . '</span> <b>' . $discountedprice + $taxValue . $symbol . '</b>';
+                return "<span style='text-decoration: line-through; color:grey;'>" . $newPrice . $symbol . '</span> <b>' . $discountedprice + $taxValue . $symbol . '</b>';
             } else {
-                return '<b>' . $newPrice . $symbol . '</b>';
+                return $newPrice . $symbol;
             }
         } else {
             if ($discountedprice !== null && $discountedprice < $price) {
-                return "<span style='text-decoration: line-through; color:red;'>" . $symbol . $newPrice . '</span> <b>' . $symbol . $discountedprice + $taxValue . '</b>';
+                return "<span style='text-decoration: line-through; color:grey;'>" . $symbol . $newPrice . '</span> <b>' . $symbol . $discountedprice + $taxValue . '</b>';
             } else {
-                return '<b>' . $symbol . $newPrice . '</b>';
+                return $symbol . $newPrice;
             }
         }
     } catch (\Exception $th) {
@@ -144,15 +157,15 @@ function displayCurr($symbol, $price, $taxValue = 0, $discountedprice = null, $t
         $price = (float) str_replace(',', '', $price);
         if (in_array($symbol, config('currency.currencies_with_right_symbols'))) {
             if ($discountedprice !== null && $discountedprice < $price) {
-                return "<span style='text-decoration: line-through; color:red;'>" . $newPrice . $symbol . '</span> <b>' . $discountedprice + $taxValue . $symbol . '</b>';
+                return "<span style='text-decoration: line-through; color:grey;'>" . $newPrice . $symbol . '</span> <b>' . $discountedprice + $taxValue . $symbol . '</b>';
             } else {
-                return '<b>' . $newPrice . $symbol . '</b>';
+                return $newPrice . $symbol;
             }
         } else {
             if ($discountedprice !== null && $discountedprice < $price) {
-                return "<span style='text-decoration: line-through; color:red;'>" . $symbol . $newPrice . '</span> <b>' . $symbol . $discountedprice + $taxValue . '</b>';
+                return "<span style='text-decoration: line-through; color:grey;'>" . $symbol . $newPrice . '</span> <b>' . $symbol . $discountedprice + $taxValue . '</b>';
             } else {
-                return '<b>' . $symbol . $newPrice . '</b>';
+                return $symbol . $newPrice;
             }
         }
     }
@@ -950,6 +963,118 @@ function currencyShouldDisplayOnRight($currencySymbol)
     return in_array($currencySymbol, config('currency.currencies_with_right_symbols'), true);
 }
 
+function displayPlanPrice(?Plan $plan, ?Currency $currency): string
+{
+    static $cache = [];
+
+    if (! $plan) {
+        return '';
+    }
+
+    $planId = $plan->id ?? 'null';
+    $currencySymbol = $currency?->symbol ?? '';
+    $cacheKey = "{$planId}_{$currencySymbol}";
+
+    if (isset($cache[$cacheKey])) {
+        return $cache[$cacheKey];
+    }
+
+    $originalPrice = $plan->price;
+    $discountedPrice = newPlanDiscountPrice($plan);
+    $symbolOnRight = currencyShouldDisplayOnRight($currencySymbol);
+
+    $format = static function ($amount) {
+        return fmod($amount, 1) === 0.0
+            ? number_format($amount, 0)
+            : number_format($amount, 2);
+    };
+
+    $formattedOriginal = $format($originalPrice);
+    $formattedDiscount = $format($discountedPrice);
+
+    $symbolTag = "<span class='currency-symbol text-[0.75em] align-middle'>{$currencySymbol}</span>";
+
+    if ($discountedPrice < $originalPrice) {
+        if ($symbolOnRight) {
+            return $cache[$cacheKey] = "<s class='old-price me-1 opacity-50 no-underline text-[0.6em] self-center'><span class='line-through'>{$formattedOriginal}</span>{$symbolTag}</s><span>{$formattedDiscount}{$symbolTag}</span>";
+        }
+
+        return $cache[$cacheKey] = "<s class='old-price me-1 opacity-50 no-underline text-[0.6em] self-center'>{$symbolTag}<span class='line-through'>{$formattedOriginal}</span></s><span>{$symbolTag}{$formattedDiscount}</span>";
+    }
+
+    return $cache[$cacheKey] = $symbolOnRight
+        ? "{$formattedOriginal}{$symbolTag}"
+        : "{$symbolTag}{$formattedOriginal}";
+}
+
+function newPlanDiscountPrice(?Plan $plan)
+{
+    static $cache = [];
+
+    if (! $plan) {
+        return null;
+    }
+
+    $planId = $plan->id;
+
+    if (isset($cache[$planId])) {
+        return $cache[$planId];
+    }
+
+    $price = $plan->price;
+
+    if (\App\Helpers\Classes\MarketplaceHelper::isRegistered('discount-manager')) {
+        $activeDiscounts = \App\Extensions\DiscountManager\System\Models\ConditionalDiscount::where('active', true)
+            ->where('scheduled', false)
+            ->whereNotNull('coupon_id')
+            ->orderBy('amount', 'desc')
+            ->get();
+
+        foreach ($activeDiscounts as $discount) {
+            if (\App\Extensions\DiscountManager\System\Services\DiscountService::checkDiscountConditionsFor($discount, $planId, Gateways::where('is_active', 1)->pluck('code')->implode(','))) {
+                $discounted = $price - ($price * ($discount->amount / 100));
+
+                return $cache[$planId] = $discounted;
+            }
+        }
+    }
+
+    return $cache[$planId] = $price;
+}
+
+function displayDiscountOrCouponName(?Plan $plan): ?string
+{
+    $title = checkCouponInRequest()?->name;
+
+    if ($title) {
+        return "<small class='text-gray-500 ms-1 text-3xs'>({$title})</small>";
+    }
+
+    return null;
+}
+
+function getVersion(?string $version = ''): string
+{
+    $fileVersion = file_get_contents(base_path('version.txt'));
+    if ($fileVersion) {
+        $version = trim($fileVersion);
+    }
+    $parts = explode('.', $version ?? '');
+    if (count($parts) === 1) {
+        $parts = [$parts[0], '0', '0'];
+    } elseif (count($parts) === 2) {
+        if (strlen($parts[1]) === 2) {
+            $parts = [$parts[0], $parts[1][0], $parts[1][1]];
+        } else {
+            $parts[] = '0';
+        }
+    }
+    $parts = array_map(fn ($p) => (string) (int) $p, $parts);
+    $parts = array_slice(array_pad($parts, 3, '0'), 0, 3);
+
+    return implode('.', $parts);
+}
+
 function getMetaTitle($setting, $settingTwo, $ext_title = null)
 {
     $ext_title = $ext_title == null ? ' | ' . __('Home') : $ext_title;
@@ -1058,123 +1183,132 @@ function ThumbImage($source_file, $max_width = 450, $max_height = 450, $quality 
         return $source_file;
     }
 
-    $source_file = public_path($source_file);
-    $disk = 'thumbs';
-    $dst_dir = ''; // Since setting the root in the disk configuration, leave this empty
-    if (! Storage::disk($disk)->exists($dst_dir)) {
-        Storage::disk($disk)->makeDirectory($dst_dir, $mode = 7777, true, true);
-    }
-
-    $dst_file_name = basename($source_file);
-    $is_url = filter_var($source_file, FILTER_VALIDATE_URL);
-    if ($is_url) {
-        $url_parts = pathinfo($source_file);
-        $extension = strtolower($url_parts['extension']);
-        $mime_map = [
-            'jpg'  => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'png'  => 'image/png',
-            'gif'  => 'image/gif',
-        ];
-        if (array_key_exists($extension, $mime_map)) {
-            $mime = $mime_map[$extension];
-        } else {
-            $mime = mime_content_type($source_file);
-        }
-        $dst_file_name .= '.' . $extension;
-    } else {
-        // check if file exists
-        if (! file_exists($source_file)) {
-            return $source_file;
+    try {
+        $source_file = public_path($source_file);
+        $disk = 'thumbs';
+        $dst_dir = ''; // Since setting the root in the disk configuration, leave this empty
+        if (! Storage::disk($disk)->exists($dst_dir)) {
+            Storage::disk($disk)->makeDirectory($dst_dir, $mode = 7777, true, true);
         }
 
-        $imgsize = getimagesize($source_file);
-        $width = $imgsize[0];
-        $height = $imgsize[1];
-        $mime = $imgsize['mime'];
-    }
-    if (Storage::disk($disk)->exists($dst_file_name)) {
-        return Storage::disk($disk)->url($dst_file_name);
-    } else {
+        $dst_file_name = basename($source_file);
+        $is_url = filter_var($source_file, FILTER_VALIDATE_URL);
         if ($is_url) {
-            $temp_source_file = tempnam(sys_get_temp_dir(), 'thumb'); // Create temporary file
-            file_put_contents($temp_source_file, file_get_contents($source_file)); // Download file
-            $source_file = $temp_source_file;
-        }
-        $dst_dir = Storage::disk($disk)->path($dst_dir . $dst_file_name);
-        switch ($mime) {
-            case 'image/gif':
-                $image_create = 'imagecreatefromgif';
-                $image = 'imagegif';
-
-                break;
-
-            case 'image/png':
-                $image_create = 'imagecreatefrompng';
-                $image = 'imagepng';
-                $quality = 7;
-
-                break;
-
-            case 'image/jpeg':
-                $image_create = 'imagecreatefromjpeg';
-                $image = 'imagejpeg';
-                $quality = 80;
-
-                break;
-            case 'image/jpg':
-                $image_create = 'imagecreatefromjpg';
-                $image = 'imagejpg';
-                $quality = 80;
-
-                break;
-
-            default:
-                // Handle unsupported file types or invalid MIME types
-                if ($is_url) {
-                    unlink($source_file); // Remove temporary file
-                }
-
-                return false;
-
-                break;
-        }
-
-        $dst_img = imagecreatetruecolor($max_width, $max_height);
-        $src_img = $image_create($source_file);
-
-        $width = imagesx($src_img);
-        $height = imagesy($src_img);
-
-        $width_new = $height * $max_width / $max_height;
-        $height_new = $width * $max_height / $max_width;
-
-        // if the new width is greater than the actual width of the image, then the height is too large and the rest cut off, or vice versa
-        if ($width_new > $width) {
-            // cut point by height
-            $h_point = (($height - $height_new) / 2);
-            // copy image
-            imagecopyresampled($dst_img, $src_img, 0, 0, 0, $h_point, $max_width, $max_height, $width, $height_new);
+            $url_parts = pathinfo($source_file);
+            $extension = strtolower($url_parts['extension']);
+            $mime_map = [
+                'jpg'  => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png'  => 'image/png',
+                'gif'  => 'image/gif',
+            ];
+            if (array_key_exists($extension, $mime_map)) {
+                $mime = $mime_map[$extension];
+            } else {
+                $mime = mime_content_type($source_file);
+            }
+            $dst_file_name .= '.' . $extension;
         } else {
-            // cut point by width
-            $w_point = (($width - $width_new) / 2);
-            imagecopyresampled($dst_img, $src_img, 0, 0, $w_point, 0, $max_width, $max_height, $width_new, $height);
-        }
-        $image($dst_img, $dst_dir, $quality);
+            // check if file exists
+            if (! file_exists($source_file)) {
+                return $source_file;
+            }
 
-        if ($is_url && file_exists($source_file)) {
-            unlink($source_file); // Remove temporary file
-        }
+            if (is_dir($source_file)) {
+                return $source_file;
+            }
 
-        if ($dst_img) {
-            imagedestroy($dst_img);
+            $imgsize = getimagesize($source_file);
+            $width = $imgsize[0];
+            $height = $imgsize[1];
+            $mime = $imgsize['mime'];
         }
-        if ($src_img) {
-            imagedestroy($src_img);
-        }
+        if (Storage::disk($disk)->exists($dst_file_name)) {
+            return Storage::disk($disk)->url($dst_file_name);
+        } else {
+            if ($is_url) {
+                $temp_source_file = tempnam(sys_get_temp_dir(), 'thumb'); // Create temporary file
+                file_put_contents($temp_source_file, file_get_contents($source_file)); // Download file
+                $source_file = $temp_source_file;
+            }
+            $dst_dir = Storage::disk($disk)->path($dst_dir . $dst_file_name);
+            switch ($mime) {
+                case 'image/gif':
+                    $image_create = 'imagecreatefromgif';
+                    $image = 'imagegif';
 
-        return Storage::disk($disk)->url($dst_file_name);
+                    break;
+
+                case 'image/png':
+                    $image_create = 'imagecreatefrompng';
+                    $image = 'imagepng';
+                    $quality = 7;
+
+                    break;
+
+                case 'image/jpeg':
+                    $image_create = 'imagecreatefromjpeg';
+                    $image = 'imagejpeg';
+                    $quality = 80;
+
+                    break;
+                case 'image/jpg':
+                    $image_create = 'imagecreatefromjpg';
+                    $image = 'imagejpg';
+                    $quality = 80;
+
+                    break;
+
+                default:
+                    // Handle unsupported file types or invalid MIME types
+                    if ($is_url) {
+                        unlink($source_file); // Remove temporary file
+                    }
+
+                    return false;
+
+                    break;
+            }
+
+            $dst_img = imagecreatetruecolor($max_width, $max_height);
+            $src_img = $image_create($source_file);
+
+            $width = imagesx($src_img);
+            $height = imagesy($src_img);
+
+            $width_new = $height * $max_width / $max_height;
+            $height_new = $width * $max_height / $max_width;
+
+            // if the new width is greater than the actual width of the image, then the height is too large and the rest cut off, or vice versa
+            if ($width_new > $width) {
+                // cut point by height
+                $h_point = (($height - $height_new) / 2);
+                // copy image
+                imagecopyresampled($dst_img, $src_img, 0, 0, 0, $h_point, $max_width, $max_height, $width, $height_new);
+            } else {
+                // cut point by width
+                $w_point = (($width - $width_new) / 2);
+                imagecopyresampled($dst_img, $src_img, 0, 0, $w_point, 0, $max_width, $max_height, $width_new, $height);
+            }
+            $image($dst_img, $dst_dir, $quality);
+
+            if ($is_url && file_exists($source_file)) {
+                unlink($source_file); // Remove temporary file
+            }
+
+            if ($dst_img) {
+                imagedestroy($dst_img);
+            }
+            if ($src_img) {
+                imagedestroy($src_img);
+            }
+
+            return Storage::disk($disk)->url($dst_file_name);
+        }
+    } catch (Exception $e) {
+        return $source_file;
     }
+
 }
 
 function PurgeThumbImages()
@@ -1466,5 +1600,257 @@ if (! function_exists('deepMerge')) {
         }
 
         return $array1;
+    }
+}
+
+if (! function_exists('lightenColor')) {
+    function lightenColor($hex, $percent = 30)
+    {
+        $hex = ltrim($hex, '#');
+        $r = hexdec(substr($hex, 0, 2));
+        $g = hexdec(substr($hex, 2, 2));
+        $b = hexdec(substr($hex, 4, 2));
+        $r = (int) ($r + ((255 - $r) * $percent) / 100);
+        $g = (int) ($g + ((255 - $g) * $percent) / 100);
+        $b = (int) ($b + ((255 - $b) * $percent) / 100);
+
+        return sprintf('#%02x%02x%02x', $r, $g, $b);
+    }
+}
+
+if (! function_exists('isFileSecure')) {
+    function isFileSecure($file): bool
+    {
+        $extension = strtolower($file->guessExtension());
+        $clientExtension = strtolower(pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION));
+
+        $dangerousExtensions = [
+            'php', 'php3', 'php4', 'php5', 'phtml', 'phps',
+            'asp', 'aspx', 'jsp', 'jspx',
+            'exe', 'bat', 'cmd', 'com', 'pif', 'scr',
+            'vbs', 'vb', 'js', 'jse', 'ws', 'wsf', 'wsc', 'wsh',
+            'ps1', 'ps1xml', 'ps2', 'ps2xml', 'psc1', 'psc2',
+            'msh', 'msh1', 'msh2', 'mshxml', 'msh1xml', 'msh2xml',
+            'scf', 'lnk', 'inf', 'reg', 'jar',
+        ];
+
+        if (in_array($extension, $dangerousExtensions) ||
+            in_array($clientExtension, $dangerousExtensions)) {
+            return false;
+        }
+
+        $mimeType = $file->getMimeType();
+        $dangerousMimeTypes = [
+            // Executables & binaries
+            'application/x-msdownload', // .exe
+            'application/x-msdos-program',
+            'application/x-ms-installer', // .msi
+            'application/x-executable',
+            'application/x-sharedlib',
+            'application/x-dosexec',
+
+            // Scripts
+            'application/javascript',
+            'application/x-javascript',
+            'text/javascript',
+            'application/x-php',
+            'text/x-php',
+            'application/x-python',
+            'text/x-python',
+            'application/x-ruby',
+            'text/x-ruby',
+            'application/x-perl',
+            'text/x-perl',
+            'application/x-sh',
+            'application/x-csh',
+
+            // Batch & shell
+            'text/x-shellscript',
+            'application/x-bat',
+            'application/x-msbatch',
+
+            // Other potentially dangerous
+            'application/x-object',
+            'application/x-mach-binary',
+        ];
+
+        if (in_array($mimeType, $dangerousMimeTypes, true)) {
+            return false;
+        }
+
+        $filename = $file->getClientOriginalName();
+        if (preg_match('/[<>:"|?*\x00-\x1f]/', $filename)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    if (! function_exists('validateUploadedFile')) {
+        function validateUploadedFile(string $filePath, string $extension): bool
+        {
+            if (! file_exists($filePath)) {
+                return false;
+            }
+
+            $content = file_get_contents($filePath, false, null, 0, 1024);
+
+            $dangerousPatterns = [
+                '/<\?php/',
+                '/<\?=/',
+                '/<script/',
+                '/eval\s*\(/',
+                '/exec\s*\(/',
+                '/system\s*\(/',
+                '/shell_exec/',
+                '/passthru/',
+            ];
+
+            foreach ($dangerousPatterns as $pattern) {
+                if (preg_match($pattern, $content)) {
+                    return false;
+                }
+            }
+
+            if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                $imageInfo = @getimagesize($filePath);
+                if ($imageInfo === false) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+}
+
+if (! function_exists('autoTranslateLanguage')) {
+    /**
+     * Auto-translate English language file to target language
+     *
+     * @param  string  $targetLang  Target language code (e.g., 'fr', 'es', 'de')
+     * @param  int  $batchSize  Number of keys to translate per batch (default: 100)
+     *
+     * @return array Returns status information about the translation process
+     */
+    function autoTranslateLanguage(string $targetLang, int $batchSize = 100): array
+    {
+        try {
+            // Define file paths
+            $enJsonFilePath = base_path('lang/en.json');
+            $targetJsonFilePath = base_path("lang/{$targetLang}.json");
+
+            // Check if English file exists
+            if (! file_exists($enJsonFilePath)) {
+                return [
+                    'success'          => false,
+                    'message'          => 'English language file (lang/en.json) not found.',
+                    'translated_count' => 0,
+                ];
+            }
+
+            // Load English translations
+            $enTranslations = json_decode(file_get_contents($enJsonFilePath), true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return [
+                    'success'          => false,
+                    'message'          => 'Invalid JSON format in English language file.',
+                    'translated_count' => 0,
+                ];
+            }
+
+            // Load or create target language file
+            $targetTranslations = [];
+            if (file_exists($targetJsonFilePath)) {
+                $targetTranslations = json_decode(file_get_contents($targetJsonFilePath), true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $targetTranslations = [];
+                }
+            }
+
+            // Initialize missing keys with null values
+            $missingKeys = array_diff_key($enTranslations, $targetTranslations);
+            foreach ($missingKeys as $key => $value) {
+                $targetTranslations[$key] = null;
+            }
+
+            // Find untranslated keys (null or empty values)
+            $untranslatedKeys = array_filter($targetTranslations, function ($value, $key) {
+                return $value === null || $value === '';
+            }, ARRAY_FILTER_USE_BOTH);
+
+            // Limit to batch size
+            $keysToTranslate = array_slice(array_keys($untranslatedKeys), 0, $batchSize);
+
+            if (empty($keysToTranslate)) {
+                return [
+                    'success'          => true,
+                    'message'          => 'All translations are already completed.',
+                    'translated_count' => 0,
+                ];
+            }
+
+            $translatedCount = 0;
+            $errors = [];
+
+            // Translate each key
+            foreach ($keysToTranslate as $key) {
+                try {
+                    // Get the English text to translate
+                    $englishText = $enTranslations[$key] ?? $key;
+
+                    // Skip if empty
+                    if (empty(trim($englishText))) {
+                        $englishText = $key;
+                    }
+
+                    // Translate using Google Translate
+                    $result = GoogleTranslate::withSource('en')
+                        ->withTarget($targetLang)
+                        ->translate($englishText);
+
+                    $translatedText = $result->getTranslatedText();
+
+                    // Update target translations
+                    $targetTranslations[$key] = $translatedText;
+                    $translatedCount++;
+
+                } catch (Throwable $e) {
+                    $errors[] = "Failed to translate key '{$key}': " . $e->getMessage();
+
+                    continue;
+                }
+            }
+
+            // Save updated translations to file
+            $jsonContent = json_encode($targetTranslations, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE);
+
+            if (file_put_contents($targetJsonFilePath, $jsonContent) === false) {
+                return [
+                    'success'          => false,
+                    'message'          => 'Failed to write to target language file.',
+                    'translated_count' => $translatedCount,
+                    'errors'           => $errors,
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => $translatedCount > 0 ?
+                    "Successfully translated {$translatedCount} keys to {$targetLang}." :
+                    'No new translations were needed.',
+                'translated_count' => $translatedCount,
+                'errors'           => $errors,
+                'remaining_keys'   => count($untranslatedKeys) - $translatedCount,
+            ];
+
+        } catch (Throwable $e) {
+            return [
+                'success'          => false,
+                'message'          => 'Translation process failed: ' . $e->getMessage(),
+                'translated_count' => 0,
+            ];
+        }
     }
 }

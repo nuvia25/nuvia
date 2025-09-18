@@ -70,7 +70,7 @@
             pointer-events: none;
         }
 
-        #lqd-ext-chatbot-wrap #lqd-ext-chatbot-trigger {
+        #lqd-ext-chatbot-wrap .lqd-ext-chatbot-trigger {
             display: inline-grid;
             place-items: center;
             place-content: center;
@@ -91,7 +91,7 @@
             visibility: hidden;
             transform: translateY(6px);
         }
-        #lqd-ext-chatbot-wrap #lqd-ext-chatbot-trigger:before {
+        #lqd-ext-chatbot-wrap .lqd-ext-chatbot-trigger:before {
             content: '';
             display: inline-block;
             width: 100%;
@@ -104,6 +104,26 @@
             transform: translateY(3px);
             transition: all 0.15s;
         }
+        #lqd-ext-chatbot-wrap .lqd-ext-chatbot-trigger-mobile {
+            display: inline-grid;
+			place-items: center;
+			width: 28px;
+			height: 28px;
+			position: fixed;
+			top: 15px;
+			inset-inline-end: 24px;
+			z-index: 999991;
+			visibility: hidden;
+			opacity: 0;
+			border-radius: 20px;
+			background-color: hsl(0 0% 0% / 35%);
+			color: #fff;
+			backdrop-filter: blur(6px);
+			transition: all 0.3s;
+        }
+        #lqd-ext-chatbot-wrap .lqd-ext-chatbot-trigger-mobile:before {
+			content: none;
+		}
         #lqd-ext-chatbot-wrap #lqd-ext-chatbot-trigger-img,
         #lqd-ext-chatbot-wrap #lqd-ext-chatbot-trigger-icon {
             grid-row: 1 / 1;
@@ -121,7 +141,7 @@
             opacity: 0;
             transform: translateY(3px);
         }
-        #lqd-ext-chatbot-wrap #lqd-ext-chatbot-trigger:active {
+        #lqd-ext-chatbot-wrap .lqd-ext-chatbot-trigger:active {
             transform: scale(0.9);
         }
 
@@ -143,7 +163,7 @@
             height: 100%;
         }
 
-        #lqd-ext-chatbot-welcome-bubble {
+        #lqd-ext-chatbot-trigger-bubble {
             padding: 12px 16px;
             border-radius: 12px;
             position: absolute;
@@ -159,7 +179,7 @@
             transform: translateY(6px);
             transition: all 0.15s;
         }
-         #lqd-ext-chatbot-welcome-bubble:before {
+         #lqd-ext-chatbot-trigger-bubble:before {
             content: '';
             display: inline-block;
             width: 100%;
@@ -171,7 +191,7 @@
             opacity: 0.05;
             border-radius: inherit;
         }
-        #lqd-ext-chatbot-welcome-bubble p {
+        #lqd-ext-chatbot-trigger-bubble p {
             position: relative;
             z-index: 1;
             margin: 0;
@@ -182,8 +202,8 @@
             padding: 1rem;
         }
 
-        #lqd-ext-chatbot-wrap[data-ready=true] #lqd-ext-chatbot-trigger,
-        #lqd-ext-chatbot-wrap[data-ready=true] #lqd-ext-chatbot-welcome-bubble {
+        #lqd-ext-chatbot-wrap[data-ready=true] .lqd-ext-chatbot-trigger:not(.lqd-ext-chatbot-trigger-mobile),
+        #lqd-ext-chatbot-wrap[data-ready=true] #lqd-ext-chatbot-trigger-bubble {
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
@@ -196,7 +216,7 @@
             pointer-events: auto;
         }
 
-        #lqd-ext-chatbot-wrap[data-window-state=open] #lqd-ext-chatbot-trigger:before {
+        #lqd-ext-chatbot-wrap[data-window-state=open] .lqd-ext-chatbot-trigger:before {
             transform: translateY(0);
             opacity: 1;
         }
@@ -208,7 +228,7 @@
             opacity: 0;
             transform: translateY(-3px);
         }
-        #lqd-ext-chatbot-wrap[data-window-state=open] #lqd-ext-chatbot-welcome-bubble {
+        #lqd-ext-chatbot-wrap[data-window-state=open] #lqd-ext-chatbot-trigger-bubble {
             transform: scale(0.95);
             opacity: 0;
             visibility: hidden;
@@ -228,7 +248,7 @@
             transform-origin: bottom right;
         }
 
-        #lqd-ext-chatbot-wrap[data-pos-x=right] #lqd-ext-chatbot-welcome-bubble {
+        #lqd-ext-chatbot-wrap[data-pos-x=right] #lqd-ext-chatbot-trigger-bubble {
             left: auto;
             right: 0;
         }
@@ -243,10 +263,35 @@
             flex-direction: column-reverse;
         }
 
-        #lqd-ext-chatbot-wrap[data-pos-y=top] #lqd-ext-chatbot-welcome-bubble {
+        #lqd-ext-chatbot-wrap[data-pos-y=top] #lqd-ext-chatbot-trigger-bubble {
             bottom: auto;
             top: calc(var(--lqd-ext-chat-trigger-h) + var(--lqd-ext-chat-window-y-offset));
         }
+
+		@media (max-width: 768px) {
+			#lqd-ext-chatbot-wrap {
+				width: calc(100vw - (var(--lqd-ext-chat-offset-x) * 2));
+				pointer-events: none;
+			}
+			#lqd-ext-chatbot-wrap .lqd-ext-chatbot-iframe-wrap,
+			#lqd-ext-chatbot-wrap .lqd-ext-chatbot-trigger {
+				pointer-events: auto;
+			}
+			#lqd-ext-chatbot-iframe-wrap {
+				position: fixed;
+				z-index: 99999;
+				width: 100vw !important;
+				height: 100vh !important;
+				left: 0 !important;
+				right: 0 !important;
+				bottom: 0 !important;
+				top: 0 !important;
+			}
+			#lqd-ext-chatbot-wrap[data-window-state="open"] .lqd-ext-chatbot-trigger-mobile {
+				opacity: 1;
+				visibility: visible;
+			}
+		}
     </style>
     <div id="lqd-ext-chatbot-iframe-wrap">
         ${iFrameUrl ? `
@@ -287,7 +332,7 @@
         `}
     </div>
     ${config.bubble_message && config.bubble_message !== '' ?
-		`<div id="lqd-ext-chatbot-welcome-bubble">
+		`<div id="lqd-ext-chatbot-trigger-bubble">
                 <p>
                     ${config.bubble_message}
                 </p>
@@ -296,7 +341,7 @@
 		''
 	}
     <button
-        id="lqd-ext-chatbot-trigger"
+        class="lqd-ext-chatbot-trigger"
         type="button"
     >
         <img
@@ -318,17 +363,26 @@
             </svg>
         </span>
     </button>
+
+    <button
+        class="lqd-ext-chatbot-trigger lqd-ext-chatbot-trigger-mobile"
+        type="button"
+    >
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" > <path d="M18 6l-12 12" /> <path d="M6 6l12 12" /> </svg>
+    </button>
 </div>`;
 
 	document.body.insertAdjacentHTML('beforeend', widgetMarkup);
 
 	const chatbotWrap = document.querySelector('#lqd-ext-chatbot-wrap');
-	const trigger = document.querySelector('#lqd-ext-chatbot-trigger');
+	const triggers = document.querySelectorAll('.lqd-ext-chatbot-trigger');
 	let open = false;
 
-	trigger.addEventListener('click', ev => {
-		ev.preventDefault();
-		open = !open;
-		chatbotWrap.setAttribute('data-window-state', open ? 'open' : 'close');
+	triggers.forEach(trigger => {
+		trigger.addEventListener('click', ev => {
+			ev.preventDefault();
+			open = !open;
+			chatbotWrap.setAttribute('data-window-state', open ? 'open' : 'close');
+		});
 	});
 })();

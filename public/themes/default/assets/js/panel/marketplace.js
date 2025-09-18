@@ -5,23 +5,19 @@ $(document).ready(function () {
 	var strFilter = '';
 	var isInstalling = false;
 
-	$('[data-toogle="cart"]').on('click', function () {
-		var url = $(this).data('url');
+	$('[data-toogle="cart"]').on('click', function (event) {
+		event.preventDefault();
+
+		const $button = $(this);
+		const url = $button.attr('href');
+
+		toastr.info(magicai_localize.updating_cart || 'Updating Cart');
 
 		$.get(url, function (data) {
-
-
-			var icon = $('#' + data.iconId);
-
-			if (icon.hasClass('text-gray-500')) {
-				icon.removeClass('text-gray-500');
-				icon.addClass('text-green-500');
-			} else {
-				icon.removeClass('text-green-500');
-				icon.addClass('text-gray-500');
-			}
+			$button.toggleClass('in-cart');
 
 			$('#itemCount').html(data.itemCount);
+
 			toastr.success(data.message);
 		});
 	});
@@ -100,7 +96,7 @@ $(document).ready(function () {
 	});
 
 	$('.btn_install').on('click', function () {
-		if(isInstalling) return;
+		if (isInstalling) return;
 		isInstalling = true;
 		let btn = $(this);
 
@@ -139,7 +135,7 @@ $(document).ready(function () {
 	});
 
 	$('.btn_installed').on('click', function () {
-		if(isInstalling) return;
+		if (isInstalling) return;
 		isInstalling = true;
 		let btn = $(this);
 

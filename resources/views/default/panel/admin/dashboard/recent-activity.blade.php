@@ -29,9 +29,16 @@
                     ></span>
                 </div>
                 <div class="col-span-7 flex gap-1">
+					@php
+						$user_avatar = $activity->user?->avatar;
+
+						if (!$activity->user?->github_token && !$activity->user?->google_token && !$activity->user?->facebook_token) {
+							$user_avatar = '/' . $user_avatar;
+						}
+					@endphp
                     <img
                         class="size-10 rounded-full"
-                        src="{{ asset($activity->user?->avatar ?? 'testimonialAvatar/202305300751avatar-1.jpg') }}"
+                        src="{{ custom_theme_url($user_avatar) }}"
                         alt=""
                     >
                     <div class="flex w-full flex-col">

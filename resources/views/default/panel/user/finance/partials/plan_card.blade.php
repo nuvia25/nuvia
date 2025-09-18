@@ -1,3 +1,5 @@
+@php($newDiscountedPrice = $newDiscountedPrice ?? 0)
+
 <div @class([
     'w-full rounded-3xl border bg-background',
     'shadow-[0_7px_20px_rgba(0,0,0,0.04)]' => $plan->is_featured,
@@ -18,21 +20,31 @@
             @endif
         </div>
 
-        <ul class="list-unstyled">
-            <hr>
-            <li class="mb-[0.625em] flex">
-                <div class="flex-1 text-start">{{ __('Subtotal') }}</div>
-                <div class="flex-1 text-end">{!! displayCurr(currency()->symbol, $plan->price, 0, $newDiscountedPrice ?? null, tax_included: $plan->price_tax_included) !!}</div>
+        <ul class="list-unstyled mt-5 w-full rounded-lg border p-4">
+            <li class="flex px-1">
+                <p class="grow text-start">{{ __('Subtotal') }}</p>
+                <p class="whitespace-nowrap text-end">{!! displayCurr(currency()->symbol, $plan->price, 0, null) !!}</p>
             </li>
-            <li class="mb-[0.625em] flex">
-                <div class="flex-1 text-start">{{ __('Tax') }} ({{ $taxRate ?? 0 }}%)</div>
-                <div class="flex-1 text-end">{!! displayCurr(currency()->symbol, $taxValue ?? null, tax_included: $plan->price_tax_included) !!}</div>
+            @if ($plan->price - $newDiscountedPrice > 0)
+                <hr class="mt-0">
+                <li class="flex px-1">
+                    <div class="flex grow text-start">
+                        <x-tabler-tag class="me-1 size-5 -scale-x-100 pt-[0.15rem]" />
+                        <p>{{ __('Discount') }}</p> {!! displayDiscountOrCouponName($plan) !!}
+                    </div>
+                    <p class="whitespace-nowrap text-end text-red-600">- {!! displayCurr(currency()->symbol, $plan->price - $newDiscountedPrice, null) !!}</p>
+                </li>
+            @endif
+            <hr class="mt-0">
+            <li class="flex px-1">
+                <p class="grow text-start">{{ __('Tax') }} ({{ $taxRate ?? 0 }}% VAT)</p>
+                <p class="whitespace-nowrap text-end">{!! displayCurr(currency()->symbol, $taxValue ?? null, tax_included: $plan->price_tax_included) !!}</p>
             </li>
-            <li class="mb-[0.625em] flex">
-                <div class="flex-1 text-start">{{ __('Total') }}</div>
-                <div class="flex-1 text-end">{!! displayCurr(currency()->symbol, $plan->price, $taxValue ?? 0, $newDiscountedPrice ?? null, tax_included: $plan->price_tax_included) !!}</div>
+            <hr class="mt-0">
+            <li class="flex px-1">
+                <p class="grow text-start">{{ __('Total') }}</p>
+                <p class="whitespace-nowrap text-end">{!! displayCurr(currency()->symbol, $plan->price, $taxValue ?? 0, $newDiscountedPrice ?? null, tax_included: $plan->price_tax_included) !!}</p>
             </li>
-            <hr>
         </ul>
 
         <x-plan-details-card
@@ -40,12 +52,10 @@
             :period="$plan->frequency"
         />
 
-        <div class="mt-auto text-center">
+        <div class="mt-7 text-center">
             <a
                 class="btn w-full rounded-md p-[1.15em_2.1em] text-[15px] group-[.theme-dark]/body:!bg-[rgba(255,255,255,1)] group-[.theme-dark]/body:!text-[rgba(0,0,0,0.9)]"
-				href="{{ auth()->check()
-                ?  (route('dashboard.user.payment.subscription'))
-                :  (route('index') . '#pricing') }}"
+                href="{{ auth()->check() ? route('dashboard.user.payment.subscription') : route('index') . '#pricing' }}"
             >{{ __('Change Plan') }}</a>
         </div>
     </div>

@@ -4,8 +4,19 @@
 @endphp
 
 @extends('panel.layout.app', ['disable_tblr' => true])
-@section('title', $category->slug == 'ai_vision' ? __('Vision AI') : ($category->slug == 'ai_pdf' ? __('AI File Chat') : ($category->slug == 'ai_chat_image' ? __('Chat Image') :
-    __('AI Chat'))))
+@section('title')
+    @php
+        $titles = [
+            'ai_vision' => __('Vision AI'),
+            'ai_pdf' => __('AI File Chat'),
+            'ai_chat_image' => __('Chat Image'),
+            'ai_realtime_voice_chat' => __('AI Realtime Voice Chat'),
+        ];
+
+        $title = $titles[$category->slug] ?? __('AI Chat');
+    @endphp
+    {{ $title }}
+@endsection
 @section('titlebar_subtitle')
     @if ($category->slug == 'ai_vision')
         {{ __('Seamlessly upload any image you want to explore and get insightful conversations.') }}
@@ -66,7 +77,7 @@
         >
             <div
                 class="chats-sidebar-wrap relative flex h-[inherit] w-full transition-all max-md:absolute max-md:start-0 max-md:top-20 max-md:h-0 [&.active]:h-[calc(100%-80px)]"
-                :class="{ active: mobileSidebarShow, hidden: $store.focusMode.active && sidebarHidden }"
+                :class="{ 'active': mobileSidebarShow, 'lg:hidden': $store.focusMode.active && sidebarHidden }"
             >
                 @if (view()->hasSection('chat_sidebar'))
                     @yield('chat_sidebar')
@@ -146,6 +157,7 @@
             </div>
         </div>
     </template>
+
     <template id="chat_user_bubble">
         <div class="lqd-chat-user-bubble mb-2 flex flex-row-reverse content-end gap-2 lg:ms-auto">
             <span
@@ -160,22 +172,32 @@
                 class="chat-content-container group relative max-w-[calc(100%-64px)] rounded-[2em] bg-secondary text-secondary-foreground dark:bg-zinc-700 dark:text-primary-foreground">
                 <div class="chat-content px-5 py-3.5"></div>
                 <div
-                    class="lqd-clipboard-copy-wrap group/copy-wrap pointer-events-auto invisible absolute -start-5 bottom-0 opacity-0 transition-all group-hover:!visible group-hover:!opacity-100">
-                    <button
-                        class="lqd-clipboard-copy inline-flex h-10 w-10 items-center justify-center rounded-full border-none bg-white p-0 text-black !shadow-lg transition-all hover:-translate-y-[2px] hover:scale-110"
-                        data-copy-options='{ "content": ".chat-content", "contentIn": "<.chat-content-container" }'
-                        title="{{ __('Copy to clipboard') }}"
-                    >
-                        <span class="sr-only">{{ __('Copy to clipboard') }}</span>
-                        <x-tabler-copy class="size-4" />
-                    </button>
+                    class="lqd-chat-actions-wrap pointer-events-auto invisible absolute -start-5 bottom-0 flex flex-col gap-2 leading-5 opacity-0 transition-all group-hover:!visible group-hover:!opacity-100">
+                    <div class="lqd-clipboard-copy-wrap group/copy-wrap flex flex-col gap-2 transition-all">
+                        <button
+                            class="lqd-clipboard-copy group/btn relative inline-flex size-10 items-center justify-center rounded-full border-none bg-white p-0 text-[12px] text-black shadow-lg transition-all hover:-translate-y-[2px] hover:scale-110"
+                            data-copy-options='{ "content": ".chat-content", "contentIn": "<.chat-content-container" }'
+                            title="{{ __('Copy to clipboard') }}"
+                        >
+                            <span
+                                class="pointer-events-none absolute end-full top-1/2 me-1 inline-block -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-full bg-white px-3 py-1 font-medium leading-5 opacity-0 shadow-lg transition-all group-hover/btn:translate-x-0 group-hover/btn:opacity-100"
+                            >
+                                {{ __('Copy to clipboard') }}
+                            </span>
+                            <x-tabler-copy class="size-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </template>
 
     <template id="chat_ai_bubble">
-        <div class="lqd-chat-ai-bubble group mb-2 flex max-w-full content-start items-start gap-2">
+        <div
+            class="lqd-chat-ai-bubble group mb-2 flex max-w-full content-start items-start gap-2"
+            data-message-id=""
+            data-title=""
+        >
             <span
                 class="lqd-chat-avatar inline-block size-6 shrink-0 rounded-full bg-cover bg-center"
                 style="background-image: url('{{ !empty($chat->category->image) ? custom_theme_url($chat->category->image, true) : url(custom_theme_url('/assets/img/auth/default-avatar.png')) }}')"
@@ -194,21 +216,25 @@
                             <span class="lqd-typing-dot inline-block size-1 shrink-0 rounded-full bg-current opacity-80 ![animation-delay:0.4s]"></span>
                         </div>
                     </div>
-                    @if ($category->slug == 'ai_chat_image')
-                        <div class="loader_image loader_image_bubble lqd-typing lqd-typing-loader relative"></div>
-                    @endif
                     <div
                         class="chat-content prose relative w-full max-w-none px-5 py-3.5 indent-0 font-[inherit] text-xs font-normal text-current [word-break:break-word] empty:hidden">
                     </div>
                     <div
-                        class="lqd-clipboard-copy-wrap group/copy-wrap pointer-events-auto invisible absolute -end-5 bottom-0 opacity-0 transition-all group-hover:!visible group-hover:!opacity-100">
-                        <button
-                            class="lqd-clipboard-copy inline-flex h-10 w-10 items-center justify-center rounded-full border-none bg-white p-0 text-black !shadow-lg transition-all hover:-translate-y-[2px] hover:scale-110"
-                            data-copy-options='{ "content": ".chat-content", "contentIn": "<.chat-content-container" }'
-                            title="{{ __('Copy to clipboard') }}"
-                        >
-                            <x-tabler-copy class="size-4" />
-                        </button>
+                        class="lqd-chat-actions-wrap pointer-events-auto invisible absolute -end-5 bottom-0 flex flex-col gap-2 opacity-0 transition-all group-hover:!visible group-hover:!opacity-100">
+                        <div class="lqd-clipboard-copy-wrap group/copy-wrap flex flex-col gap-2 transition-all">
+                            <button
+                                class="lqd-clipboard-copy group/btn relative inline-flex size-10 items-center justify-center rounded-full border-none bg-white p-0 text-[12px] text-black shadow-lg transition-all hover:-translate-y-[2px] hover:scale-110"
+                                data-copy-options='{ "content": ".chat-content", "contentIn": "<.chat-content-container" }'
+                                title="{{ __('Copy to clipboard') }}"
+                            >
+                                <span
+                                    class="pointer-events-none absolute end-full top-1/2 me-1 inline-block -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-full bg-white px-3 py-1 font-medium leading-5 opacity-0 shadow-lg transition-all group-hover/btn:translate-x-0 group-hover/btn:opacity-100"
+                                >
+                                    {{ __('Copy to clipboard') }}
+                                </span>
+                                <x-tabler-copy class="size-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -390,7 +416,6 @@
     <script src="{{ custom_theme_url('/assets/libs/prism/prism.js') }}"></script>
     <script src="{{ custom_theme_url('/assets/libs/markdown-it.min.js') }}"></script>
     <script src="{{ custom_theme_url('/assets/libs/html2pdf/html2pdf.bundle.min.js') }}"></script>
-    <script src="{{ custom_theme_url('/assets/libs/underscore/underscore-observe.js') }}"></script>
     <script src="{{ custom_theme_url('/assets/libs/turndown.js') }}"></script>
     <script src="{{ custom_theme_url('/assets/libs/katex/katex.min.js') }}"></script>
     <script src="{{ custom_theme_url('/assets/libs/vscode-markdown-it-katex/index.js') }}"></script>
