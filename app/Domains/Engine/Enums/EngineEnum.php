@@ -16,6 +16,7 @@ use App\Domains\Engine\Drivers\FreepikEngineDriver;
 use App\Domains\Engine\Drivers\GeminiEngineDriver;
 use App\Domains\Engine\Drivers\GoogleEngineDriver;
 use App\Domains\Engine\Drivers\HeygenEngineDriver;
+use App\Domains\Engine\Drivers\KlapEngineDriver;
 use App\Domains\Engine\Drivers\NovitaEngineDriver;
 use App\Domains\Engine\Drivers\OpenAIEngineDriver;
 use App\Domains\Engine\Drivers\OpenRouterEngineDriver;
@@ -32,6 +33,7 @@ use App\Domains\Engine\Drivers\SynthesiaEngineDriver;
 use App\Domains\Engine\Drivers\TogetherEngineDriver;
 use App\Domains\Engine\Drivers\TopviewEngineDriver;
 use App\Domains\Engine\Drivers\UnsplashEngineDriver;
+use App\Domains\Engine\Drivers\VizardEngineDriver;
 use App\Domains\Engine\Drivers\XAIEngineDriver;
 use App\Domains\Entity\Enums\EntityEnum;
 use App\Domains\Entity\Models\Entity;
@@ -107,12 +109,17 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
 
     case TOPVIEW = 'topview';
 
+    case VIZARD = 'vizard';
+
+    case KLAP = 'klap';
+
     public function label(): string
     {
         return match ($this) {
             self::TOGETHER               => __('Together'),
             self::CREATIFY               => __('Creatify'),
             self::TOPVIEW                => __('Topview'),
+            self::VIZARD                 => __('Vizard'),
             self::OPEN_AI                => __('OpenAI'),
             self::DEEP_SEEK              => __('Deepseek'),
             self::STABLE_DIFFUSION       => __('Stable Diffusion'),
@@ -139,6 +146,7 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::PI_API                 => __('PiAPI'),
             self::AI_ML_MINIMAX          => __('AI/ML Minimax'),
             self::OPEN_ROUTER            => __('Open Router'),
+            self::KLAP                   => __('Klap'),
         };
     }
 
@@ -173,7 +181,9 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::OPEN_ROUTER      => OpenRouterEngineDriver::class,
             self::TOGETHER         => TogetherEngineDriver::class,
             self::CREATIFY         => CreatifyEngineDriver::class,
-            self::TOPVIEW          => TopViewEngineDriver::class
+            self::TOPVIEW          => TopViewEngineDriver::class,
+            self::VIZARD           => VizardEngineDriver::class,
+            self::KLAP             => KlapEngineDriver::class,
         };
     }
 
