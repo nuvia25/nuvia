@@ -30,6 +30,7 @@ use App\Domains\Engine\Drivers\SpeechifyEngineDriver;
 use App\Domains\Engine\Drivers\StableDiffusionEngineDriver;
 use App\Domains\Engine\Drivers\SynthesiaEngineDriver;
 use App\Domains\Engine\Drivers\TogetherEngineDriver;
+use App\Domains\Engine\Drivers\TopviewEngineDriver;
 use App\Domains\Engine\Drivers\UnsplashEngineDriver;
 use App\Domains\Engine\Drivers\XAIEngineDriver;
 use App\Domains\Entity\Enums\EntityEnum;
@@ -104,11 +105,14 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
 
     case CREATIFY = 'creatify';
 
+    case TOPVIEW = 'topview';
+
     public function label(): string
     {
         return match ($this) {
             self::TOGETHER               => __('Together'),
             self::CREATIFY               => __('Creatify'),
+            self::TOPVIEW                => __('Topview'),
             self::OPEN_AI                => __('OpenAI'),
             self::DEEP_SEEK              => __('Deepseek'),
             self::STABLE_DIFFUSION       => __('Stable Diffusion'),
@@ -168,7 +172,8 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::AI_ML_MINIMAX    => AiMlMinimaxAIEngineDriver::class,
             self::OPEN_ROUTER      => OpenRouterEngineDriver::class,
             self::TOGETHER         => TogetherEngineDriver::class,
-            self::CREATIFY         => CreatifyEngineDriver::class
+            self::CREATIFY         => CreatifyEngineDriver::class,
+            self::TOPVIEW          => TopViewEngineDriver::class
         };
     }
 
