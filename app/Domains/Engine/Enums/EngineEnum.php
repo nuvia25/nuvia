@@ -8,6 +8,7 @@ use App\Domains\Engine\Drivers\AiMlMinimaxAIEngineDriver;
 use App\Domains\Engine\Drivers\AnthropicEngineDriver;
 use App\Domains\Engine\Drivers\AzureEngineDriver;
 use App\Domains\Engine\Drivers\ClipDropEngineDriver;
+use App\Domains\Engine\Drivers\CreatifyEngineDriver;
 use App\Domains\Engine\Drivers\DeepSeekAIEngineDriver;
 use App\Domains\Engine\Drivers\ElevenlabsEngineDriver;
 use App\Domains\Engine\Drivers\FallAIEngineDriver;
@@ -101,10 +102,13 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
 
     case TOGETHER = 'together';
 
+    case CREATIFY = 'creatify';
+
     public function label(): string
     {
         return match ($this) {
             self::TOGETHER               => __('Together'),
+            self::CREATIFY               => __('Creatify'),
             self::OPEN_AI                => __('OpenAI'),
             self::DEEP_SEEK              => __('Deepseek'),
             self::STABLE_DIFFUSION       => __('Stable Diffusion'),
@@ -164,6 +168,7 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::AI_ML_MINIMAX    => AiMlMinimaxAIEngineDriver::class,
             self::OPEN_ROUTER      => OpenRouterEngineDriver::class,
             self::TOGETHER         => TogetherEngineDriver::class,
+            self::CREATIFY         => CreatifyEngineDriver::class
         };
     }
 
