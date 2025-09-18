@@ -24,8 +24,7 @@
                     </p>
                     @if ($item->hasExtension)
                         <x-button
-                            href="{{ $app_is_demo ? '#' : route('dashboard.user.integration.edit', $item->id) }}"
-                            onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
+                            href="{{ route('dashboard.user.integration.edit', $item->id) }}"
                             class="w-full"
                         >
                             @lang('Integrate')

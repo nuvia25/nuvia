@@ -1,5 +1,6 @@
 @php
-    $favoriteChabots = cache('favorite_chatbots');
+	$userId = auth()->id();
+	$favoriteChabots = cache("user:{$userId}:favorite_chatbots");
 @endphp
 
 <x-card
@@ -32,13 +33,13 @@
                     @class([
                         'absolute left-0 top-0 z-2 block h-full w-full',
                         'border-[3px] border-secondary' =>
-                            $chatbot->openaiGeneratorChatCategory->plan == 'premium',
+                            $chatbot->openaiGeneratorChatCategory?->plan == 'premium',
                     ])
                     href="{{ route('dashboard.user.openai.chat.chat', $chatbot->openaiGeneratorChatCategory?->slug) }}"
                 ></a>
 
                 <div
-                    class="!mt-0 flex items-center rounded-full max-sm:mx-auto"
+                    class="!mt-0 flex items-center overflow-hidden rounded-full max-sm:mx-auto"
                     style="width: 61px; height: 61px; background: {{ $chatbot->openaiGeneratorChatCategory?->color }};"
                 >
                     @if ($chatbot->openaiGeneratorChatCategory?->slug === 'ai-chat-bot')

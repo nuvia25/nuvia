@@ -6,9 +6,10 @@ namespace App\Models;
 
 use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Entity\Enums\EntityEnum;
+use App\Enums\AccessType;
 use App\Enums\Plan\FrequencyEnum;
-use App\Enums\Plan\PlanType;
 use App\Enums\Plan\TypeEnum;
+use App\Models\Concerns\HasCacheFirst;
 use App\Services\Common\MenuService;
 use App\Services\Finance\PlanService;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,7 +22,12 @@ use Yediyuz\Helpers\ArrayHelper;
 
 class Plan extends Model
 {
+    use HasCacheFirst;
     use HasFactory;
+
+    public static int $cacheTtl = 3600 * 24;
+
+    public static string $cacheKey = 'cache_plan';
 
     protected $table = 'plans';
 
@@ -53,6 +59,7 @@ class Plan extends Model
         'ai_models',
         'hidden',
         'max_subscribe',
+        'multi_model_support',
         'last_date',
         'created_at',
         'updated_at',
@@ -341,7 +348,7 @@ class Plan extends Model
             'ai_name'                       => 'AI',
             'max_tokens'                    => null,
             'can_create_ai_images'          => true,
-            'plan_type'                     => PlanType::ALL->value,
+            'plan_type'                     => AccessType::REGULAR->value,
             'features'                      => [],
             'is_team_plan'                  => false,
             'price_tax_included'            => true,
@@ -358,6 +365,7 @@ class Plan extends Model
             'hidden'                        => false,
             'reset_credits_on_renewal'      => false,
             'max_subscribe'                 => 0,
+            'multi_model_support'           => false,
             'last_date'                     => null,
         ];
     }

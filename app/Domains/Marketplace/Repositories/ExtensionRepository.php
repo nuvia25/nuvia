@@ -79,6 +79,30 @@ class ExtensionRepository implements ExtensionRepositoryInterface
         return $this->banners ?: [];
     }
 
+    public function supportExtensions(): array
+    {
+        $appVersion = $this->appVersion();
+
+        $response = $this->request('get', 'extension-support', [
+            'is_theme'    => false,
+            'is_beta'     => true,
+            'app_version' => $appVersion ?: 6.5,
+        ]);
+
+        if ($response->ok()) {
+
+            $data = $response->json('data');
+
+            $this->banners = $response->json('banners') ?: [];
+
+            $this->updateExtensionsTable($data);
+
+            return $this->mergedInstalled($data);
+        }
+
+        return [];
+    }
+
     public function extensions(): array
     {
         return $this->all();
@@ -95,7 +119,7 @@ class ExtensionRepository implements ExtensionRepositoryInterface
 
         $response = $this->request('get', 'extension', [
             'is_theme'    => $isTheme,
-            'is_beta'     => false,
+            'is_beta'     => true, // Bundle for beta versions
             'app_version' => $appVersion ?: 6.5,
         ]);
 
@@ -116,6 +140,27 @@ class ExtensionRepository implements ExtensionRepositoryInterface
     public function findId(int $id)
     {
         return collect($this->extensions())->where('id', $id)->first();
+    }
+
+    public function findSupport(string $slug): array
+    {
+        $response = $this->request('get', "extension-support/{$slug}");
+
+        if ($response->ok()) {
+
+            $data = $response->json('data');
+
+            $extension = Extension::query()->firstWhere('slug', $slug);
+
+            return array_merge($data, [
+                'only_show'  => Str::contains($data['slug'], ['only-show']),
+                'db_version' => $extension?->version,
+                'installed'  => (bool) $extension?->installed,
+                'upgradable' => $extension?->version !== $data['version'],
+            ]);
+        }
+
+        return [];
     }
 
     public function find(string $slug): array

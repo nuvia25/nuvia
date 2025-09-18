@@ -1,20 +1,20 @@
 @php
     $price_details = [
         [
-            'label' => 'Free updates',
+            'label' => 'License',
             'value' => 'Lifetime',
         ],
         [
-            'label' => 'Support',
+            'label' => 'Support & Updates',
             'value' => '6 months',
-        ],
-        [
-            'label' => 'License',
-            'value' => 'Extended',
         ],
         [
             'label' => 'Installation',
             'value' => 'One Click',
+        ],
+        [
+            'label' => 'Recently Updated',
+            'value' => 'Yes',
         ],
     ];
 @endphp
@@ -41,12 +41,12 @@
     <div class="py-10">
         <div class="lqd-extension-details flex flex-col justify-between gap-y-7 md:flex-row">
             <x-card
-                class="lqd-extension-details-card relative w-full pb-10 lg:w-8/12 [&_hr]:my-5 [&_hr]:border-border"
+                class="lqd-extension-details-card relative w-full max-w-none pb-10 lg:w-8/12 [&_hr]:my-5 [&_hr]:border-border"
                 variant="shadow"
                 size="lg"
             >
                 <img
-                    class="size-[90px] mb-8"
+                    class="mb-8 size-[90px]"
                     src="{{ custom_theme_url($extension->image_url) }}"
                 >
 
@@ -57,7 +57,7 @@
 
                     @if ($extension->installed)
                         <p class="mb-0 ms-3 flex items-center gap-2 text-2xs font-medium">
-                            <span class="size-2 inline-block rounded-full bg-green-500"></span>
+                            <span class="inline-block size-2 rounded-full bg-green-500"></span>
                             {{ __('Installed') }}
                         </p>
                     @endif
@@ -96,7 +96,7 @@
                     {{ __('About this add-on') }}
                 </h3>
 
-                <div class="mb-8">
+                <div class="prose prose-sm mb-8 max-w-none">
                     {!! $extension->detail !!}
                 </div>
 
@@ -105,9 +105,9 @@
                         $tags = explode(',', $extension->category);
                     @endphp
                     @foreach ($tags as $tag)
-                        <p class="flex items-center gap-3 text-base font-medium">
+                        <p class="my-0 flex items-center gap-3 text-base font-medium">
                             <span
-                                class="size-6 me-1 inline-flex items-center justify-center rounded-xl bg-primary/[8%] align-middle text-primary dark:bg-secondary/15 dark:text-secondary-foreground"
+                                class="me-1 inline-flex size-6 items-center justify-center rounded-xl bg-primary/[8%] align-middle text-primary dark:bg-secondary/15 dark:text-secondary-foreground"
                             >
                                 <x-tabler-check class="size-3.5" />
                             </span>
@@ -137,7 +137,7 @@
                                         @click.prevent="activeIndex = activeIndex == '{{ $loop->index }}' ? null : '{{ $loop->index }}'"
                                     >
                                         {{ __($extensionQA['question']) }}
-                                        <x-tabler-chevron-down class="size-5 ms-auto shrink-0" />
+                                        <x-tabler-chevron-down class="ms-auto size-5 shrink-0" />
                                     </button>
                                     <div
                                         @class([
@@ -190,7 +190,7 @@
                                     @endif
                                 @endif
                             </p>
-                            <p class="m-0 text-2xs font-semibold text-primary/50">
+                            <p class="m-0 text-2xs font-semibold text-foreground/40">
                                 {{ __('For a limited time only') }}
                             </p>
                         </div>

@@ -29,10 +29,10 @@ class DashboardService
     public array $userActiveOrderStatuses = ['Success', 'Approved'];
 
     public array $frequencies = [
-        'lifetime'  => 0,
-        'yearly'    => 0,
-        'monthly'   => 0,
-        'prepaid'   => 0,
+        'lifetime'          => 0,
+        'yearly'            => 0,
+        'monthly'           => 0,
+        'prepaid'           => 0,
     ];
 
     public array $randomColors = ['#74DB84', '#74A9DB', '#DB9374', '#8185F44D', '#E3E8E8', '#C674DB'];
@@ -234,14 +234,13 @@ class DashboardService
 
             return UserOpenai::query()
                 ->with('generator')
-                ->select('openai_id', DB::raw('COUNT(*) as total'))
-                ->groupBy('openai_id')
+                ->select('engine', DB::raw('COUNT(*) as total'))
+                ->groupBy('engine')
                 ->orderBy('total', 'desc')
                 ->limit(5)
                 ->get()
                 ->map(function (UserOpenai $item, $key) use ($userTotalOpenAICount) {
-                    $openai = $item->getAttribute('generator');
-                    $title = $openai ? $openai->getAttribute('title') : 'Unknown';
+                    $title = $item->engine ? $item->engine->label() : 'Unknown';
                     $percentage = $userTotalOpenAICount ? round(($item->getAttribute('total') / $userTotalOpenAICount) * 100) : 0;
 
                     return [

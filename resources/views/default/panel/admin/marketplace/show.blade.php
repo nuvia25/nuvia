@@ -1,20 +1,20 @@
 @php
     $price_details = [
         [
-            'label' => 'Free updates',
+            'label' => 'License',
             'value' => 'Lifetime',
         ],
         [
-            'label' => 'Support',
+            'label' => 'Support & Updates',
             'value' => '6 months',
-        ],
-        [
-            'label' => 'License',
-            'value' => 'Extended',
         ],
         [
             'label' => 'Installation',
             'value' => 'One Click',
+        ],
+        [
+            'label' => 'Recently Updated',
+            'value' => 'Yes',
         ],
     ];
 @endphp
@@ -34,6 +34,14 @@
         {{ __('Back to Marketplace') }}
     </x-button>
 @endsection
+
+@push('css')
+    <link
+        rel="stylesheet"
+        href="{{ custom_theme_url('assets/css/frontend/flickity.min.css') }}"
+    >
+@endpush
+
 @section('titlebar_actions')
     <div class="flex flex-wrap gap-2">
         <x-button
@@ -62,23 +70,24 @@
 @endsection
 
 @section('content')
-    <div class="py-10"
-		 x-data="{
-        open: false,
-        youtubeId: null,
-        showVideo(id) {
-            this.youtubeId = id;
-            this.open = true;
-        },
-        closeVideo() {
-            this.youtubeId = null;
-            this.open = false;
-        }
-     }"
-	>
+    <div
+        class="py-10"
+        x-data="{
+            open: false,
+            youtubeId: null,
+            showVideo(id) {
+                this.youtubeId = id;
+                this.open = true;
+            },
+            closeVideo() {
+                this.youtubeId = null;
+                this.open = false;
+            }
+        }"
+    >
         <div class="lqd-extension-details flex flex-col justify-between gap-y-7 md:flex-row">
             <x-card
-                class="lqd-extension-details-card relative w-full pb-10 lg:w-8/12 [&_hr]:my-5 [&_hr]:border-border"
+                class="lqd-extension-details-card relative w-full max-w-none pb-10 lg:w-8/12 [&_hr]:my-5 [&_hr]:border-border"
                 variant="shadow"
                 size="lg"
             >
@@ -87,14 +96,14 @@
                     src="{{ $item['icon'] }}"
                 >
 
-				@if($item['youtube'])
-					<div
-						class="top-10 absolute end-10 p-2 z-[1000000000000000] rounded-full border-[3px] border-[#757EE4] text-[#757EE4] cursor-pointer"
-						@click.prevent="showVideo('{{ $item['youtube'] }}')"
-					>
-						<x-tabler-player-play class="size-12" />
-					</div>
-				@endif
+                @if ($item['youtube'])
+                    <div
+                        class="absolute end-10 top-10 z-[1000000000000000] cursor-pointer rounded-full border-[3px] border-[#757EE4] p-2 text-[#757EE4]"
+                        @click.prevent="showVideo('{{ $item['youtube'] }}')"
+                    >
+                        <x-tabler-player-play class="size-12" />
+                    </div>
+                @endif
 
                 <div class="mb-8 flex flex-wrap items-center gap-2">
                     <h3 class="m-0 text-[23px] font-semibold">
@@ -155,7 +164,7 @@
                     {{ __('About this add-on') }}
                 </h3>
 
-                <div class="mb-8">
+                <div class="extension-detail prose prose-sm mb-8 max-w-none dark:prose-invert">
                     {!! $item['detail'] !!}
                 </div>
 
@@ -172,7 +181,7 @@
                     @endforeach
                 </div>
 
-                @if (!empty($item['questions']) && !$item['only_show'])
+                @if (!empty($item['questions']) && !$item['only_show'] && !$item['relatedExtensions'])
                     <div>
                         <h3 class="mb-7">
                             {{ __('Have a question?') }}
@@ -213,6 +222,50 @@
                             @endforeach
                         </div>
                     </div>
+                @else
+                    <div x-data="{
+                        flickity: null,
+                        init() {
+                            this.flickity = new Flickity(this.$refs.carouselWrap, {
+                                wrapAround: true,
+                                groupCells: true,
+                                prevNextButtons: false,
+                                pageDots: false,
+                                imagesLoaded: true
+                            });
+                        }
+                    }">
+                        <div class="flex-wra mb-3 flex justify-between gap-6">
+                            <h3 class="mb-0">
+                                {{ __('Works great with: ✅') }}
+                            </h3>
+                            <div class="flex items-center gap-1">
+                                <button
+                                    class="inline-grid size-7 place-items-center rounded transition-colors hover:bg-primary hover:text-primary-foreground hover:shadow-lg hover:shadow-black/5"
+                                    @click.prevent="flickity.previous()"
+                                >
+                                    <x-tabler-chevron-left class="size-5" />
+                                </button>
+                                <button
+                                    class="inline-grid size-7 place-items-center rounded transition-colors hover:bg-primary hover:text-primary-foreground hover:shadow-lg hover:shadow-black/5"
+                                    @click.prevent="flickity.next()"
+                                >
+                                    <x-tabler-chevron-right class="size-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <div
+                            class="lqd-extension-related-grid -mx-6 flex overflow-hidden px-3 [&_.flickity-viewport]:w-full"
+                            x-ref="carouselWrap"
+                        >
+                            @foreach ($item['relatedExtensions'] as $related)
+                                <div class="mb-6 mt-3 w-full shrink-0 grow-0 basis-auto px-3 lg:w-1/2">
+                                    @include('default.panel.admin.marketplace.particles.show-related-item')
+                                </div>
+                            @endforeach
+                        </div>
+
+                    </div>
                 @endif
             </x-card>
 
@@ -248,7 +301,7 @@
                                     @endif
                                 @endif
                             </p>
-                            <p class="m-0 text-2xs font-semibold text-primary/50">
+                            <p class="m-0 text-2xs font-semibold text-foreground/40">
                                 {{ __('For a limited time only') }}
                             </p>
                         </div>
@@ -267,7 +320,7 @@
                     @endif
 
                     @if (!$item['only_show'])
-                        <div class="justify-{{ $item['is_buy'] ? 'between' : 'center' }} flex">
+                        <div class="justify-{{ $item['is_buy'] ? 'between' : 'center' }} flex gap-2">
                             @if ($item['price'] != 0)
                                 @if ($app_is_demo)
                                     <x-button
@@ -285,13 +338,70 @@
                                     @endphp
 
                                     @if ($is_license)
-                                        <x-button
-                                            class="w-full"
-                                            size="lg"
-                                            href="{{ route('dashboard.admin.marketplace.liextension') }}"
-                                        >
-                                            {{ __('Install Now') }}
-                                        </x-button>
+                                        @if ($item['support']['support'] === false && $item['installed'])
+                                            <div>
+                                                <x-button
+                                                    class="mb-3 w-full"
+                                                    size="lg"
+                                                    href="{{ $item['routes']['paymentSupport'] }}"
+                                                >
+                                                    {{ __('Renew License') }}
+                                                </x-button>
+
+                                                <x-modal
+                                                    class:modal-backdrop="backdrop-blur-none bg-foreground/15"
+                                                    class="inline-flex"
+                                                    title="{{ __('Your update and support period has ended.') }}"
+                                                >
+                                                    <x-slot:trigger
+                                                        size="none"
+                                                        variant="ghost-shadow"
+                                                        @class([
+                                                            'p-1 ps-4 pe-4 text-red-500 hover:bg-red-300 bg-red-100 w-full',
+                                                        ])
+                                                    >
+                                                        @lang('Update & Support period has expired.')
+                                                    </x-slot:trigger>
+
+                                                    <x-slot:modal>
+
+                                                        <p>
+                                                            Your extension license remains active, but access to new updates <br>
+                                                            and support ended after the initial 6-month period. <span class="underline">Extend your <br>
+                                                                license period to get the latest features, updates, and dedicated <br>
+                                                                support.</span>
+                                                        </p>
+
+                                                        <p class="mt-4">Alternatively, you can continue using your current extension<br> version, but without access to new features
+                                                            or support. </p>
+
+                                                        <x-button
+                                                            class="mt-3 w-full text-2xs font-semibold"
+                                                            variant="secondary"
+                                                            href="{{ $item['routes']['paymentSupport'] }}"
+                                                        >
+                                                            @lang('Renew License')
+                                                            <span
+                                                                class="inline-grid size-7 place-items-center rounded-full bg-background text-heading-foreground shadow-xl"
+                                                                aria-hidden="true"
+                                                            >
+                                                                <x-tabler-chevron-right class="size-4" />
+                                                            </span>
+                                                        </x-button>
+
+                                                    </x-slot:modal>
+                                                </x-modal>
+
+                                            </div>
+                                        @else
+                                            <x-button
+                                                class="w-full"
+                                                size="lg"
+                                                href="{{ route('dashboard.admin.marketplace.liextension') }}"
+                                            >
+                                                {{ __('Install Now') }}
+                                            </x-button>
+                                        @endif
                                     @else
                                         @include('default.panel.admin.marketplace.particles.is-buy')
                                     @endif
@@ -343,7 +453,7 @@
                     @endif
 
                 </x-card>
-                @if (!$marketSubscription['data'] && $item['price'] != 0 && \App\Helpers\Classes\Helper::appIsNotDemo())
+                @if (!\App\Helpers\Classes\Helper::isUserVIP() && !$marketSubscription['data'] && $item['price'] != 0 && \App\Helpers\Classes\Helper::appIsNotDemo())
 
                     <div class="flex items-center gap-7 text-2xs text-heading-foreground">
                         <span class="block h-px grow bg-heading-foreground/10"></span>
@@ -367,13 +477,43 @@
                                 {{ trans('Premium Membership.') }}
                             </span>
                         </h3>
-
-                        <p class="mb-8 font-medium">
-                            {{ trans('Join our exclusive membership to access to all extensions in the marketplace. ') }}
+                        <p class="mb-6 font-medium">
+                            {{ trans('Premium membership unlocks full access to all MagicAI features and exclusive benefits. Stand out from the crowd at an affordable monthly rate.') }}
                         </p>
 
-                        <ul class="mx-auto mb-10 flex flex-col gap-2 text-start text-base font-semibold text-heading-foreground lg:w-11/12">
-                            @foreach (['VIP Support', '5 Hours of Customization', 'Access to All Extensions'] as $item)
+                        <x-button
+                            class="mx-auto mb-4 w-full py-3.5 shadow-lg shadow-black/10 lg:w-11/12"
+                            size="lg"
+                            target="_blank"
+                            href="{{ $marketSubscription['extensionPayment'] }}"
+                        >
+                            {{ trans('Join Premium Membership') }}
+                        </x-button>
+
+                        <p class="text-dark mb-6 font-semibold text-heading-foreground">
+                            {{ trans('Access to over $5,000 worth of items.') }}
+                        </p>
+
+                        @php
+                            $premium_features = [
+                                'VIP Support' => 'Get instant help whenever you need it.',
+                                'Access to All Current & Future Extensions ' => 'Always stay ahead with the latest features.',
+                                'Access to All Current & Future Themes ' => 'Always stay ahead with the latest designs.',
+                                'Get the Mobile App Free in Your 4th Month! ' => 'Enjoy a free mobile app after your fourth month of subscription.',
+                                '10 Hours of Custom Development Every Month' => 'Tailored improvements, at no extra cost.',
+                                'Direct Communication with Our Development Team' => 'No middlemen, just solutions.',
+                                'Exclusive Extensions Not Available to Others' => 'Stay ahead of competition, reserved for VIPs only.',
+                                'Complimentary Logo Design' => 'A custom logo to elevate your brand.',
+                                'Personalized Onboarding Assistance' => 'We’ll help you get up and running smoothly.',
+                                'Free Setup & Configuration Services' => 'Let us handle the technical details for you.',
+                            ];
+                        @endphp
+
+                        <ul
+                            class="mx-auto mb-10 flex flex-col gap-2 text-start text-[14px] text-base font-semibold text-heading-foreground lg:w-11/12"
+                            style="font-size: 15px;"
+                        >
+                            @foreach ($premium_features as $feature => $tooltip)
                                 <li class="flex items-center gap-3.5">
                                     <svg
                                         class="shrink-0"
@@ -408,7 +548,7 @@
                                             </linearGradient>
                                         </defs>
                                     </svg>
-                                    {!! trans($item) !!}
+                                    {!! trans($feature) !!}
 
                                 </li>
                             @endforeach
@@ -461,14 +601,6 @@
                             </li>
                         </ul>
 
-                        <x-button
-                            class="mx-auto w-full py-3.5 shadow-lg shadow-black/10 lg:w-11/12"
-                            size="lg"
-                            target="_blank"
-                            href="{{ $marketSubscription['extensionPayment'] }}"
-                        >
-                            {{ trans('Join Premium Membership') }}
-                        </x-button>
                     </x-card>
                 @endif
 
@@ -498,40 +630,42 @@
             </div>
 
         </div>
-		<div
-			id="youtubeModal"
-			class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[9999999999]"
-			x-show="open"
-			x-transition
-			x-cloak
-			@keydown.escape.window="closeVideo()"
-			@click.outside="closeVideo()"
-			style="display: none"
-		>
-			<button
-				@click="closeVideo()"
-				class="absolute top-3 right-4 text-white text-3xl font-bold z-20"
-			>×</button>
-			<div
-				@click.outside="closeVideo()"
-				class="relative w-[90vw] max-w-4xl aspect-video bg-black rounded-xl shadow-lg overflow-hidden">
-				<iframe
-					class="w-full h-full"
-					:src="youtubeId ? `https://www.youtube.com/embed/${youtubeId}?autoplay=1` : ''"
-					title="YouTube video"
-					frameborder="0"
-					allow="autoplay; encrypted-media"
-					allowfullscreen
-				></iframe>
-			</div>
-		</div>
+        <div
+            class="fixed inset-0 z-[9999999999] flex items-center justify-center bg-black bg-opacity-80"
+            id="youtubeModal"
+            x-show="open"
+            x-transition
+            x-cloak
+            @keydown.escape.window="closeVideo()"
+            @click.outside="closeVideo()"
+            style="display: none"
+        >
+            <button
+                class="absolute right-4 top-3 z-20 text-3xl font-bold text-white"
+                @click="closeVideo()"
+            >×</button>
+            <div
+                class="relative aspect-video w-[90vw] max-w-4xl overflow-hidden rounded-xl bg-black shadow-lg"
+                @click.outside="closeVideo()"
+            >
+                <iframe
+                    class="h-full w-full"
+                    :src="youtubeId ? `https://www.youtube.com/embed/${youtubeId}?autoplay=1` : ''"
+                    title="YouTube video"
+                    frameborder="0"
+                    allow="autoplay; encrypted-media"
+                    allowfullscreen
+                ></iframe>
+            </div>
+        </div>
     </div>
 @endsection
 
 @push('script')
+    <script src="{{ custom_theme_url('assets/libs/flickity.pkgd.min.js') }}"></script>
     <script src="{{ custom_theme_url('/assets/js/panel/marketplace.js') }}"></script>
     <script>
-        document.getElementById('copyButton').addEventListener('click', function() {
+        document.getElementById('copyButton')?.addEventListener('click', function() {
             navigator.clipboard.writeText('info@liquid-themes.com');
             toastr.success(@json(__('Copied')));
         });

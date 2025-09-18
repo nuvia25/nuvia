@@ -11,7 +11,7 @@
     ::class="{ 'active': mobileSidebarShow }"
 >
     @auth
-        <div class="chats-search flex h-20 gap-x-2 border-b p-5 max-xl:p-2.5">
+        <div class="chats-search flex gap-x-2 border-b p-5 max-xl:p-2.5 lg:h-20">
             <form
                 class="chats-search-form relative grow"
                 action="#"
@@ -33,7 +33,7 @@
                 size="sm"
                 hover-variant="danger"
                 href="javascript:void(0);"
-                onclick="{!! $disable_actions
+                onclick="{!! $app_is_demo
                     ? 'return toastr.info(\'{{ __('This feature is disabled in Demo version.') }}\')'
                     : 'return deleteAllConv(\'{{ isset($category) ? $category->id : 0 }}\')' !!}"
             >
@@ -60,7 +60,7 @@
                         id="selectDocInput"
                         type="file"
                         style="display: none;"
-                        accept=".pdf, .csv, .docx, .xlsx, .xls"
+                        accept="file/*, .pdf, .csv, .docx, .xlsx, .xls"
                     />
                     <x-button
                         class="lqd-upload-doc-trigger grow text-[0.8rem]"

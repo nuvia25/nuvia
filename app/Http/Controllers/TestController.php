@@ -2,100 +2,94 @@
 
 namespace App\Http\Controllers;
 
-use App\Extensions\MarketingBot\System\Enums\CampaignStatus;
-use App\Extensions\MarketingBot\System\Enums\CampaignType;
-use App\Extensions\MarketingBot\System\Models\MarketingCampaign;
-use App\Extensions\MarketingBot\System\Services\Whatsapp\WhatsappSenderService;
+use App\Helpers\Classes\ApiHelper;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
 
 class TestController extends Controller
 {
     public function test(Request $request)
     {
-        $now = now();
-
-        $whatsappService = app(WhatsappSenderService::class);
-
-        $campaigns = MarketingCampaign::query()
-            ->where('type', CampaignType::whatsapp)
-//			->where('status', CampaignStatus::scheduled)
-//			->where('scheduled_at', '<=', $now)
-            ->get();
-
-        $campaigns->map(function (MarketingCampaign $campaign) use ($whatsappService) {
-            try {
-                $whatsappService
-                    ->setMarketingCampaign($campaign)
-                    ->send();
-            } catch (Exception $e) {
-            }
-        });
+        return view('test');
     }
 
-    public function getYoutubeTranscript($videoUrl)
+    public function stream(Request $request, string $model)
     {
-        // Initialize cURL session to get the HTML content of the YouTube video page
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $videoUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $response = curl_exec($ch);
-        curl_close($ch);
-
-        // Search for "captionTracks" in the HTML content
-        $matches = [];
-        preg_match('/"captionTracks":(\[.*?\])/', $response, $matches);
-        dd($matches);
-        if (isset($matches[1])) {
-            // Decode the JSON structure
-            $captionTracks = json_decode($matches[1], true);
-
-            if (isset($captionTracks[0]['baseUrl'])) {
-                // Get the base URL for the captions
-                $baseUrl = $captionTracks[0]['baseUrl'];
-
-                // Decode the Unicode \u0026 into &
-                $baseUrl = html_entity_decode($baseUrl, ENT_QUOTES, 'UTF-8');
-
-                // Fetch the captions
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $baseUrl);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                $captions = curl_exec($ch);
-                curl_close($ch);
-
-                return $captions;
-            } else {
-                throw new Exception('No caption tracks found.');
-            }
-        } else {
-            throw new Exception('No captionTracks found in the response.');
+        // Disable PHP buffering
+        @ini_set('output_buffering', 'off');
+        @ini_set('zlib.output_compression', false);
+        @ini_set('implicit_flush', true);
+        ob_implicit_flush(true);
+        while (ob_get_level() > 0) {
+            @ob_end_flush();
         }
-    }
 
-    public function collectMissingStrings()
-    {
-        // Get all translatable strings in the app
-        $strings = collect();
-        // Replace 'resources' with the actual directory containing your views and files
-        $files = File::allFiles(resource_path());
-        foreach ($files as $file) {
-            $content = file_get_contents($file);
-            preg_match_all('/__\((\'|")(.*?)(\'|")\)/', $content, $matches);
+        return response()->stream(function () use ($model) {
+            $output = '';
+            $responsedText = '';
+            $history = [];
+            $total_used_tokens = 0;
 
-            foreach ($matches[2] as $match) {
-                $strings->push($match);
+            // --- OpenAI GPT models ---
+            if (str_starts_with($model, 'gpt')) {
+                ApiHelper::setOpenAiKey();
+                $history[] = ['role' => 'user', 'content' => 'Hello, write essay about cats.'];
+
+                $stream = \OpenAI\Laravel\Facades\OpenAI::responses()->createStreamed([
+                    'model'             => $model,
+                    'input'             => $history,
+                    'max_output_tokens' => 2000,
+                    'temperature'       => 1.0,
+                    'stream'            => true,
+                ]);
+
+                foreach ($stream as $response) {
+                    if (connection_aborted()) {
+                        return;
+                    }
+
+                    if ($response->event === 'response.output_text.delta' && isset($response->response->delta)) {
+                        $text = $response->response->delta;
+                        $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $text);
+                        $output .= $messageFix;
+                        $responsedText .= $text;
+                        $total_used_tokens += countWords($text);
+
+                        echo PHP_EOL;
+                        // echo "event: data\n";
+                        echo "data: {$messageFix}";
+                        echo "\n\n";
+                        @ob_flush();
+                        @flush();
+                    }
+                }
+
+                echo "data: [DONE]\n\n";
+
+                return;
             }
-        }
-        // Load existing translations
-        $existingTranslations = json_decode(file_get_contents(base_path('lang/en.json')), true);
-        // Add new strings to the translations if the keys do not exist
-        foreach ($strings->unique() as $string) {
-            if (! isset($existingTranslations[$string])) {
-                $existingTranslations[$string] = $string;
+
+            // --- Gemini placeholder ---
+            if ($model === 'test') {
+                for ($i = 1; $i <= 5; $i++) {
+                    if (connection_aborted()) {
+                        return;
+                    }
+
+                    echo "data: GEMINI chunk {$i}\n\n";
+                    @ob_flush();
+                    @flush();
+                    sleep(1);
+                }
+                echo "data: [DONE]\n\n";
+
+                return;
             }
-        }
-        // Write updated translations to en.json
-        file_put_contents(base_path('lang/en.json'), json_encode($existingTranslations, JSON_PRETTY_PRINT));
+
+        }, 200, [
+            'Content-Type'      => 'text/event-stream',
+            'Cache-Control'     => 'no-cache, must-revalidate',
+            'Connection'        => 'keep-alive',
+            'X-Accel-Buffering' => 'no', // disable nginx buffering
+        ]);
     }
 }

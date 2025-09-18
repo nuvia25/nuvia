@@ -1,5 +1,4 @@
 @php
-	use App\Enums\Plan\PlanType;
 	use App\Enums\Plan\FrequencyEnum;
 @endphp
 
@@ -95,7 +94,7 @@
 						required
 					>
 						<option value="">{{ __('Select Plan Type') }}</option>
-						@foreach (PlanType::cases() as $key)
+						@foreach (\App\Enums\AccessType::cases() as $key)
 							<option value="{{ $key->value }}">{{ __($key->label()) }}</option>
 						@endforeach
 					</x-form.select>
@@ -314,7 +313,6 @@
 	</div>
 
 	<!-- Hidden Plan-->
-
 	<div class="row gap-y-7">
 		<div class="col-12">
 			<x-form-step
@@ -436,4 +434,6 @@
 			</div>
 		</div>
 	</div>
+
+	@includeIf('multi-model::partials.plans_option')
 </div>

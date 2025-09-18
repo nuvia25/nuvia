@@ -92,7 +92,7 @@ class MarketPlaceController extends Controller
 
     public function index()
     {
-        $items = $this->extensionRepository->extensions();
+        $items = $this->extensionRepository->supportExtensions();
 
         $banners = $this->extensionRepository->banners();
 
@@ -111,7 +111,7 @@ class MarketPlaceController extends Controller
     {
         $paidExtensions = $this->extensionRepository->paidExtensions();
 
-        $item = $this->extensionRepository->find($slug);
+        $item = $this->extensionRepository->findSupport($slug);
 
         $marketSubscription = $this->extensionRepository->subscription()->json();
 
@@ -123,6 +123,10 @@ class MarketPlaceController extends Controller
             return to_route('dashboard.admin.marketplace.index')->with('error', 'Extension not found.');
         }
 
+        if ($item['type'] === 'bundle') {
+            return view('panel.admin.marketplace.bundle', compact('item', 'marketSubscription', 'cart', 'cartExists', 'paidExtensions'));
+        }
+
         return view('panel.admin.marketplace.show', compact('item', 'marketSubscription', 'cart', 'cartExists', 'paidExtensions'));
     }
 
@@ -131,7 +135,7 @@ class MarketPlaceController extends Controller
         $cart = data_get($this->extensionRepository->cart(), 'data', []);
 
         $items = $this->extensionRepository->licensed(
-            $this->extensionRepository->extensions()
+            $this->extensionRepository->supportExtensions()
         );
 
         return view('panel.admin.marketplace.licensed', compact('items', 'cart'));

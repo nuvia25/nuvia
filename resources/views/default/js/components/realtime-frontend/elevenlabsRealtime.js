@@ -37,7 +37,7 @@ Alpine.store( 'realtimeChatStatus', {
 	},
 } );
 
-export default ( agent_id ) => ( {
+export default agent_id => ( {
 	/**@type {String} */
 	agentId: agent_id,
 	recordingActive: false,
@@ -123,7 +123,7 @@ export default ( agent_id ) => ( {
 				} );
 
 			},
-			onMessage: ( message ) => {
+			onMessage: message => {
 				if ( message.source == 'ai' ) {
 					this.createChatBubble( 'ai' );
 					this.appendToChatBubble( 'ai', message.message );
@@ -162,7 +162,7 @@ export default ( agent_id ) => ( {
 				console.error( 'Error:', error );
 				this.stop();
 			}
-		} )
+		} );
 	},
 	async stop() {
 		if ( !this.lastResponseSaved && 'saveResponseAsync' in window && this.lastUserQuestion.trim() !== '' && this.lastAiResponse.trim() !== '' ) {
@@ -387,7 +387,7 @@ export default ( agent_id ) => ( {
 		animate();
 	},
 	checkBalance( onStart = false ) {
-		return new Promise( ( resolve ) => {
+		return new Promise( resolve => {
 			$.ajax( {
 				url: '/dashboard/admin/voice-chatbot/check-balance',
 				type: 'POST',
@@ -410,7 +410,8 @@ export default ( agent_id ) => ( {
 	},
 	disconnectHandle( connection ) {
 		if ( connection?.disconnectionDetails?.reason == 'error' ) {
-			toastr.error( connection?.disconnectionDetails?.message || 'Something went wrong on agent' );
+			toastr.error( 'Something went wrong. Please contact support for assistance' );
+			console.error( connection?.disconnectionDetails?.message );
 		}
 	}
 } );

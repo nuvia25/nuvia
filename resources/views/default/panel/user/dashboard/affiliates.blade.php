@@ -1,6 +1,7 @@
 @if ($app_is_demo || (($setting->feature_affilates ?? true) && \auth()->user()?->affiliate_status == 1))
     @php
-        $totalEarning = cache('total_earnings') ?: 0;
+		$userId = auth()->id();
+		$totalEarning = cache("user:{$userId}:total_earnings") ?: 0;
     @endphp
     <x-card
         class="flex w-full flex-col lg:w-[48%]"
@@ -54,7 +55,7 @@
                 size="sm"
             >
                 <span class="text-xs font-semibold text-foreground">@lang('Earnings')</span>
-                <span class="text-lg font-semibold">{{ currency()->symbol }}<strong class="text-[30px]">{{ $totalEarning ?? 0 }}</strong></span>
+                <span class="text-lg font-semibold">{{ currency()->symbol }}<strong class="text-[30px]">{{ $app_is_demo ? 380 : ($totalEarning ?? 0) }}</strong></span>
             </x-card>
 
             <x-card

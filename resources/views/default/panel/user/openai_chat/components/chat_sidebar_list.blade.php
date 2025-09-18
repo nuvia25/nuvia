@@ -1,5 +1,5 @@
 @php
-    $disable_actions = $app_is_demo && (isset($category) && ($category->slug == 'ai_vision' || $category->slug == 'ai_pdf' || $category->slug == 'ai_chat_image'));
+    $disable_actions = $app_is_demo;
 @endphp
 
 <ul class="chat-list-ul flex h-full flex-col overflow-y-auto text-xs">
