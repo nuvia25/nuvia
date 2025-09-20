@@ -69,7 +69,6 @@ enum MagicResponse: int implements Contracts\WithIntBackedEnum
     public function exception(): void
     {
         $message = $this->message();
-
         if ($this->exceptionsAsJson()) {
             throw new MagicResponseApiException($message, $this->statusCode());
         }

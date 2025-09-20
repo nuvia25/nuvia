@@ -12,7 +12,11 @@ class HeaderSearch extends Component
      * Create a new component instance.
      */
     public function __construct(
-        public bool $inContent = false,
+        public bool $showIcon = true,
+        public bool $showKbd = true,
+        public bool $showArrow = true,
+        public bool $showLoader = true,
+        public bool $outlineGlow = false,
     ) {
         //
     }
@@ -22,6 +26,6 @@ class HeaderSearch extends Component
      */
     public function render(): View|Closure|string
     {
-        return view('components.header-search');
+        return view('components.header-search.header-search-screen');
     }
 }

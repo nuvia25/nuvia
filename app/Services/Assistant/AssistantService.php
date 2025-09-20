@@ -62,7 +62,7 @@ class AssistantService
      */
     public function createFile($file)
     {
-        $filePath = 'assistant/' . Str::random(20) . '.' . $file->getClientOriginalExtension();
+        $filePath = 'assistant/' . Str::random(20) . '.' . $file->guessExtension();
         Storage::disk('public')->put($filePath, file_get_contents($file));
         $fullPath = Storage::disk('public')->path($filePath);
 

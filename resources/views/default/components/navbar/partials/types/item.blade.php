@@ -15,7 +15,7 @@
 			class="{{ data_get($item, 'class') }}"
 			data-name="{{ data_get($item, 'data-name') }}"
 			letter-icon-styles="{{ $item['letter_icon_bg'] }}"
-			label="{{ __($item['label']) }}"
+			label="{!! __($item['label']) !!}"
 			href="{{ $item['route'] }}"
 			slug="{{ $item['route_slug'] }}"
 			icon="{{ $item['icon'] }}"

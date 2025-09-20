@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use Exception;
+use RuntimeException;
 
 class GatewaySelector
 {
@@ -14,6 +14,6 @@ class GatewaySelector
             return resolve($service);
         }
 
-        throw new Exception($error);
+        throw new RuntimeException($error);
     }
 }

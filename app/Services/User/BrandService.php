@@ -77,6 +77,7 @@ class BrandService
             'brand_color',
             'user_id',
             'tone_of_voice',
+            'specific_instructions',
             'target_audience',
         ]);
     }

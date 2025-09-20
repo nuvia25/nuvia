@@ -24,7 +24,7 @@
         <div class="container-xl">
             <div class="row row-cards">
                 <div class="col-sm-8 col-lg-8">
-{{--                    @include('panel.user.finance.coupon.index')--}}
+                    {{--                    @include('panel.user.finance.coupon.index') --}}
                     <form
                         action="{{ route('dashboard.user.payment.subscription.checkout', ['gateway' => 'razorpay']) }}"
                         method="post"
@@ -52,6 +52,7 @@
                                     data-bs-toggle="{{ $app_is_demo ? '' : 'modal' }}"
                                     data-bs-target="{{ $app_is_demo ? '' : '#confirmationModal' }}"
                                     variant="secondary"
+                                    size="lg"
                                     type="{{ $app_is_demo ? 'button' : 'submit' }}"
                                     onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                 >
@@ -59,9 +60,7 @@
                                         class="spinner hidden"
                                         id="spinner"
                                     ></div>
-                                    <span id="button-text">
-                                        {{ __('Subscribe') }}
-                                    </span>
+                                    {{ __('Subscribe') }}
                                 </x-button>
                             </div>
                         </div>

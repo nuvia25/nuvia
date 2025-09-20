@@ -41,7 +41,7 @@ class SubscriptionController extends Controller
             app(ExtensionService::class)->uninstall($slug);
 
             $themes = [
-                'sleek', 'creative', 'classic', 'dark',
+                'sleek', 'creative', 'classic', 'dark', 'modern', 'bolt', 'social-media-frontend', 'social-media-dashboard', 'marketing-bot-frontend', 'marketing-bot-dashboard',
             ];
 
             if (in_array($slug, $themes)) {

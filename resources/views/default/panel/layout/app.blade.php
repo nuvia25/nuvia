@@ -23,8 +23,8 @@
 <!DOCTYPE html>
 <html
     class="scroll-smooth"
-    lang="{{ LaravelLocalization::getCurrentLocale() }}"
-    dir="{{ LaravelLocalization::getCurrentLocaleDirection() }}"
+    lang="{{ \App\Helpers\Classes\Localization::getLocale() }}"
+    dir="{{ \App\Helpers\Classes\Localization::getCurrentLocaleDirection() }}"
 >
 
 @include('panel.layout.partials.head')
@@ -48,6 +48,9 @@
         'hide-titlebar' => isset($disable_titlebar),
     ])
 >
+    @includeIf('panel.layout.after-body-open-immediate')
+    @stack('after-body-open-immediate')
+
     @if ($app_is_not_demo)
         @includeFirst(['onboarding-pro::banner', 'vendor.empty'])
     @endif
@@ -55,7 +58,6 @@
     @include('panel.layout.partials.mode-script')
 
     @includeIf('panel.layout.after-body-open')
-
     @stack('after-body-open')
 
     @include('panel.layout.partials.loading')
@@ -230,7 +232,7 @@
 
     <template id="copy-btns-template">
         <div
-            class="pointer-events-none invisible absolute bottom-full flex translate-y-1 flex-col gap-2 pb-2 opacity-0 transition-all group-[&.active]/copy-wrap:pointer-events-auto group-[&.active]/copy-wrap:visible group-[&.active]/copy-wrap:translate-y-0 group-[&.active]/copy-wrap:opacity-100">
+            class="pointer-events-none invisible flex translate-y-1 flex-col gap-2 opacity-0 transition-all group-[&.active]/copy-wrap:pointer-events-auto group-[&.active]/copy-wrap:visible group-[&.active]/copy-wrap:translate-y-0 group-[&.active]/copy-wrap:opacity-100">
             <button
                 class="group/btn relative inline-flex size-9 items-center justify-center rounded-full bg-white p-0 text-[12px] text-black shadow-lg transition-all hover:scale-110"
                 data-copy-type="md"
@@ -241,7 +243,7 @@
                     stroke-width="1.5"
                 />
                 <span
-                    class="absolute end-full top-1/2 me-1 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-full bg-white px-3 py-1 font-medium opacity-0 shadow-lg transition-all group-hover/btn:translate-x-0 group-hover/btn:opacity-100"
+                    class="absolute end-full top-1/2 me-1 inline-block -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-full bg-white px-3 py-1 font-medium leading-5 opacity-0 shadow-lg transition-all group-hover/btn:translate-x-0 group-hover/btn:opacity-100"
                 >
                     @lang('Copy Markdown')
                 </span>
@@ -256,7 +258,7 @@
                     stroke-width="1.5"
                 />
                 <span
-                    class="absolute end-full top-1/2 me-1 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-full bg-white px-3 py-1 font-medium opacity-0 shadow-lg transition-all group-hover/btn:translate-x-0 group-hover/btn:opacity-100"
+                    class="absolute end-full top-1/2 me-1 inline-block -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-full bg-white px-3 py-1 font-medium leading-5 opacity-0 shadow-lg transition-all group-hover/btn:translate-x-0 group-hover/btn:opacity-100"
                 >
                     @lang('Copy HTML')
                 </span>
@@ -268,6 +270,7 @@
         <x-demo-switcher themes-type="Dashboard" />
     @endif
 
+    @includeIf('content-manager::media-modal')
 </body>
 
 </html>

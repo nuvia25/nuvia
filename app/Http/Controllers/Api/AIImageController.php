@@ -176,7 +176,7 @@ class AIImageController extends Controller
             $number_of_images = (int) $param['image_number_of_images'];
 
             $driver = Entity::driver($model)->inputImageCount($number_of_images)->calculateCredit();
-            $chkLmt = Helper::checkImageDailyLimit();
+            $chkLmt = Helper::checkImageDailyLimit($lockKey);
             if ($chkLmt->getStatusCode() === 429) {
                 return $chkLmt;
             }
@@ -555,6 +555,7 @@ class AIImageController extends Controller
             'words'     => 0,
             'storage'   => $this->settings_two->ai_image_storage,
             'payload'   => request()?->all(),
+            'engine'	   => isset($imageDetails['engine']) ? $imageDetails['engine']?->value : null,
         ];
         if (isset($imageDetails['engine']) && $imageDetails['engine'] === EngineEnum::FAL_AI) {
             $data['request_id'] = $imageDetails['requestId'];

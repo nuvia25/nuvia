@@ -480,6 +480,17 @@ class StripeService
                         $newDiscountedPrice = number_format($newDiscountedPrice, 2);
                     }
 
+                    $durationMap = [
+                        'first_month' => ['duration' => 'once'],
+                        'first_year'  => ['duration' => 'repeating', 'duration_in_months' => 12],
+                        'all_time'    => ['duration' => 'forever'],
+                    ];
+                    $durationData = $durationMap[$coupon->duration] ?? ['duration' => 'once'];
+                    $data = array_merge(
+                        ['percent_off' => $coupon->discount],
+                        $durationData
+                    );
+
                     // search for exist coupon with same percentage created before in stripe then use it, else create new one. $new_coupon
                     try {
                         $new_coupon = null;
@@ -492,16 +503,10 @@ class StripeService
                             }
                         }
                         if ($new_coupon == null) {
-                            $new_coupon = $stripe->coupons->create([
-                                'percent_off' => $coupon->discount,
-                                'duration'    => 'once',
-                            ]);
+                            $new_coupon = $stripe->coupons->create($data);
                         }
                     } catch (\Stripe\Exception\InvalidRequestException $e) {
-                        $new_coupon = $stripe->coupons->create([
-                            'percent_off' => $coupon->discount,
-                            'duration'    => 'once',
-                        ]);
+                        $new_coupon = $stripe->coupons->create($data);
                     }
                     $subscriptionInfo['coupon'] = $new_coupon->id ?? null;
                 }
@@ -516,7 +521,7 @@ class StripeService
                 $subscription = new ModelSubscription;
                 $subscription->user_id = $user->id;
                 $subscription->name = $plan->id;
-                $subscription->stripe_id = '0';
+                $subscription->stripe_id = 'SLS-' . strtoupper(Str::random(13));
                 $subscription->stripe_status = 'AwaitingPayment'; // $plan->trial_days != 0 ? "trialing" : "AwaitingPayment";
                 $subscription->stripe_price = $price_id_product;
                 $subscription->quantity = 1;

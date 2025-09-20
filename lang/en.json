@@ -2541,5 +2541,16 @@
 	"I need to make a refund.": "I need to make a refund.",
 	"You, 3 min ago": "You, 3 min ago",
 	"A refund will be provided after we process your return item at our facilities. It may take additional time for your financial institution to  process the refund.": "A refund will be provided after we process your return item at our facilities. It may take additional time for your financial institution to  process the refund.",
-	"20.08.2024 / 15:29:21": "20.08.2024 / 15:29:21"
+	"20.08.2024 / 15:29:21": "20.08.2024 / 15:29:21",
+	"Double click to edit": "Double click to edit",
+	"Mixed": "Mixed",
+	"You have unsaved changes. Are you sure you want to leave?": "You have unsaved changes. Are you sure you want to leave?",
+	"Could not fetch templates list. Please try again.": "Could not fetch templates list. Please try again.",
+	"Could not fetch template data. Please try again.": "Could not fetch template data. Please try again.",
+	"All your current edits will be lost. Are you sure?": "All your current edits will be lost. Are you sure?",
+	"Document Deleted Successfully": "Document Deleted Successfully",
+	"Duplicated The Document Successfully": "Duplicated The Document Successfully",
+	"Name Updated Successfully": "Name Updated Successfully",
+	"Could not save the Canvas data": "Could not save the Canvas data",
+	"Updating Cart": "Updating Cart"
 }

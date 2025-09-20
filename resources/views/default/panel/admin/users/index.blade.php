@@ -15,7 +15,7 @@
             datepicker: null,
             init() {
                 this.getInvoices = this.getInvoices.bind(this);
-        
+
                 this.datepicker = new AirDatepicker('#invoices-datepicker', {
                     inline: true,
                     isMobile: window.innerWidth <= 768,
@@ -94,6 +94,7 @@
                 <x-tabler-download class="size-4 text-blue-600" />
                 {{ __('Excel') }}
             </x-button>
+
             <x-button
                 class="flex w-full justify-start rounded-none px-3 py-2 text-2xs shadow-none hover:translate-y-0 hover:bg-foreground/5 hover:text-inherit hover:shadow-none focus-visible:bg-foreground/5 focus-visible:text-inherit"
                 size="none"

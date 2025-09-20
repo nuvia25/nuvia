@@ -111,17 +111,12 @@ trait HasVersionUpdate
 
             Artisan::call('up');
 
-            if (DB::transactionLevel() > 0) {
-                DB::commit();
-            }
-
+            DB::commit();
         } catch (InvalidURLException|ZipException|RuntimeException $e) {
 
             Log::error($e->getMessage());
 
-            if (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
+            DB::rollBack();
 
             $this->rollbackBackup($backupFileName);
 

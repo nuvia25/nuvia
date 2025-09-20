@@ -148,15 +148,21 @@
             class="chat-content-container group relative mb-[7px] max-w-[calc(100%-64px)] rounded-[2em] border-none bg-[#F3E2FD] text-[#090A0A] dark:bg-accent/30 dark:text-accent-foreground">
             <div class="chat-content px-[1.5rem] py-[0.75rem]"></div>
             <div
-                class="lqd-clipboard-copy-wrap group/copy-wrap pointer-events-auto invisible absolute -start-5 bottom-0 opacity-0 transition-all group-hover:!visible group-hover:!opacity-100">
-                <button
-                    class="lqd-clipboard-copy inline-flex size-10 items-center justify-center rounded-full border-none bg-white p-0 text-black shadow-lg transition-all hover:-translate-y-[2px] hover:scale-110"
-                    data-copy-options='{ "content": ".chat-content", "contentIn": "<.chat-content-container" }'
-                    title="{{ __('Copy to clipboard') }}"
-                >
-                    <span class="sr-only">{{ __('Copy to clipboard') }}</span>
-                    <x-tabler-copy class="size-4" />
-                </button>
+                class="lqd-chat-actions-wrap pointer-events-auto invisible absolute -start-5 bottom-0 flex flex-col gap-2 leading-5 opacity-0 transition-all group-hover:!visible group-hover:!opacity-100">
+                <div class="lqd-clipboard-copy-wrap group/copy-wrap flex flex-col gap-2 transition-all">
+                    <button
+                        class="lqd-clipboard-copy group/btn relative inline-flex size-10 items-center justify-center rounded-full border-none bg-white p-0 text-[12px] text-black shadow-lg transition-all hover:-translate-y-[2px] hover:scale-110"
+                        data-copy-options='{ "content": ".chat-content", "contentIn": "<.chat-content-container" }'
+                        title="{{ __('Copy to clipboard') }}"
+                    >
+                        <span
+                            class="absolute end-full top-1/2 me-1 inline-block -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-full bg-white px-3 py-1 font-medium leading-5 opacity-0 shadow-lg transition-all group-hover/btn:translate-x-0 group-hover/btn:opacity-100"
+                        >
+                            {{ __('Copy to clipboard') }}
+                        </span>
+                        <x-tabler-copy class="size-4" />
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -184,15 +190,21 @@
                 <pre
                     class="chat-content relative m-0 w-full whitespace-pre-wrap bg-transparent px-[1.5rem] py-[0.75rem] indent-0 !font-[inherit] text-[1em] text-inherit [word-break:break-word] empty:!hidden"></pre>
                 <div
-                    class="lqd-clipboard-copy-wrap group/copy-wrap pointer-events-auto invisible absolute -end-5 bottom-0 opacity-0 transition-all group-hover:!visible group-hover:!opacity-100">
-                    <button
-                        class="lqd-clipboard-copy inline-flex size-10 items-center justify-center rounded-full border-none bg-white p-0 text-black shadow-lg transition-all hover:-translate-y-[2px] hover:scale-110"
-                        data-copy-options='{ "content": ".chat-content", "contentIn": "<.chat-content-container" }'
-                        title="{{ __('Copy to clipboard') }}"
-                    >
-                        <span class="sr-only">{{ __('Copy to clipboard') }}</span>
-                        <x-tabler-copy class="size-4" />
-                    </button>
+                    class="lqd-chat-actions-wrap pointer-events-auto invisible absolute -end-5 bottom-0 flex flex-col gap-2 opacity-0 transition-all group-hover:!visible group-hover:!opacity-100">
+                    <div class="lqd-clipboard-copy-wrap group/copy-wrap flex flex-col gap-2 transition-all">
+                        <button
+                            class="lqd-clipboard-copy group/btn relative inline-flex size-10 items-center justify-center rounded-full border-none bg-white p-0 text-[12px] text-black shadow-lg transition-all hover:-translate-y-[2px] hover:scale-110"
+                            data-copy-options='{ "content": ".chat-content", "contentIn": "<.chat-content-container" }'
+                            title="{{ __('Copy to clipboard') }}"
+                        >
+                            <span
+                                class="absolute end-full top-1/2 me-1 inline-block -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-full bg-white px-3 py-1 font-medium leading-5 opacity-0 shadow-lg transition-all group-hover/btn:translate-x-0 group-hover/btn:opacity-100"
+                            >
+                                {{ __('Copy to clipboard') }}
+                            </span>
+                            <x-tabler-copy class="size-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

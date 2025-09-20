@@ -3,7 +3,7 @@
         @include('panel.user.generator.components.editor-actions-top-bar')
     </div>
 
-    <div class="rela`tive container">
+    <div class="container relative">
         <div class="mx-auto lg:w-2/3">
             <form
                 class="lqd-tinymce-toolbar-fixed workbook-form pt-[calc(var(--editor-tb-h)+var(--editor-bb-h)+3rem)] max-md:group-[&.lqd-generator-sidebar-collapsed]/generator:ps-8"
@@ -12,15 +12,12 @@
             >
                 <textarea
                     class="tinymce w-full border-none bg-transparent"
-                    id="default"
                     rows="25"
                 >
-
-                    @if (isset($workbook))
+@if (isset($workbook))
 {!! $workbook->output !!}
 @endif
-
-                </textarea>
+				</textarea>
             </form>
         </div>
         <form

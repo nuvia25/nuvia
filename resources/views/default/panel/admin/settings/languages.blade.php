@@ -124,6 +124,10 @@
 >
     {{ __('Malay (Malaysia)') }}</option>
 <option
+	value="mk-MK"
+	{{ $setting->openai_default_language == 'mk-MK' ? 'selected' : null }}
+>{{ __('Macedonian (North Macedonia)') }}</option>
+<option
     value="nb-NO"
     {{ $setting->openai_default_language == 'nb-NO' ? 'selected' : null }}
 >

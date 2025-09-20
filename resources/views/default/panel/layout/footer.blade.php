@@ -2,7 +2,7 @@
     <div class="container">
         <div class="flex flex-wrap items-center gap-4 md:flex-nowrap">
             <div class="order-2 grow basis-full md:order-first md:basis-0 lg:ms-auto">
-                <p>{{ __('Version') }}: {{ format_double($setting->script_version) }}</p>
+                <p>{{ __('Version') }}: {{ getVersion($setting->script_version) }}</p>
                 @if (Config::get('app.show_load_time') === true)
 					{{ __('Load time') }}:
                     {{ microtime(true) - LARAVEL_START }}

@@ -43,7 +43,7 @@
                                         <path d="M15 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
                                     </svg>
                                 </span>
-                                <span>{{ $menu_item['title'] }}</span>
+                                <span>{{ __($menu_item['title']) }}</span>
                                 <small class="me-auto opacity-60">{{ $menu_item['url'] }}</small>
                                 <div class="accordion-controls flex items-center">
                                     <div class="menu-delete inline-flex size-10 cursor-pointer items-center justify-center rounded-md hover:bg-red-100 hover:text-red-500">
@@ -107,7 +107,7 @@
                                                 <option
                                                     value="{{ $mega_menu->id }}"
                                                     {{ isset($menu_item['mega_menu_id']) && $menu_item['mega_menu_id'] == $mega_menu->id ? 'selected' : '' }}
-                                                >{{ $mega_menu->name }}</option>
+                                                >{{ __($mega_menu->name) }}</option>
                                             @endforeach
                                         </select>
                                     </div>

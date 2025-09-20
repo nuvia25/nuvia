@@ -51,9 +51,7 @@
 @endpush
 
 <div
-    class="lqd-generator-sidebar-backdrop visible fixed inset-0 z-30 flex items-center justify-center bg-background/90 ps-[--sidebar-w] opacity-100 transition-opacity duration-300"
-    x-init
-    :class="{ 'opacity-100': !sideNavCollapsed, 'opacity-0': sideNavCollapsed, 'invisible': sideNavCollapsed }"
+    class="lqd-generator-sidebar-backdrop visible fixed inset-0 z-30 flex items-center justify-center bg-background/90 ps-[--sidebar-w] opacity-100 transition-opacity duration-300 group-[&.lqd-generator-sidebar-collapsed]/generator:invisible group-[&.lqd-generator-sidebar-collapsed]/generator:opacity-0"
     @click="toggleSideNavCollapse('collapse')"
 >
     <div class="flex max-w-sm cursor-pointer flex-col items-center justify-center gap-5 px-8 text-center max-md:hidden">
@@ -76,11 +74,10 @@
 <div
     class="lqd-generator-sidebar group/sidebar fixed bottom-0 start-0 top-[--editor-tb-h] z-40 w-[--sidebar-w] translate-x-0 bg-background shadow-[2px_4px_26px_rgba(0,0,0,0.05)] transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.49,1.0)] group-[&.lqd-generator-sidebar-collapsed]/generator:-translate-x-[calc(100%-35px)] rtl:group-[&.lqd-generator-sidebar-collapsed]/generator:translate-x-[calc(100%-35px)]">
     <button
-        class="lqd-generator-sidebar-toggle size-5 absolute -end-2.5 top-16 z-10 flex origin-center translate-x-0 items-center justify-center rounded-full bg-heading-foreground/15 p-0 text-heading-foreground/90 transition-colors hover:bg-heading-foreground hover:text-background max-lg:top-1/2 max-lg:-translate-y-1/2 max-md:!h-7 max-md:!w-7"
+        class="lqd-generator-sidebar-toggle absolute -end-2.5 top-16 z-10 flex size-5 origin-center translate-x-0 items-center justify-center rounded-full bg-heading-foreground/15 p-0 text-heading-foreground/90 transition-colors hover:bg-heading-foreground hover:text-background group-[&.lqd-generator-sidebar-collapsed]/generator:rotate-180 max-lg:top-1/2 max-lg:-translate-y-1/2 max-md:!h-7 max-md:!w-7"
         @click.prevent="toggleSideNavCollapse()"
-        :class="{ 'rotate-180': sideNavCollapsed }"
     >
-        <span class="size-10 absolute start-1/2 top-1/2 inline-block -translate-x-1/2 -translate-y-1/2"></span>
+        <span class="absolute start-1/2 top-1/2 inline-block size-10 -translate-x-1/2 -translate-y-1/2"></span>
         <x-tabler-chevron-left class="size-4 rtl:rotate-180" />
     </button>
 
@@ -90,7 +87,7 @@
             <p class="lqd-step flex items-center justify-between gap-4 text-sm font-semibold">
                 <span class="flex items-center justify-between gap-3">
                     <span
-                        class="size-5 inline-flex items-center justify-center rounded-md bg-primary text-[12px] font-medium text-primary-foreground"
+                        class="inline-flex size-5 items-center justify-center rounded-md bg-primary text-[12px] font-medium text-primary-foreground"
                         x-text="generatorStep + 1"
                     >
                         1
@@ -110,7 +107,7 @@
                 </span>
 
                 <button
-                    class="size-6 hidden cursor-default items-center justify-center p-0 text-inherit [&.active]:flex"
+                    class="hidden size-6 cursor-default items-center justify-center p-0 text-inherit [&.active]:flex"
                     {{-- :class="{ 'active': generatorStep === 0 }" --}}
                 >
                     <svg
@@ -137,7 +134,7 @@
                 </button>
 
                 <button
-                    class="size-6 hidden items-center justify-center rounded-md p-0 text-inherit transition-all hover:bg-foreground/5 [&.active]:flex"
+                    class="hidden size-6 items-center justify-center rounded-md p-0 text-inherit transition-all hover:bg-foreground/5 [&.active]:flex"
                     :class="{ 'active': generatorStep === 1 }"
                     @click.prevent="setGeneratorStep(0)"
                 >
@@ -248,7 +245,7 @@
                                         }"
                                     >
                                         <span
-                                            class="size-9 [&_svg]:size-5 relative flex items-center justify-center rounded-full bg-white shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+                                            class="relative flex size-9 items-center justify-center rounded-full bg-white shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg [&_svg]:size-5"
                                         >
                                             @if ($item->image !== 'none')
                                                 <span class="inline-block transition-all duration-300 group-hover:scale-110">
@@ -274,51 +271,51 @@
                                         </div>
 
                                         @if ($item->active == 1)
-                                            <div class="@if ($upgrade) bg-background opacity-75 @endif size-full absolute left-0 top-0 z-2 transition-all">
+                                            <div class="@if ($upgrade) bg-background opacity-75 @endif absolute left-0 top-0 z-2 size-full transition-all">
                                                 @if ($upgrade)
                                                     <div class="absolute right-2 top-2 z-10 rounded-md bg-[#E2FFFC] px-2 py-0.5 font-medium text-black">
                                                         {{ __('Upgrade') }}
                                                     </div>
                                                     <a
-                                                        class="size-full absolute left-0 top-0 inline-block overflow-hidden text-start -indent-[99999px]"
-                                                        href="{{  (route('dashboard.user.payment.subscription')) }}"
+                                                        class="absolute left-0 top-0 inline-block size-full overflow-hidden text-start -indent-[99999px]"
+                                                        href="{{ route('dashboard.user.payment.subscription') }}"
                                                     >
                                                         {{ __('Upgrade') }}
                                                     </a>
                                                 @elseif($item->type == 'text' or $item->type == 'code')
                                                     @if ($item->slug == 'ai_article_wizard_generator')
                                                         <a
-                                                            class="size-full absolute left-0 top-0 inline-block overflow-hidden text-start -indent-[99999px]"
-                                                            href="{{  (route('dashboard.user.openai.articlewizard.new')) }}"
+                                                            class="absolute left-0 top-0 inline-block size-full overflow-hidden text-start -indent-[99999px]"
+                                                            href="{{ route('dashboard.user.openai.articlewizard.new') }}"
                                                         >
                                                             {{ __('Create Workbook') }}
                                                         </a>
                                                     @else
                                                         <a
-                                                            class="size-full absolute left-0 top-0 inline-block overflow-hidden text-start -indent-[99999px]"
-                                                            href="{{  (route('dashboard.user.openai.generator.workbook', $item->slug)) }}"
+                                                            class="absolute left-0 top-0 inline-block size-full overflow-hidden text-start -indent-[99999px]"
+                                                            href="{{ route('dashboard.user.openai.generator.workbook', $item->slug) }}"
                                                         >
                                                             {{ __('Create Workbook') }}
                                                         </a>
                                                     @endif
                                                 @elseif($item->type == 'voiceover' || $item->type == 'isolator')
                                                     <a
-                                                        class="size-full absolute left-0 top-0 inline-block overflow-hidden text-start -indent-[99999px]"
-                                                        href="{{  (route('dashboard.user.openai.generator', $item->slug)) }}"
+                                                        class="absolute left-0 top-0 inline-block size-full overflow-hidden text-start -indent-[99999px]"
+                                                        href="{{ route('dashboard.user.openai.generator', $item->slug) }}"
                                                     >
                                                         {{ __('Create Workbook') }}
                                                     </a>
                                                 @elseif($item->type == 'image')
                                                     <a
-                                                        class="size-full absolute left-0 top-0 inline-block overflow-hidden text-start -indent-[99999px]"
-                                                        href="{{  (route('dashboard.user.openai.generator', $item->slug)) }}"
+                                                        class="absolute left-0 top-0 inline-block size-full overflow-hidden text-start -indent-[99999px]"
+                                                        href="{{ route('dashboard.user.openai.generator', $item->slug) }}"
                                                     >
                                                         {{ __('Create') }}
                                                     </a>
                                                 @elseif($item->type == 'audio')
                                                     <a
-                                                        class="size-full absolute left-0 top-0 inline-block overflow-hidden text-start -indent-[99999px]"
-                                                        href="{{  (route('dashboard.user.openai.generator', $item->slug)) }}"
+                                                        class="absolute left-0 top-0 inline-block size-full overflow-hidden text-start -indent-[99999px]"
+                                                        href="{{ route('dashboard.user.openai.generator', $item->slug) }}"
                                                     >
                                                         {{ __('Create') }}
                                                     </a>

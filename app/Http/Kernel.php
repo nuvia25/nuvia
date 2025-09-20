@@ -69,6 +69,7 @@ class Kernel extends HttpKernel
         'throttle'              => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified'              => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'admin'                 => \App\Http\Middleware\AdminPermissionMiddleware::class,
+        'is_not_demo'           => \App\Http\Middleware\DemoCheckMiddleware::class,
         'newExtensionInstalled' => \App\Domains\Marketplace\Http\Middleware\NewExtensionInstalled::class,
     ];
 

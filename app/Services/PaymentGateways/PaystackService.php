@@ -429,14 +429,11 @@ class PaystackService
             $taxValue = taxToVal($plan->price, $taxRate);
 
             $newDiscountedPrice = $plan->price;
-            $couponCode = request()->input('coupon');
-            if ($couponCode) {
-                $coupone = Coupon::where('code', $couponCode)->first();
-                if ($coupone) {
-                    $newDiscountedPrice = $plan->price - ($plan->price * ($coupone->discount / 100));
-                    if ($newDiscountedPrice != floor($newDiscountedPrice)) {
-                        $newDiscountedPrice = number_format($newDiscountedPrice, 2);
-                    }
+            $coupone = checkCouponInRequest();
+            if ($coupone) {
+                $newDiscountedPrice = $plan->price - ($plan->price * ($coupone->discount / 100));
+                if ($newDiscountedPrice != floor($newDiscountedPrice)) {
+                    $newDiscountedPrice = number_format($newDiscountedPrice, 2);
                 }
                 // remove tax when coupon is applied because its included in the plan price.
                 $newDiscountedPrice -= $taxValue;

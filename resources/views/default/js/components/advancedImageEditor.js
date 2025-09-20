@@ -16,6 +16,7 @@ export default (options = {}) => {
 		task: false,
 		currentView: 'home',
 		sidebarCollapsed: false,
+		toolbarCollapsed: false,
 		modalShow: false,
 		activeModal: null,
 		activeModalId: null,
@@ -152,6 +153,7 @@ export default (options = {}) => {
 		init() {
 			this.onViewChange = this.onViewChange.bind(this);
 			this.onZoomLevelChange = this.onZoomLevelChange.bind(this);
+			this.onCreativeSuiteStageInitiated = this.onCreativeSuiteStageInitiated.bind(this);
 			this.makeCanvasEditable = this.makeCanvasEditable.bind(this);
 			this.startPainting = this.startPainting.bind(this);
 			this.stopPainting = this.stopPainting.bind(this);
@@ -162,10 +164,14 @@ export default (options = {}) => {
 			this.$watch('currentView', this.onViewChange);
 			this.$watch('zoomLevel', this.onZoomLevelChange);
 
+			if ( this.creativeSuite ) {
+				this.$watch('creativeSuite.stageInitiated', this.onCreativeSuiteStageInitiated);
+			}
+
 			const urlParams = new URLSearchParams(window.location.search);
 			if (urlParams.has('action')) {
 				const action = urlParams.get('action');
-				let tools = ['merge_face', 'uncrop', 'reimagine','remove_background', 'cleanup', 'upscale', 'replace_background', 'sketch_to_image', 'remove_text', 'inpainting', 'style_transfer', 'image_relight'];
+				let tools = [ 'merge_face', 'uncrop', 'reimagine', 'remove_background', 'cleanup', 'upscale', 'replace_background', 'sketch_to_image', 'remove_text', 'inpainting', 'style_transfer', 'image_relight' ];
 				if (tools.includes(action)) {
 					this.currentView = 'editor';
 					this.switchToolsCat({ toolKey: action });
@@ -175,6 +181,8 @@ export default (options = {}) => {
 		},
 
 		switchView(view) {
+			if ( this.creativeSuite?.editingTextNode ) return;
+
 			if (view === '<') {
 				this.currentView = this.prevViews.pop() || 'home';
 				return;
@@ -335,8 +343,7 @@ export default (options = {}) => {
 			formData.append('image', files[0]);
 			formData.append('reimagine', files[0]);
 
-
-			if (['reimagine'].includes(this.selectedTool)) {
+			if ([ 'reimagine' ].includes(this.selectedTool)) {
 				if ( this.$refs.promptInput ) {
 					this.$refs.promptInput.disabled = true;
 					this.$refs.promptInput.placeholder = 'Analyzing image... Please wait...';
@@ -444,8 +451,6 @@ export default (options = {}) => {
 		submitEditorForm(event) {
 			this.busy = true;
 
-			console.log(event.target);
-
 			const formData = new FormData(event.target);
 
 			fetch(event.target.action, {
@@ -497,7 +502,7 @@ export default (options = {}) => {
 				})
 				.catch(error => {
 					console.log(error);
-					toastr.error(error);
+					toastr.error(error?.message || error);
 				})
 				.finally(() => {
 					if (!this.task) {
@@ -548,7 +553,7 @@ export default (options = {}) => {
 					}, 1000);
 				}
 			}).catch(error => {
-				toastr.error(error);
+				toastr.error(error?.message || error);
 			});
 		},
 
@@ -646,6 +651,15 @@ export default (options = {}) => {
 		},
 		focusOnPrompt() {
 			this.$nextTick(() => this.$refs.promptInput.focus());
+		},
+
+		onCreativeSuiteStageInitiated(initiated) {
+			if ( !initiated ) return;
+
+			_.defer(() => {
+				// this.sidebarCollapsed = true;
+				this.toolbarCollapsed = true;
+			});
 		}
 	});
 };

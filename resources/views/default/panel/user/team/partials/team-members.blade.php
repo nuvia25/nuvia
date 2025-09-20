@@ -13,9 +13,6 @@
             <th>
                 @lang('Role')
             </th>
-            <th>
-                @lang('Images / Words')
-            </th>
             <th class="text-end">
                 @lang('Actions')
             </th>
@@ -50,21 +47,6 @@
                 </td>
                 <td>
                     {{ $member->role ?: __('unknown') }}
-                </td>
-                <td>
-                    <p class="m-0">
-                        @if ($member->remaining_images)
-                            {{ $member->remaining_images }}
-                        @else
-                            {{ $user->remaining_images }}
-                        @endif
-                        /
-                        @if ($member->remaining_words)
-                            {{ $member->remaining_words }}
-                        @else
-                            {{ $user->remaining_words }}
-                        @endif
-                    </p>
                 </td>
                 <td class="whitespace-nowrap text-end">
                     <x-button

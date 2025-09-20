@@ -1,10 +1,14 @@
+@php
+    $trigger_classname = @twMerge('flex size-6 items-center justify-center max-lg:size-10 max-lg:rounded-full max-lg:border max-lg:dark:bg-white/[3%]', $attributes->get('class:trigger'));
+@endphp
+
 <x-dropdown.dropdown
     {{ $attributes->twMerge('header-language-dropdown') }}
     anchor="end"
     offsetY="26px"
 >
     <x-slot:trigger
-        {{ $attributes->twMergeFor('trigger', 'size-6 max-lg:size-10 max-lg:border max-lg:dark:bg-white/[3%]') }}
+        class="{{ $trigger_classname }}"
         size="none"
     >
         <x-tabler-world stroke-width="1.5" />

@@ -54,6 +54,7 @@
                         class="form-control"
                         id="advanced_features_image_{{ $item['id'] }}"
                         type="file"
+						accept="image/*"
                         name="advanced_features_image_{{ $item['id'] }}"
                         value="{{ $item['image'] }}"
                 >

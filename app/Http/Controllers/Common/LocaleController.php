@@ -11,7 +11,7 @@ class LocaleController extends Controller
     {
         Localization::setLocale($lang);
 
-        return redirect()->back()->with([
+        return redirect('/')->with([
             'type'    => 'success',
             'message' => trans('Change language'),
         ]);

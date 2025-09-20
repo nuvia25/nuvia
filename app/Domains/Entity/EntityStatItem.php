@@ -9,6 +9,7 @@ use App\Domains\Entity\Contracts\EntityDriverInterface;
 use App\Domains\Entity\Contracts\WithCreditInterface;
 use App\Domains\Entity\Facades\Entity;
 use App\Models\Plan;
+use App\Models\Team\Team;
 use App\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Collection;
@@ -21,6 +22,8 @@ class EntityStatItem
     private bool $includeUnlisted = false;
 
     private ?Plan $plan = null;
+
+    private ?Team $team = null;
 
     private ?EngineEnum $filterByEngine = null;
 
@@ -36,6 +39,13 @@ class EntityStatItem
     public function forPlan(?Plan $plan): self
     {
         $this->plan = $plan;
+
+        return $this;
+    }
+
+    public function forTeam(?Team $team): self
+    {
+        $this->team = $team;
 
         return $this;
     }
@@ -60,14 +70,14 @@ class EntityStatItem
     public function totalCredits(): float
     {
         return $this->list()->sum(
-            fn (WithCreditInterface $driver) => $driver->forUser($this->getUser())->forPlan($this->plan)->creditBalance()
+            fn (WithCreditInterface $driver) => $driver->forUser($this->getUser())->forPlan($this->plan)->forTeam($this->team)->creditBalance()
         );
     }
 
     public function totalCreditsForGroup(): float
     {
         return $this->list()->sum(
-            fn (WithCreditInterface $driver) => $driver->forUser($this->getUser())->forPlan($this->plan)->getCreditBalance()
+            fn (WithCreditInterface $driver) => $driver->forUser($this->getUser())->forPlan($this->plan)->forTeam($this->team)->getCreditBalance()
         );
     }
 
@@ -81,7 +91,7 @@ class EntityStatItem
     public function checkIfThereUnlimitedForGroup(): bool
     {
         return $this->list()->contains(
-            fn (WithCreditInterface $driver) => $driver->forUser($this->getUser())->forPlan($this->plan)->getIsUnlimitedCredit()
+            fn (WithCreditInterface $driver) => $driver->forUser($this->getUser())->forPlan($this->plan)->forTeam($this->team)->getIsUnlimitedCredit()
         );
     }
 
@@ -118,7 +128,7 @@ class EntityStatItem
                 $this->forUser(Auth::user());
             }
 
-            return Entity::all(filterByEngine: $this->filterByEngine, user: $this->user, plan: $this->plan);
+            return Entity::all(filterByEngine: $this->filterByEngine, user: $this->user, plan: $this->plan, team: $this->team);
         });
     }
 }

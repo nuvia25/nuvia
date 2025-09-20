@@ -1,8 +1,8 @@
 @if($item['is_buy'])
-	@if(in_array($item['slug'], ['chatbot-agent', 'chatbot-voice']) || in_array($item['slug'], ['whatsapp', 'telegram', 'facebook', 'instagram']))
-		@if(\App\Helpers\Classes\MarketplaceHelper::isRegistered('chatbot'))
+	@if(isset($item['parent']))
+		@if(\App\Helpers\Classes\MarketplaceHelper::isRegistered($item['parent']['slug']))
 			@if(in_array($item['slug'], ['whatsapp', 'telegram', 'facebook', 'instagram']))
-				@if(\App\Helpers\Classes\MarketplaceHelper::getDbVersion('chatbot') >= 3)
+				@if(\App\Helpers\Classes\MarketplaceHelper::getDbVersion($item['parent']['slug']) >= $item['parent']['min_version'])
 					@if($item['only_premium'])
 						@if($item['check_subscription'])
 							<x-button
@@ -39,7 +39,7 @@
 						class="w-full"
 						size="lg"
 						href="#"
-						onclick="return toastr.info('This extension requires an external chatbot for its 3.0 version.')"
+						onclick="return toastr.info('{{ $item['parent']['min_version_message'] }}')"
 					>
 						{{ __('Buy Now') }}
 					</x-button>
@@ -81,7 +81,7 @@
 				class="w-full"
 				size="lg"
 				href="#"
-				onclick="return toastr.info('External Chatbot is required for this extension.')"
+				onclick="return toastr.info('{{ $item['parent']['message'] }}')"
 			>
 				{{ __('Buy Now') }}
 			</x-button>

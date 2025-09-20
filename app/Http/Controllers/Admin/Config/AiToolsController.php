@@ -76,6 +76,8 @@ class AiToolsController extends Controller
         setting(
             [
                 'default_ai_engine'               => $request->get('default_ai_engine'),
+                'default_ai_influencer_tool'      => $request->get('ai_influencer_tool'),
+                'default_ai_clip_tool'      	     => $request->get('ai_clip_tool'),
                 'default_photo_studio'            => $request->get('default_photo_studio'),
                 'default_aw_image_engine'         => $request->get('default_aw_image_engine'),
                 'default_voice_chat_engine'		     => $request->get('voice_chat_engine'),
@@ -89,6 +91,7 @@ class AiToolsController extends Controller
                 'ai_automation'                   => $request->has('ai_automation') ? 1 : 0,
                 'photo_studio'                    => $request->has('photo_studio') ? 1 : 0,
                 'ai_realtime_image'               => $request->has('ai_realtime_image') ? 1 : 0,
+                'social_media_image_model'        => $request->has('social_media_image_model') ? $request->get('social_media_image_model') : setting('social_media_image_model'),
             ]
         )->save();
 

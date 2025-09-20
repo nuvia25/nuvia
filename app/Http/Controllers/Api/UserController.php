@@ -217,15 +217,15 @@ class UserController extends Controller
             $path = 'upload/images/avatar/';
             $image = $request->file('avatar');
 
-            if ($image->getClientOriginalExtension() == 'svg') {
+            if ($image->guessExtension() == 'svg') {
                 $image = self::sanitizeSVG($request->file('avatar'));
             }
 
-            $image_name = Str::random(4) . '-' . Str::slug($user?->fullName()) . '-avatar.' . $image->getClientOriginalExtension();
+            $image_name = Str::random(4) . '-' . Str::slug($user?->fullName()) . '-avatar.' . $image->guessExtension();
 
             // Image extension check
             $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-            if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+            if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                 return response()->json(['error' => __('The file extension must be jpg, jpeg, png, webp or svg.')], 419);
             }
 

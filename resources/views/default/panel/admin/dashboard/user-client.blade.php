@@ -20,15 +20,15 @@
         </div>
         <x-button
             variant="link"
-            href="{{ route('dashboard.admin.clients.index') }}"
+            href="{{ route('dashboard.admin.users.index') }}"
         >
             <span class="text-nowrap font-bold text-foreground"> {{ __('View User Clients') }} </span>
             <x-tabler-chevron-right class="size-4 rtl:rotate-180" />
         </x-button>
     </x-slot:head>
     @php
-        $mobileCount = cache('user_behavior_data')[0]['value'];
-        $desktopCount = cache('user_behavior_data')[1]['value'];
+        $mobileCount = \App\Helpers\Classes\Helper::appIsDemo() ? 44 : cache('user_behavior_data')[0]['value'];
+        $desktopCount = \App\Helpers\Classes\Helper::appIsDemo() ? 63 : cache('user_behavior_data')[1]['value'];
 
         $all = $mobileCount + $desktopCount;
         if ($all == 0) {

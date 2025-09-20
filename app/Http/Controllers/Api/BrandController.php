@@ -166,10 +166,10 @@ class BrandController extends Controller
         if ($request->hasFile('c_logo')) {
             $path = 'upload/images/companies/';
             $image = $request->file('c_logo');
-            $image_name = Str::random(4) . '-' . Str::slug($request->c_name) . '-logo.' . $image->getClientOriginalExtension();
+            $image_name = Str::random(4) . '-' . Str::slug($request->c_name) . '-logo.' . $image->guessExtension();
 
             $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-            if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+            if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                 $data = [
                     'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                 ];

@@ -9,10 +9,10 @@
     $title_base_class = 'lqd-titlebar-title m-0';
     $subtitle_base_class = 'lqd-titlebar-subtitle mt-1 text-2xs opacity-80 only:my-0 last:mb-0';
     $actions_base_class = 'lqd-titlebar-actions flex flex-wrap items-center gap-2';
-    $generator_link = route('dashboard.user.openai.list') === $current_url ? '#lqd-generators-filter-list' :  (route('dashboard.user.openai.list'));
-	if (! $setting->feature_ai_writer) {
-		$generator_link = route('dashboard.index');
-	}
+    $generator_link = route('dashboard.user.openai.list') === $current_url ? '#lqd-generators-filter-list' : route('dashboard.user.openai.list');
+    if (!$setting->feature_ai_writer) {
+        $generator_link = route('dashboard.index');
+    }
     $wide_container_px = Theme::getSetting('wideLayoutPaddingX', '');
     $has_title = true;
     $has_pretitle = true;
@@ -72,7 +72,7 @@
                             <x-button
                                 class="text-inherit hover:text-foreground"
                                 variant="link"
-                                href="{{  (route('dashboard.index')) }}"
+                                href="{{ route('dashboard.index') }}"
                             >
                                 <x-tabler-chevron-left
                                     class="size-4"
@@ -85,9 +85,18 @@
                 </p>
             @endif
             @if ($has_title)
-                <h1 {{ $attributes->twMergeFor('title', $title_base_class) }}>
-                    @yield($title_section_name)
-                </h1>
+                @if (view()->hasSection('titlebar_title_after'))
+                    <div class="lqd-titlebar-title-wrap">
+                        <h1 {{ $attributes->twMergeFor('title', $title_base_class) }}>
+                            @yield($title_section_name)
+                        </h1>
+                        @yield('titlebar_title_after')
+                    </div>
+                @else
+                    <h1 {{ $attributes->twMergeFor('title', $title_base_class) }}>
+                        @yield($title_section_name)
+                    </h1>
+                @endif
             @endif
             @if ($has_subtitle)
                 <p {{ $attributes->twMergeFor('subtitle', $subtitle_base_class) }}>
@@ -116,7 +125,7 @@
         </div>
 
         <div
-            class="lqd-titlebar-col lqd-titlebar-col-actions group/titlebar-actions max-lg:has-[.max-lg\:hidden:only-child]:hidden flex w-full flex-wrap gap-y-3 lg:w-5/12 lg:justify-end">
+            class="lqd-titlebar-col lqd-titlebar-col-actions group/titlebar-actions flex w-full flex-wrap gap-y-3 max-lg:has-[.max-lg\:hidden:only-child]:hidden lg:w-5/12 lg:justify-end">
             @hasSection('titlebar_actions_before')
                 @yield('titlebar_actions_before')
             @endif
@@ -150,7 +159,7 @@
                     @else
                         <x-button
                             variant="ghost-shadow"
-                            href="{{  (route('dashboard.user.openai.documents.all')) }}"
+                            href="{{ route('dashboard.user.openai.documents.all') }}"
                         >
                             {{ __('My Documents') }}
                         </x-button>

@@ -8,6 +8,7 @@ use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Entity\Enums\EntityEnum;
 use App\Models\Plan;
 use App\Models\Setting;
+use App\Models\Team\Team;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Manager;
@@ -58,21 +59,30 @@ class EntityManager extends Manager
         return $this->driver($driver)->forPlan($plan);
     }
 
+    public function driverForTeam(Team $team, ?EntityEnum $driver = null): BaseDriver
+    {
+        return $this->driver($driver)->forTeam($team);
+    }
+
     public function driverForGuest(?EntityEnum $driver = null): BaseDriver
     {
         return $this->driver($driver)->forGuest();
     }
 
-    public function all(?EngineEnum $filterByEngine = null, ?User $user = null, bool $onlyListableCases = false, ?Plan $plan = null): Collection
+    public function all(?EngineEnum $filterByEngine = null, ?User $user = null, bool $onlyListableCases = false, ?Plan $plan = null, ?Team $team = null): Collection
     {
-        return once(function () use ($filterByEngine, $user, $onlyListableCases, $plan) {
+        return once(function () use ($filterByEngine, $user, $onlyListableCases, $plan, $team) {
             return collect(EntityEnum::cases())
                 ->when($filterByEngine, static function ($collect) use ($filterByEngine) {
                     return $collect->filter(fn ($entity) => $entity->engine() === $filterByEngine)->values();
                 })
-                ->map(function ($entity) use ($user, $plan) {
+                ->map(function ($entity) use ($user, $plan, $team) {
                     if ($plan) {
                         return $this->driverForPlan($plan, $entity);
+                    }
+
+                    if ($team && $team?->allow_seats > 0) {
+                        return $this->driverForTeam($team, $entity);
                     }
 
                     if ($user) {

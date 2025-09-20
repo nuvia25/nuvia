@@ -133,7 +133,7 @@
             height: 100%;
         }
 
-        #lqd-ext-chatbot-welcome-bubble {
+        #lqd-ext-chatbot-trigger-bubble {
             padding: 12px 16px;
             border-radius: 12px;
             position: absolute;
@@ -149,7 +149,7 @@
             transform: translateY(6px);
             transition: all 0.15s;
         }
-         #lqd-ext-chatbot-welcome-bubble:before {
+         #lqd-ext-chatbot-trigger-bubble:before {
             content: '';
             display: inline-block;
             width: 100%;
@@ -161,7 +161,7 @@
             opacity: 0.05;
             border-radius: inherit;
         }
-        #lqd-ext-chatbot-welcome-bubble p {
+        #lqd-ext-chatbot-trigger-bubble p {
             position: relative;
             z-index: 1;
             margin: 0;
@@ -173,7 +173,7 @@
         }
 
         #lqd-ext-chatbot-wrap[data-ready=true] #lqd-ext-chatbot-trigger,
-        #lqd-ext-chatbot-wrap[data-ready=true] #lqd-ext-chatbot-welcome-bubble {
+        #lqd-ext-chatbot-wrap[data-ready=true] #lqd-ext-chatbot-trigger-bubble {
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
@@ -198,7 +198,7 @@
             opacity: 0;
             transform: translateY(-3px);
         }
-        #lqd-ext-chatbot-wrap[data-window-state=open] #lqd-ext-chatbot-welcome-bubble {
+        #lqd-ext-chatbot-wrap[data-window-state=open] #lqd-ext-chatbot-trigger-bubble {
             transform: scale(0.95);
             opacity: 0;
             visibility: hidden;
@@ -218,7 +218,7 @@
             transform-origin: bottom right;
         }
 
-        #lqd-ext-chatbot-wrap[data-pos-x=right] #lqd-ext-chatbot-welcome-bubble {
+        #lqd-ext-chatbot-wrap[data-pos-x=right] #lqd-ext-chatbot-trigger-bubble {
             left: auto;
             right: 0;
         }
@@ -233,7 +233,7 @@
             flex-direction: column-reverse;
         }
 
-        #lqd-ext-chatbot-wrap[data-pos-y=top] #lqd-ext-chatbot-welcome-bubble {
+        #lqd-ext-chatbot-wrap[data-pos-y=top] #lqd-ext-chatbot-trigger-bubble {
             bottom: auto;
             top: calc(var(--lqd-ext-chat-trigger-h) + var(--lqd-ext-chat-window-y-offset));
         }
@@ -277,7 +277,7 @@
         `}
     </div>
     ${config.welcome_message && config.welcome_message !== '' ?
-		`<div id="lqd-ext-chatbot-welcome-bubble">
+		`<div id="lqd-ext-chatbot-trigger-bubble">
                 <p>
                     ${config.welcome_message}
                 </p>

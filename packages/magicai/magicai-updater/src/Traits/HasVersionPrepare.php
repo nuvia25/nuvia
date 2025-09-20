@@ -2,6 +2,8 @@
 
 namespace MagicAI\Updater\Traits;
 
+use App\Helpers\Classes\VersionComparator;
+
 trait HasVersionPrepare
 {
     public bool|string $currentMagicAIVersion = '';
@@ -28,7 +30,7 @@ trait HasVersionPrepare
 
         $this->setZipFile();
 
-        if (version_compare($this->nextVersion, $this->currentMagicAIVersion(), '>')) {
+        if (VersionComparator::compareVersion($this->nextVersion, $currentMagicAIVersion, '>')) {
             $lastVersion['update'] = 'yes'; // Trigger the new version available.
             $lastVersion['version'] = $this->nextVersion;
             $lastVersion['latest_version'] = format_double($this->latestVersion);
@@ -49,7 +51,7 @@ trait HasVersionPrepare
 
     public function setNextVersion(array $versions, string $currentMagicAIVersion): string
     {
-        sort($versions, SORT_NATURAL); // 5.3, 5.31, 5.4, 5.41
+        $versions = array_reverse($versions); // 5.3, 5.31, 5.4, 5.41
 
         foreach ($versions as $version) {
             if ($version > $currentMagicAIVersion) {
@@ -62,7 +64,7 @@ trait HasVersionPrepare
 
     public function setLatestVersion(array $versions, string $currentMagicAIVersion): string
     {
-        sort($versions, SORT_NATURAL); // 5.3, 5.31, 5.4, 5.41
+        $versions = array_reverse($versions); // 5.3, 5.31, 5.4, 5.41
 
         $latestVersion = end($versions);
 
@@ -81,18 +83,13 @@ trait HasVersionPrepare
 
         $formatted = array_map(function ($version) {
             $parts = explode('.', $version);
-
-            // Eğer 3 parçalıysa: major.minor.patch => "8.70"
             if (count($parts) === 3) {
                 return (float) ($parts[0] . '.' . $parts[1] . $parts[2]);
             }
-
-            // Eğer 2 parçalıysa: major.minor => "7.20"
             if (count($parts) === 2) {
                 return (float) ($parts[0] . '.' . $parts[1]);
             }
 
-            // Tek parçalıysa => "7"
             return (float) ($parts[0]);
         }, $versionList);
 

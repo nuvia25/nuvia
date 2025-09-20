@@ -58,7 +58,7 @@
                         >
                         <a
                             class="absolute inset-0 flex scale-110 items-center justify-center bg-foreground/40 text-background opacity-0 backdrop-blur-sm transition-all group-hover:scale-100 group-hover:opacity-100"
-                            href="https://{{ $theme['slug'] == 'default' ? 'magicai.liquid-themes.com' : $theme['slug'] . '.projecthub.ai' }}"
+                            href="{!! isset($theme['routes']['preview']) ? $theme['routes']['preview'] : '' !!}"
                             target="_blank"
                         >
                             <x-tabler-zoom-in class="size-10" />

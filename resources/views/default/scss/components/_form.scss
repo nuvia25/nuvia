@@ -81,8 +81,15 @@ input::file-selector-button {
 	background-color: hsl(var(--foreground) / 0.1);
 	color: hsl(var(--foreground));
 	border: none;
+	border-radius: 3px;
 	padding: theme('size.1') theme('size.3');
 	margin-inline-end: theme('size.2');
+}
+
+.ts-control,
+.ts-control input,
+.ts-dropdown {
+	@apply text-foreground sm:text-sm;
 }
 
 .lqd-input {
@@ -94,7 +101,7 @@ input::file-selector-button {
 			&.has-items {
 
 				.ts-control {
-					@apply flex flex-wrap gap-0.5 items-center p-0;
+					@apply flex flex-wrap gap-0.5 items-center p-0 overflow-auto;
 
 					>div {
 						@apply bg-foreground/10 text-foreground rounded-full m-0 px-1.5 py-0.5;
@@ -362,6 +369,24 @@ input::file-selector-button {
 /* Firefox */
 .lqd-input-stepper[type=number] {
 	-moz-appearance: textfield;
+}
+
+.lqd-input-color-wrap {
+	--cp-size: theme('spacing.5');
+	--cp-border-color: theme('colors.input.border');
+
+	&.color-picker {
+		@apply border-none p-0 rounded-full;
+		border-width: 1px !important;
+	}
+
+	.cp_button {
+		border-radius: inherit;
+	}
+
+	.cp_caret {
+		@apply opacity-0;
+	}
 }
 
 html[dir='rtl'] {

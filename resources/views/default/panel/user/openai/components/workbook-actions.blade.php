@@ -25,7 +25,7 @@
         </button>
     @endif
     @if ($type !== 'code')
-        @if ($type === 'image')
+        @if ($type === 'image' || $type === 'video')
             <a
                 class="inline-flex size-7 items-center justify-center rounded-sm transition-colors hover:bg-foreground/5"
                 href="{{ $output }}"

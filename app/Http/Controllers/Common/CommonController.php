@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Common;
 
+use App\Helpers\Classes\Helper;
 use App\Helpers\Classes\Localization;
 use App\Http\Controllers\Controller;
 use App\Models\SettingTwo;
@@ -101,6 +102,10 @@ class CommonController extends Controller
 
     public function translationsLangSave(Request $request)
     {
+        if (Helper::appIsDemo()) {
+            return response()->json(['code' => 403, 'message' => __('This feature is disabled in demo mode.')], 403);
+        }
+
         $settings_two = \App\Models\SettingTwo::getCache();
         $codes = explode(',', $settings_two->languages);
 

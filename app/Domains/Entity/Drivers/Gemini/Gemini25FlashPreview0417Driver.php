@@ -18,6 +18,6 @@ class Gemini25FlashPreview0417Driver extends BaseDriver implements WithInputInte
 
     public function enum(): EntityEnum
     {
-        return EntityEnum::GEMINI_2_5_FLASH_PREVIEW_04_17;
+        return EntityEnum::GEMINI_2_5_FLASH_PREVIEW_05_20;
     }
 }

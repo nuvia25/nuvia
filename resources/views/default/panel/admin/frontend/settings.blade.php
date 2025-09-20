@@ -755,6 +755,243 @@
 
                 </div>
 
+				@if(setting('front_theme') === 'marketing-bot')
+					<div class="row mb-4">
+						<h3 class="mb-[25px] text-[20px]">{{ __('Footer Use Cases Settings') }}</h3>
+
+						<div class="col-md-12">
+							<div class="mb-3">
+								<label class="form-label">{{ __('Footer Use Cases Links') }}</label>
+								<div id="use-cases-container">
+									@php
+										$defaultUseCaseLinks = [
+											['link' => '#', 'title' => 'Collect Feedback'],
+											['link' => '#', 'title' => 'Product Launches'],
+											['link' => '#', 'title' => 'Promotions'],
+											['link' => '#', 'title' => 'Limited Offers'],
+											['link' => '#', 'title' => 'Reminders'],
+											['link' => '#', 'title' => 'Events'],
+											['link' => '#', 'title' => 'Bulk Messages'],
+										];
+										$useCaseLinks = json_decode(setting('footer_use_cases_links', ''), true);
+										if (!is_array($useCaseLinks) || empty($useCaseLinks)) {
+											$useCaseLinks = $defaultUseCaseLinks;
+										}
+									@endphp
+									@foreach ($useCaseLinks as $index => $link)
+										<div class="use-case-item mb-3 p-3 border rounded">
+											<div class="row">
+												<div class="col-md-5">
+													<label class="form-label">{{ __('Title') }}</label>
+													<input
+														class="form-control"
+														type="text"
+														name="use_cases[{{ $index }}][title]"
+														value="{{ $link['title'] ?? '' }}"
+														placeholder="{{ __('Enter link title') }}"
+													>
+												</div>
+												<div class="col-md-5">
+													<label class="form-label">{{ __('Link') }}</label>
+													<input
+														class="form-control"
+														type="text"
+														name="use_cases[{{ $index }}][link]"
+														value="{{ $link['link'] ?? '' }}"
+														placeholder="{{ __('Enter link URL') }}"
+													>
+												</div>
+												<div class="col-md-2 d-flex align-items-end">
+													<button
+														type="button"
+														class="btn btn-danger btn-sm remove-use-case"
+														onclick="removeUseCaseItem(this)"
+													>
+														<i class="fa fa-trash"></i>
+													</button>
+												</div>
+											</div>
+										</div>
+									@endforeach
+								</div>
+								<button
+									type="button"
+									class="btn btn-secondary btn-sm mt-2"
+									onclick="addUseCaseItem()"
+								>
+									<i class="fa fa-plus"></i> {{ __('Add New Use Case Link') }}
+								</button>
+							</div>
+						</div>
+					</div>
+
+					<div class="row mb-4">
+						<h3 class="mb-[25px] text-[20px]">{{ __('Footer Resources Settings') }}</h3>
+
+						<div class="col-md-12">
+							<div class="mb-3">
+								<label class="form-label">{{ __('Footer Resources Links') }}</label>
+								<div id="resources-container">
+									@php
+										$defaultResourceLinks = [
+											['link' => '#', 'title' => 'Terms of Services'],
+											['link' => '#', 'title' => 'Support'],
+											['link' => '#', 'title' => 'Help Center'],
+											['link' => '#', 'title' => 'Support'],
+											['link' => '#', 'title' => 'Privacy Policy'],
+											['link' => '#', 'title' => 'Blog'],
+											['link' => '#', 'title' => 'Status'],
+										];
+										$resourceLinks = json_decode(setting('footer_resources_links', ''), true);
+										if (!is_array($resourceLinks) || empty($resourceLinks)) {
+											$resourceLinks = $defaultResourceLinks;
+										}
+									@endphp
+									@foreach ($resourceLinks as $index => $link)
+										<div class="resource-item mb-3 p-3 border rounded">
+											<div class="row">
+												<div class="col-md-5">
+													<label class="form-label">{{ __('Title') }}</label>
+													<input
+														class="form-control"
+														type="text"
+														name="resources[{{ $index }}][title]"
+														value="{{ $link['title'] ?? '' }}"
+														placeholder="{{ __('Enter link title') }}"
+													>
+												</div>
+												<div class="col-md-5">
+													<label class="form-label">{{ __('Link') }}</label>
+													<input
+														class="form-control"
+														type="text"
+														name="resources[{{ $index }}][link]"
+														value="{{ $link['link'] ?? '' }}"
+														placeholder="{{ __('Enter link URL') }}"
+													>
+												</div>
+												<div class="col-md-2 d-flex align-items-end">
+													<button
+														type="button"
+														class="btn btn-danger btn-sm remove-resource"
+														onclick="removeResourceItem(this)"
+													>
+														<i class="fa fa-trash"></i>
+													</button>
+												</div>
+											</div>
+										</div>
+									@endforeach
+								</div>
+								<button
+									type="button"
+									class="btn btn-secondary btn-sm mt-2"
+									onclick="addResourceItem()"
+								>
+									<i class="fa fa-plus"></i> {{ __('Add New Resource Link') }}
+								</button>
+							</div>
+						</div>
+					</div>
+
+					<script>
+						let useCaseIndex = {{ count($useCaseLinks ?? []) }};
+						let resourceIndex = {{ count($resourceLinks ?? []) }};
+
+						function addUseCaseItem() {
+							const container = document.getElementById('use-cases-container');
+							const newItem = document.createElement('div');
+							newItem.className = 'use-case-item mb-3 p-3 border rounded';
+							newItem.innerHTML = `
+				<div class="row">
+					<div class="col-md-5">
+						<label class="form-label">{{ __('Title') }}</label>
+						<input
+							class="form-control"
+							type="text"
+							name="use_cases[${useCaseIndex}][title]"
+							value=""
+							placeholder="{{ __('Enter link title') }}"
+						>
+					</div>
+					<div class="col-md-5">
+						<label class="form-label">{{ __('Link') }}</label>
+						<input
+							class="form-control"
+							type="text"
+							name="use_cases[${useCaseIndex}][link]"
+							value=""
+							placeholder="{{ __('Enter link URL') }}"
+						>
+					</div>
+					<div class="col-md-2 d-flex align-items-end">
+						<button
+							type="button"
+							class="btn btn-danger btn-sm remove-use-case"
+							onclick="removeUseCaseItem(this)"
+						>
+							<i class="fa fa-trash"></i>
+						</button>
+					</div>
+				</div>
+			`;
+							container.appendChild(newItem);
+							useCaseIndex++;
+						}
+
+						function removeUseCaseItem(button) {
+							const item = button.closest('.use-case-item');
+							item.remove();
+						}
+
+						function addResourceItem() {
+							const container = document.getElementById('resources-container');
+							const newItem = document.createElement('div');
+							newItem.className = 'resource-item mb-3 p-3 border rounded';
+							newItem.innerHTML = `
+				<div class="row">
+					<div class="col-md-5">
+						<label class="form-label">{{ __('Title') }}</label>
+						<input
+							class="form-control"
+							type="text"
+							name="resources[${resourceIndex}][title]"
+							value=""
+							placeholder="{{ __('Enter link title') }}"
+						>
+					</div>
+					<div class="col-md-5">
+						<label class="form-label">{{ __('Link') }}</label>
+						<input
+							class="form-control"
+							type="text"
+							name="resources[${resourceIndex}][link]"
+							value=""
+							placeholder="{{ __('Enter link URL') }}"
+						>
+					</div>
+					<div class="col-md-2 d-flex align-items-end">
+						<button
+							type="button"
+							class="btn btn-danger btn-sm remove-resource"
+							onclick="removeResourceItem(this)"
+						>
+							<i class="fa fa-trash"></i>
+						</button>
+					</div>
+				</div>
+			`;
+							container.appendChild(newItem);
+							resourceIndex++;
+						}
+
+						function removeResourceItem(button) {
+							const item = button.closest('.resource-item');
+							item.remove();
+						}
+					</script>
+				@endif
+
                 <div class="row mb-4">
                     <h3 class="mb-[25px] text-[20px]">{{ __('Advanced Settings') }}</h3>
                     <div class="col-md-12">

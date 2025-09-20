@@ -14,6 +14,7 @@ use App\Domains\Entity\Contracts\EntityDriverInterface;
 use App\Domains\Entity\Contracts\WithCreditInterface;
 use App\Domains\Entity\Contracts\WithModel;
 use App\Models\Plan;
+use App\Models\Team\Team;
 use App\Models\User;
 use RuntimeException;
 
@@ -27,6 +28,8 @@ abstract class BaseDriver implements EntityDriverInterface, WithCalculate, WithC
     private bool $guest = false;
 
     private ?Plan $plan = null;
+
+    private ?Team $team = null;
 
     private ?int $lastUsedUserId = 0;
 
@@ -68,6 +71,13 @@ abstract class BaseDriver implements EntityDriverInterface, WithCalculate, WithC
         }
     }
 
+    public function ensureTeamProvided(): void
+    {
+        if (! isset($this->team)) {
+            throw new RuntimeException('Team is not provided');
+        }
+    }
+
     private function setLastUsedUserId(?int $id): static
     {
         $this->lastUsedUserId = $id;
@@ -85,6 +95,13 @@ abstract class BaseDriver implements EntityDriverInterface, WithCalculate, WithC
     public function forPlan(?Plan $plan): static
     {
         $this->plan = $plan;
+
+        return $this;
+    }
+
+    public function forTeam(?Team $team): static
+    {
+        $this->team = $team;
 
         return $this;
     }

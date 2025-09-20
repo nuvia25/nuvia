@@ -128,10 +128,8 @@ class YoutubeTranscriptService
 
     public function getYouTubeVideoId($url)
     {
-        // URL'den sorgu parametrelerini ayrıştır
         $parts = parse_url($url);
 
-        // Eğer 'v' parametresi varsa ID'yi döndür
         if (isset($parts['query'])) {
             parse_str($parts['query'], $query);
             if (isset($query['v'])) {
@@ -139,14 +137,12 @@ class YoutubeTranscriptService
             }
         }
 
-        // Eğer 'v' parametresi yoksa, URL yolunu kontrol et
         if (isset($parts['path'])) {
             $pathParts = explode('/', trim($parts['path'], '/'));
 
             return end($pathParts);
         }
 
-        // Eğer ID bulunamazsa null döndür
         return null;
     }
 

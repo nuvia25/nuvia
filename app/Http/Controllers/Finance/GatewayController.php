@@ -2,23 +2,14 @@
 
 namespace App\Http\Controllers\Finance;
 
-use App\Extensions\Cryptomus\System\Services\CryptomusService;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\Custom\FinanceLicenseMiddleware;
 use App\Models\Currency;
 use App\Models\Gateways;
 use App\Models\GatewayTax;
 use App\Services\GatewaySelector;
-use App\Services\PaymentGateways\CoingateService;
-use App\Services\PaymentGateways\IyzicoService;
-use App\Services\PaymentGateways\MidtransService;
-use App\Services\PaymentGateways\PaddleService;
-use App\Services\PaymentGateways\PayPalService;
-use App\Services\PaymentGateways\PaystackService;
-use App\Services\PaymentGateways\RazorpayService;
-use App\Services\PaymentGateways\RevenueCatService;
-use App\Services\PaymentGateways\StripeService;
-use App\Services\PaymentGateways\YokassaService;
+use App\Services\Payment\Enums\PaymentGatewayEnum;
+use App\Services\Payment\Factories\GatewayFactory;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,124 +26,27 @@ class GatewayController extends Controller
         $this->middleware(FinanceLicenseMiddleware::class, ['except' => ['paymentGateways']]);
     }
 
-    // Helper functions
-    public function gatewayCodesArray(): array
+    public function readManageGatewaysPageData(): array
     {
-        $paymentGateways = [
-            'stripe',
-            'paypal',
-            'yokassa',
-            'iyzico',
-            'paystack',
-            'banktransfer',
-            'revenuecat',
-            'coingate',
-            'paddle',
-            'razorpay',
-        ];
-
-        if (class_exists('App\Extensions\Cryptomus\System\Services\CryptomusService')) {
-            $paymentGateways[] = 'cryptomus';
-        }
-
-        if (class_exists('App\Services\PaymentGateways\MidtransService')) {
-            $paymentGateways[] = 'midtrans';
-        }
-
-        return $paymentGateways;
-    }
-
-    public function defaultGatewayDefinitions(): array
-    {
-        $gateways = [
-            StripeService::gatewayDefinitionArray(),
-            PayPalService::gatewayDefinitionArray(),
-            YokassaService::gatewayDefinitionArray(),
-            IyzicoService::gatewayDefinitionArray(),
-            $this->bankTransferArray(),
-            PaystackService::gatewayDefinitionArray(),
-            RevenueCatService::gatewayDefinitionArray(),
-            CoingateService::gatewayDefinitionArray(),
-            PaddleService::gatewayDefinitionArray(),
-            RazorpayService::gatewayDefinitionArray(),
-        ];
-
-        if (class_exists('App\Extensions\Cryptomus\System\Services\CryptomusService')) {
-            $gateways[] = CryptomusService::gatewayDefinitionArray();
-        }
-        if (class_exists('App\Services\PaymentGateways\MidtransService')) {
-            $gateways[] = MidtransService::gatewayDefinitionArray();
-        }
-
-        return $gateways;
-    }
-
-    public function bankTransferArray(): array
-    {
-        return [
-            'code'                  => 'banktransfer',
-            'title'                 => 'Bank Transfer',
-            'link'                  => '',
-            'active'                => 0,                      // if user activated this gateway - dynamically filled in main page
-            'available'             => 1,                   // if gateway is available to use
-            'img'                   => '/assets/img/payments/banktransfer.png',
-            'whiteLogo'             => 0,                   // if gateway logo is white
-            'mode'                  => 0,                        // Option in settings - Automatically set according to the "Development" mode. "Development" ? sandbox : live (PAYPAL - 1)
-            'sandbox_client_id'     => 0,           // Option in settings 0-Hidden 1-Visible
-            'sandbox_client_secret' => 0,       // Option in settings
-            'sandbox_app_id'        => 0,              // Option in settings
-            'live_client_id'        => 0,              // Option in settings
-            'live_client_secret'    => 0,          // Option in settings
-            'live_app_id'           => 0,                 // Option in settings
-            'currency'              => 1,                    // Option in settings
-            'currency_locale'       => 0,             // Option in settings
-            'base_url'              => 0,                    // Option in settings
-            'sandbox_url'           => 0,                 // Option in settings
-            'locale'                => 0,                      // Option in settings
-            'validate_ssl'          => 0,                // Option in settings
-            'logger'                => 0,                      // Option in settings
-            'notify_url'            => 0,                  // Gateway notification url at our side
-            'webhook_secret'        => 0,              // Option in settings
-            'tax'                   => 1,              // Option in settings
-            'bank_account_details'  => 1,
-            'bank_account_other'    => 1,
-        ];
-    }
-
-    public function readManageGatewaysPageData()
-    {
-
-        $defaultGateways = self::defaultGatewayDefinitions();
+        $activeGateways = PaymentGatewayEnum::activeGateways();
+        $gatewaysDbRecords = Gateways::all()->keyBy('code');
         $requiredGatewayData = [];
-
-        $gatewayActiveData = [];
-        $gatewaysData = Gateways::all();
-        foreach ($gatewaysData as $gw) {
-            array_push($gatewayActiveData, [
-                'code'      => $gw->code,
-                'is_active' => $gw->is_active,
-            ]);
-        }
-
-        foreach ($defaultGateways as $gateway) {
-            $code = $gateway['code'];
-            $is_active = 0;
-            foreach ($gatewaysData as $gwdata) {
-                if ($gwdata['code'] == $code) {
-                    $is_active = $gwdata['is_active'];
-
-                    break;
-                }
+        foreach ($activeGateways as $gateway) {
+            $enum = PaymentGatewayEnum::tryFrom($gateway);
+            if (! $enum) {
+                continue;
             }
-            array_push($requiredGatewayData, [
+            $definition = $enum->gatewayDefinition();
+            $code = $definition['code'];
+            $requiredGatewayData[] = [
                 'code'      => $code,
-                'title'     => $gateway['title'],
-                'link'      => $gateway['link'],
-                'available' => $gateway['available'],
-                'img'       => $gateway['img'],
-                'whiteLogo' => $gateway['whiteLogo'],
-                'active'    => $is_active ?? 0,
-            ]);
+                'title'     => $definition['title'],
+                'link'      => $definition['link'],
+                'available' => $definition['available'],
+                'img'       => $definition['img'],
+                'whiteLogo' => $definition['whiteLogo'],
+                'active'    => $gatewaysDbRecords[$code]['is_active'] ?? 0,
+            ];
         }
 
         return $requiredGatewayData;
@@ -164,11 +58,11 @@ class GatewayController extends Controller
         $currencies = Currency::all();
         foreach ($currencies as $currency) {
             $cindex = $currency->id;
-            $country = self::appendNBSPtoString($currency->country, 41);
-            $code = self::appendNBSPtoString($currency->code, 5);
+            $country = $this->appendNBSPtoString($currency->country, 41);
+            $code = $this->appendNBSPtoString($currency->code, 5);
             $text = $country . $code . $currency->symbol;
-            $selected = (int) $index == (int) $cindex ? 'selected' : '';
-            $returnText = $returnText . '<option value="' . $cindex . '" ' . $selected . ' style=\'font-family: "Courier New", Courier, monospace;\' >' . $text . '</option>';
+            $selected = (int) $index === (int) $cindex ? 'selected' : '';
+            $returnText .= '<option value="' . $cindex . '" ' . $selected . ' style=\'font-family: "Courier New", Courier, monospace;\' >' . $text . '</option>';
         }
 
         return $returnText;
@@ -180,20 +74,19 @@ class GatewayController extends Controller
         $remainingCharcount = $charCount - $length;
         if ($remainingCharcount < 1) {
             return $stringForAppend;
-        } else {
-            $newString = $stringForAppend;
-            for ($i = 1; $i <= $remainingCharcount; $i++) {
-                $newString = $newString . '&nbsp;';
-            }
-
-            return $newString;
         }
+
+        $newString = $stringForAppend;
+        for ($i = 1; $i <= $remainingCharcount; $i++) {
+            $newString .= '&nbsp;';
+        }
+
+        return $newString;
     }
 
-    // Main functions
-    public function paymentGateways() // Index page of Payment Gateways in Admin Panel
+    public function paymentGateways()
     {
-        $gateways = self::readManageGatewaysPageData();
+        $gateways = $this->readManageGatewaysPageData();
 
         return view(
             'panel.admin.finance.gateways.index', [
@@ -208,37 +101,26 @@ class GatewayController extends Controller
     // Settings page of gateways in Admin Panel
     public function gatewaySettings($code)
     {
-
-        if (! in_array($code, self::gatewayCodesArray())) {
+        $activeGateways = PaymentGatewayEnum::activeGateways();
+        if (! in_array($code, $activeGateways, true)) {
             abort(404);
         }
 
-        $settings = Gateways::query()->where('code', $code)->first();
-
-        if ($settings != null) {
-        } else {
-            $settings = new Gateways;
-            $settings->code = $code;
-            $settings->is_active = 0;
-            $settings->currency = '124'; // Default currency for Stripe - USD
-            $settings->save();
+        $gatewayDbRecord = Gateways::query()->where('code', $code)->first();
+        if (empty($gatewayDbRecord)) {
+            $gatewayDbRecord = new Gateways;
+            $gatewayDbRecord->code = $code;
+            $gatewayDbRecord->is_active = 0;
+            $gatewayDbRecord->currency = '124'; // Default currency for Stripe - USD
+            $gatewayDbRecord->save();
         }
-        $currencies = self::getCurrencyOptions($settings->currency);
-        $gateways = self::defaultGatewayDefinitions();
-        $options = $gateways[0];
-        foreach ($gateways as $gateway) {
-            if ($gateway['code'] == $code) {
-                $options = $gateway;
-
-                break;
-            }
-        }
-
+        $currencies = $this->getCurrencyOptions($gatewayDbRecord->currency);
+        $gatewayDefinition = PaymentGatewayEnum::tryFrom($code)?->gatewayDefinition();
         $taxes = GatewayTax::query()
-            ->where('gateway_id', $settings->id)
+            ->where('gateway_id', $gatewayDbRecord->id)
             ->get();
 
-        return view('panel.admin.finance.gateways.settings', compact('settings', 'currencies', 'options', 'taxes'));
+        return view('panel.admin.finance.gateways.settings', compact('gatewayDbRecord', 'currencies', 'gatewayDefinition', 'taxes'));
     }
 
     public function countryTaxEnabled($code)
@@ -256,8 +138,8 @@ class GatewayController extends Controller
 
     public function gatewaySettingsSave(Request $request) // Save settings of gateway in Admin Panel
     {
-        if ($request->code != null) {
-            if (! in_array($request->code, self::gatewayCodesArray())) {
+        if ($request->code) {
+            if (! in_array($request->code, PaymentGatewayEnum::activeGateways(), true)) {
                 abort(404);
             }
         } else {
@@ -296,7 +178,11 @@ class GatewayController extends Controller
 
             if ($gw_settings->is_active == 1) {
                 try {
-                    $temp = GatewaySelector::selectGateway($request->code)::saveAllProducts(); // Update all product ids' and create new price ids'
+                    if (PaymentGatewayEnum::isRefactored($request->code)) {
+                        GatewayFactory::make(PaymentGatewayEnum::tryFrom($request->code))->saveAllProducts();
+                    } else {
+                        $temp = GatewaySelector::selectGateway($request->code)::saveAllProducts(); // Update all product ids' and create new price ids'
+                    }
                 } catch (Exception $ex) {
                     DB::rollBack();
                     Log::error("GatewayController::gatewaySettingsSave()\n" . $ex->getMessage());
@@ -357,19 +243,9 @@ class GatewayController extends Controller
         ]);
     }
 
-    public function gatewayData($code)
+    public function gatewayData($code): ?array
     {
-        $gateways = self::defaultGatewayDefinitions();
-        $options = $gateways[0];
-        foreach ($gateways as $gateway) {
-            if ($gateway['code'] == $code) {
-                $options = $gateway;
-
-                break;
-            }
-        }
-
-        return $options;
+        return PaymentGatewayEnum::tryFrom($code)?->gatewayDefinition();
     }
 
     public static function checkGatewayWebhooks(): void

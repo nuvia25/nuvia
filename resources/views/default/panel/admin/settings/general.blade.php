@@ -679,6 +679,7 @@
                             class="form-control"
                             id="favicon"
                             type="file"
+							accept="image/*"
                             name="favicon"
                     >
                 </div>
@@ -699,6 +700,7 @@
                             id="logo"
                             data-id="logo"
                             type="file"
+							accept="image/*"
                             name="logo"
                     >
                 </div>
@@ -710,6 +712,7 @@
                             id="logo_dark"
                             data-id="logo_dark"
                             type="file"
+							accept="image/*"
                             name="logo_dark"
                     >
                 </div>
@@ -721,6 +724,7 @@
                             id="logo_sticky"
                             data-id="logo_sticky"
                             type="file"
+							accept="image/*"
                             name="logo_sticky"
                     >
                 </div>
@@ -732,6 +736,7 @@
                             id="logo_dashboard"
                             data-id="logo_dashboard"
                             type="file"
+							accept="image/*"
                             name="logo_dashboard"
                     >
                 </div>
@@ -743,6 +748,7 @@
                             id="logo_dashboard_dark"
                             data-id="logo_dashboard_dark"
                             type="file"
+							accept="image/*"
                             name="logo_dashboard_dark"
                     >
                 </div>
@@ -753,6 +759,7 @@
                             class="form-control item-img"
                             id="logo_collapsed"
                             data-id="logo_collapsed"
+							accept="image/*"
                             type="file"
                             name="logo_collapsed"
                     >
@@ -765,6 +772,7 @@
                             id="logo_collapsed_dark"
                             data-id="logo_collapsed_dark"
                             type="file"
+							accept="image/*"
                             name="logo_collapsed_dark"
                     >
                 </div>
@@ -780,6 +788,7 @@
                             id="logo_2x"
                             data-id="logo_2x"
                             type="file"
+							accept="image/*"
                             name="logo_2x"
                     >
                 </div>
@@ -791,6 +800,7 @@
                             id="logo_dark_2x"
                             data-id="logo_dark_2x"
                             type="file"
+							accept="image/*"
                             name="logo_dark_2x"
                     >
                 </div>
@@ -802,6 +812,7 @@
                             id="logo_sticky_2x"
                             data-id="logo_sticky_2x"
                             type="file"
+							accept="image/*"
                             name="logo_sticky_2x"
                     >
                 </div>
@@ -813,6 +824,7 @@
                             id="logo_dashboard_2x"
                             data-id="logo_dashboard_2x"
                             type="file"
+							accept="image/*"
                             name="logo_dashboard_2x"
                     >
                 </div>
@@ -824,6 +836,7 @@
                             id="logo_dashboard_dark_2x"
                             data-id="logo_dashboard_dark_2x"
                             type="file"
+							accept="image/*"
                             name="logo_dashboard_dark_2x"
                     >
                 </div>
@@ -835,6 +848,7 @@
                             id="logo_collapsed_2x"
                             data-id="logo_collapsed_2x"
                             type="file"
+							accept="image/*"
                             name="logo_collapsed_2x"
                     >
                 </div>
@@ -846,6 +860,7 @@
                             id="logo_collapsed_dark_2x"
                             data-id="logo_collapsed_dark_2x"
                             type="file"
+							accept="image/*"
                             name="logo_collapsed_dark_2x"
                     >
                 </div>

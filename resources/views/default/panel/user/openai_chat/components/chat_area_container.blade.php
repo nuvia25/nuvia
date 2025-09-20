@@ -1,9 +1,6 @@
 @php
     $test_commands = ['Explain an Image', 'Summarize a book for research', 'Translate a book'];
-    $disable_actions =
-        $app_is_demo &&
-        (isset($category) &&
-            ($category->slug == 'ai_vision' || $category->slug == 'ai_pdf' || $category->slug == 'ai_chat_image'));
+    $disable_actions = $app_is_demo && (isset($category) && ($category->slug == 'ai_vision' || $category->slug == 'ai_pdf' || $category->slug == 'ai_chat_image'));
 @endphp
 
 <div
@@ -30,15 +27,12 @@
                 @include('panel.user.openai_chat.components.chat_area')
             @endif
 
-            @if (
-                $category->slug == 'ai_vision' &&
-                    ((isset($lastThreeMessage) && $lastThreeMessage->count() == 0) || !isset($lastThreeMessage)))
+            @if ($category->slug == 'ai_vision' && ((isset($lastThreeMessage) && $lastThreeMessage->count() == 0) || !isset($lastThreeMessage)))
                 <div
                     class="flex flex-col items-center justify-center gap-y-3"
                     id="sugg"
                 >
-                    <div
-                        class="flex flex-wrap items-center gap-2 text-2xs font-medium leading-relaxed text-heading-foreground">
+                    <div class="flex flex-wrap items-center gap-2 text-2xs font-medium leading-relaxed text-heading-foreground">
                         {{ __('Upload an image and ask me anything') }}
                         <x-tabler-chevron-down class="size-4" />
                     </div>
@@ -57,9 +51,7 @@
             @endif
         </div>
 
-        @if (
-            $category->slug == 'ai_vision' &&
-                ((isset($lastThreeMessage) && $lastThreeMessage->count() == 0) || !isset($lastThreeMessage)))
+        @if ($category->slug == 'ai_vision' && ((isset($lastThreeMessage) && $lastThreeMessage->count() == 0) || !isset($lastThreeMessage)))
             <div
                 class="relative z-10 mt-auto flex items-center justify-center px-4 pb-5 md:px-8"
                 id="mainupscale_src"
@@ -92,7 +84,7 @@
                         class="hidden"
                         id="upscale_src"
                         type="file"
-                        accept="@if ($category->slug == 'ai_vision' || $category->slug == 'ai_pdf') .png, .jpg, .jpeg, .pdf @else .png, .jpg, .jpeg @endif"
+                        accept="@if ($category->slug == 'ai_vision' || $category->slug == 'ai_pdf') image/*, file/* @else image/* @endif"
                         onchange="handleFileSelect('upscale_src')"
                     />
                 </label>
@@ -113,34 +105,28 @@
 
     @if (setting('realtime_voice_chat', 0))
         <div
-            class="lqd-audio-vis-wrap group/audio-vis pointer-events-none invisible absolute start-0 top-0 flex h-full w-full flex-col items-center justify-between gap-y-5 overflow-hidden bg-background/10 px-5 py-28 opacity-0 backdrop-blur-lg transition-all [&.active]:visible [&.active]:opacity-100"
+            class="lqd-audio-vis-wrap group/audio-vis pointer-events-none invisible absolute start-0 top-0 z-2 flex h-full w-full flex-col items-center justify-between gap-y-5 overflow-hidden bg-background/10 px-5 py-28 opacity-0 backdrop-blur-lg transition-all [&.active]:visible [&.active]:opacity-100"
             data-state="idle"
         >
             <div></div>
             <div
                 class="invisible relative grid w-full scale-110 place-content-center place-items-center opacity-0 blur-lg transition-all duration-300 group-[&.active]/audio-vis:visible group-[&.active]/audio-vis:scale-100 group-[&.active]/audio-vis:opacity-100 group-[&.active]/audio-vis:blur-0">
-                <div
-                    class="lqd-audio-vis-circ absolute left-1/2 top-1/2 col-start-1 col-end-1 row-start-1 row-end-1 -translate-x-1/2 -translate-y-1/2">
+                <div class="lqd-audio-vis-circ absolute left-1/2 top-1/2 col-start-1 col-end-1 row-start-1 row-end-1 -translate-x-1/2 -translate-y-1/2">
                     <div
                         class="inline-flex size-40 animate-spin rounded-full bg-gradient-to-b from-[#C13CFF] to-[#00BFFF] opacity-50 blur-3xl [animation-duration:2s] lg:size-[200px]">
                     </div>
                 </div>
                 <div
                     class="lqd-audio-vis-bars col-start-1 col-end-1 row-start-1 row-end-1 flex h-8 scale-75 items-center gap-[3px] text-heading-foreground opacity-0 transition-all group-[&[data-state=playing]]/audio-vis:scale-100 group-[&[data-state=playing]]/audio-vis:opacity-100">
-                    <div
-                        class="lqd-audio-vis-bar inline-flex min-h-[7px] w-[7px] origin-center rounded-full bg-current">
+                    <div class="lqd-audio-vis-bar inline-flex min-h-[7px] w-[7px] origin-center rounded-full bg-current">
                     </div>
-                    <div
-                        class="lqd-audio-vis-bar inline-flex min-h-[7px] w-[7px] origin-center rounded-full bg-current">
+                    <div class="lqd-audio-vis-bar inline-flex min-h-[7px] w-[7px] origin-center rounded-full bg-current">
                     </div>
-                    <div
-                        class="lqd-audio-vis-bar inline-flex min-h-[7px] w-[7px] origin-center rounded-full bg-current">
+                    <div class="lqd-audio-vis-bar inline-flex min-h-[7px] w-[7px] origin-center rounded-full bg-current">
                     </div>
-                    <div
-                        class="lqd-audio-vis-bar inline-flex min-h-[7px] w-[7px] origin-center rounded-full bg-current">
+                    <div class="lqd-audio-vis-bar inline-flex min-h-[7px] w-[7px] origin-center rounded-full bg-current">
                     </div>
-                    <div
-                        class="lqd-audio-vis-bar inline-flex min-h-[7px] w-[7px] origin-center rounded-full bg-current">
+                    <div class="lqd-audio-vis-bar inline-flex min-h-[7px] w-[7px] origin-center rounded-full bg-current">
                     </div>
                 </div>
                 <div

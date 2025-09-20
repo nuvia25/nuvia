@@ -41,6 +41,23 @@
                     />
                 </a>
             </figure>
+		@elseif($workbook->generator->type === 'video')
+			<figure>
+				<a href="{{ $workbook->output }}">
+					<video
+						class="rounded-xl shadow-xl"
+						controls
+						playsinline
+						muted
+					>
+						<source
+							src="{{ custom_theme_url($workbook->output) }}"
+							type="video/mp4"
+						>
+						{{ __('Your browser does not support the video tag.') }}
+					</video>
+				</a>
+			</figure>
         @elseif($workbook->generator->type === 'voiceover' || $workbook->generator->type === \App\Domains\Entity\Enums\EntityEnum::ISOLATOR->value)
             <div class="flex grow justify-end gap-2">
                 <div

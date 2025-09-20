@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Actions\CreateActivity;
 use App\Actions\EmailConfirmation;
 use App\Domains\Marketplace\Repositories\Contracts\ExtensionRepositoryInterface;
+use App\Enums\AccessType;
 use App\Enums\Roles;
 use App\Extensions\MegaMenu\System\Models\MegaMenu;
 use App\Helpers\Classes\Helper;
@@ -83,7 +84,7 @@ class AdminController extends Controller
         $this->service->setCache();
 
         if (Cache::has('vip_membership')) {
-            $vip_membership = Helper::showIntercomForVipMembership();
+            $vip_membership = Helper::isUserVIP();
         } else {
             $vip_membership = Cache::get('vip_membership') ?: false;
         }
@@ -261,8 +262,12 @@ class AdminController extends Controller
         return back()->with(['message' => __('Save free feature'), 'type' => 'error']);
     }
 
-    public function usersEdit(User $user): View
+    public function usersEdit(User $user): View|RedirectResponse
     {
+        if (Helper::appIsDemo()) {
+            return back()->with(['message' => __('This feature is disabled in Demo version.'), 'type' => 'error']);
+        }
+
         return view('panel.admin.users.edit', compact('user'));
     }
 
@@ -334,13 +339,13 @@ class AdminController extends Controller
         if ($request->hasFile('avatar')) {
             $path = 'upload/images/avatar/';
             $image = $request->file('avatar');
-            if ($image->getClientOriginalExtension() === 'svg') {
+            if ($image->guessExtension() === 'svg') {
                 $image = self::sanitizeSVG($request->file('avatar'));
             }
-            $image_name = Str::random(4) . '-' . Str::slug($user?->fullName()) . '-avatar.' . $image->getClientOriginalExtension();
+            $image_name = Str::random(4) . '-' . Str::slug($user?->fullName()) . '-avatar.' . $image->guessExtension();
             // Image extension check
             $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-            if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+            if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                 return back()->with(['message' => __('The file extension must be jpg, jpeg, png, webp or svg.'), 'type' => 'error']);
             }
             $image->move($path, $image_name);
@@ -355,6 +360,10 @@ class AdminController extends Controller
 
     public function usersDelete($id): RedirectResponse
     {
+        if (Helper::appIsDemo()) {
+            return back()->with(['message' => __('This feature is disabled in Demo version.'), 'type' => 'error']);
+        }
+
         $user = User::query()->findOrFail($id);
         if (
             $user->isAdmin() &&
@@ -389,6 +398,10 @@ class AdminController extends Controller
 
     public function usersSave(Request $request): void
     {
+        if (Helper::appIsDemo()) {
+            return;
+        }
+
         $request->validate([
             'user_id'                  => 'required|exists:users,id',
             'name'                     => 'required|string|max:255',
@@ -481,14 +494,16 @@ class AdminController extends Controller
 
     public function openAIListUpdatePackageStatus(Request $request)
     {
-        $status = $request->status;
-        $openai = OpenAIGenerator::whereId($request->entry_id)->first();
-        if ($status == 1 or $status == 0) {
-            $openai->premium = $status;
-            $openai->save();
-        } else {
-            return response()->json([], 403);
+        if (Helper::appIsNotDemo()) {
+            $openai = OpenAIGenerator::whereId($request->entry_id)->first();
+            if ($openai) {
+                $openai->access_type = $request->status ?? AccessType::REGULAR->value;
+                $openai->save();
+            }
         }
+
+        return response()->json([], 200);
+
     }
 
     public function categoryList(Request $request)
@@ -622,11 +637,11 @@ class AdminController extends Controller
             if ($request->hasFile('avatar')) {
                 $path = 'upload/images/chatbot/';
                 $image = $request->file('avatar');
-                $image_name = Str::random(4) . '-' . Str::slug($request->name) . '-avatar.' . $image->getClientOriginalExtension();
+                $image_name = Str::random(4) . '-' . Str::slug($request->name) . '-avatar.' . $image->guessExtension();
 
                 // Resim uzantı kontrolü
                 $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-                if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+                if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                     $data = [
                         'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                     ];
@@ -757,7 +772,8 @@ class AdminController extends Controller
         $template->color = $request->color;
         $template->prompt = $request->prompt;
         $template->filters = $request->filters;
-        $template->premium = $request->premium;
+        $template->premium = 0;
+        $template->access_type = $request->premium ?? AccessType::REGULAR->value;
         $template->active = 1;
         $template->slug = Str::slug($request->title) . '-' . Str::random(6);
         $template->type = 'text';
@@ -1319,21 +1335,21 @@ class AdminController extends Controller
     // Coupons
     public function couponsList()
     {
-        $list = Coupon::get();
+        $list = Coupon::where('is_offer', false)->get();
 
         return view('panel.admin.coupons.index', compact('list'));
     }
 
     public function couponsListUsed($id)
     {
-        $coupon = Coupon::find($id);
+        $coupon = Coupon::where('is_offer', false)->find($id);
 
         return view('panel.admin.coupons.used', compact('coupon'));
     }
 
     public function couponsDelete($id)
     {
-        $coup = Coupon::find($id);
+        $coup = Coupon::where('is_offer', false)->find($id);
         if ($coup) {
             $coup->delete();
 
@@ -1361,7 +1377,7 @@ class AdminController extends Controller
 
         // Check if the "code" field is set to "manual" and set the "codeInput" attribute accordingly.
         if ($request->input('code') === 'manual') {
-            if (Coupon::where('code', $request->input('codeInput'))->exists()) {
+            if (Coupon::where('is_offer', false)->where('code', $request->input('codeInput'))->exists()) {
                 $newCoupon->code = $this->generateUniqueCode();
             } else {
                 $newCoupon->code = $request->input('codeInput');
@@ -1383,7 +1399,7 @@ class AdminController extends Controller
             'limit'    => 'required|integer|min:-1',
         ]);
 
-        $newCoupon = Coupon::find($id);
+        $newCoupon = Coupon::where('is_offer', false)->find($id);
         $newCoupon->name = $request->input('name');
         $newCoupon->discount = $request->input('discount');
         $newCoupon->limit = $request->input('limit');
@@ -1413,7 +1429,7 @@ class AdminController extends Controller
 
     private function checkCouponValidity($code)
     {
-        $exist = Coupon::where('code', $code)->first();
+        $exist = Coupon::where('is_offer', false)->where('code', $code)->first();
         if ($exist && (! ($exist->usersUsed->count() >= $exist->limit) || $exist->limit == -1)) {
             return true;
         }
@@ -1421,7 +1437,7 @@ class AdminController extends Controller
         return false;
     }
 
-    private function generateUniqueCode()
+    public function generateUniqueCode()
     {
         $code = $this->generateRandomCode(); // Generate a random code initially.
         // Check if the generated code already exists in the database.
@@ -1469,6 +1485,21 @@ class AdminController extends Controller
             $settings->frontend_code_before_body = $request->frontend_code_before_body;
             $settings->save();
 
+            if ($request->has('use_cases')) {
+                $useCases = json_decode($request->use_cases, true);
+                if (is_array($useCases)) {
+                    setting(['footer_use_cases_links' => $request->use_cases])->save();
+                }
+            }
+
+            // Handle Resources links
+            if ($request->has('resources')) {
+                $resources = json_decode($request->resources, true);
+                if (is_array($resources)) {
+                    setting(['footer_resources_links' => $request->resources])->save();
+                }
+            }
+
             setting([
                 'facebook_domain_verification' => $request->facebook_domain_verification ?: '',
                 'google_robots'                => $request->google_robots,
@@ -1512,10 +1543,10 @@ class AdminController extends Controller
             if ($request->hasFile('hero_image')) {
                 $path = 'upload/';
                 $image = $request->file('hero_image');
-                $image_name = Str::random(4) . '-' . Str::slug($settings->site_name) . '-hero-image.' . $image->getClientOriginalExtension();
+                $image_name = Str::random(4) . '-' . Str::slug($settings->site_name) . '-hero-image.' . $image->guessExtension();
 
                 $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-                if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+                if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                     $data = [
                         'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                     ];
@@ -1555,11 +1586,11 @@ class AdminController extends Controller
                 if ($request->hasFile($logo)) {
                     $path = 'upload/images/logo/';
                     $image = $request->file($logo);
-                    $image_name = Str::random(4) . '-' . $logo_prefix . '-' . Str::slug($settings->site_name) . '-logo.' . $image->getClientOriginalExtension();
+                    $image_name = Str::random(4) . '-' . $logo_prefix . '-' . Str::slug($settings->site_name) . '-logo.' . $image->guessExtension();
 
                     // Resim uzantı kontrolü
                     $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-                    if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+                    if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                         $data = [
                             'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                         ];
@@ -1578,11 +1609,11 @@ class AdminController extends Controller
             if ($request->hasFile('favicon')) {
                 $path = 'upload/images/favicon/';
                 $image = $request->file('favicon');
-                $image_name = Str::random(4) . '-' . Str::slug($settings->site_name) . '-favicon.' . $image->getClientOriginalExtension();
+                $image_name = Str::random(4) . '-' . Str::slug($settings->site_name) . '-favicon.' . $image->guessExtension();
 
                 // Resim uzantı kontrolü
                 $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-                if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+                if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                     $data = [
                         'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                     ];
@@ -1682,6 +1713,16 @@ class AdminController extends Controller
                 $find->save();
             }
 
+            if (setting('front_theme') === 'marketing-bot') {
+                setting([
+                    'marketing_tools'         => $request->marketing_tools ?? 1,
+                    'marquee_active'          => $request->marquee_active ?? 1,
+                    'vertical_slider_active'  => $request->vertical_slider_active ?? 1,
+                    'testimonials_stars'      => $request->testimonials_stars ?? '',
+                    'testimonials_count'      => $request->testimonials_count ?? '',
+                ])->save();
+            }
+
             // Handle advanced features section
             $advancedFeaturesKeys = array_filter(array_keys($request->all()), function ($key) {
                 return preg_match('/^advanced_features_title_\d+$/', $key);
@@ -1700,11 +1741,11 @@ class AdminController extends Controller
                 if ($request->hasFile('advanced_features_image_' . $key)) {
                     $path = 'upload/images/frontent/';
                     $image = $request->file('advanced_features_image_' . $key);
-                    $image_name = Str::random(4) . '-' . Str::slug($request->input('advanced_features_title_' . $key)) . '.' . $image->getClientOriginalExtension();
+                    $image_name = Str::random(4) . '-' . Str::slug($request->input('advanced_features_title_' . $key)) . '.' . $image->guessExtension();
 
                     // Resim uzantı kontrolü
                     $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-                    if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+                    if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                         $data = [
                             'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                         ];
@@ -1849,7 +1890,7 @@ class AdminController extends Controller
             if ($request->hasFile('login_image')) {
                 $path = 'upload/images/auth/';
                 $image = $request->file('login_image');
-                $image_name = Str::random(4) . '-login-image.' . $image->getClientOriginalExtension();
+                $image_name = Str::random(4) . '-login-image.' . $image->guessExtension();
                 $image->move($path, $image_name);
                 $auth['login_image'] = $path . $image_name;
             } else {
@@ -1939,11 +1980,11 @@ class AdminController extends Controller
             if ($request->hasFile('image')) {
                 $path = 'upload/images/frontent/tools/';
                 $image = $request->file('image');
-                $image_name = Str::random(4) . '-' . Str::slug($request->title) . '.' . $image->getClientOriginalExtension();
+                $image_name = Str::random(4) . '-' . Str::slug($request->title) . '.' . $image->guessExtension();
 
                 // Resim uzantı kontrolü
                 $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-                if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+                if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                     $data = [
                         'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                     ];
@@ -2079,11 +2120,11 @@ class AdminController extends Controller
             if ($request->hasFile('image')) {
                 $path = 'upload/images/generatorlist/';
                 $image = $request->file('image');
-                $image_name = Str::random(4) . '-' . Str::slug($request->title) . '-image.' . $image->getClientOriginalExtension();
+                $image_name = Str::random(4) . '-' . Str::slug($request->title) . '-image.' . $image->guessExtension();
 
                 // Resim uzantı kontrolü
                 $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-                if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+                if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                     $data = [
                         'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                     ];

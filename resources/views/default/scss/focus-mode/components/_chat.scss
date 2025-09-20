@@ -2,7 +2,7 @@
 	@apply border-s;
 }
 
-.lqd-page-content-container:has(.chats-wrap) > div {
+.lqd-page-content-container:has(.chats-wrap)>div {
 	display: flex;
 	flex-direction: column;
 	height: 100%;
@@ -34,6 +34,7 @@
 
 	.chats-sidebar-wrap {
 		width: 25%;
+		@apply md:h-full;
 	}
 
 	.conversation-area-wrap {
@@ -42,7 +43,7 @@
 		border-inline-end-width: 0;
 		border-bottom-width: 0;
 
-		> .lqd-card-body {
+		>.lqd-card-body {
 			padding-inline-start: theme('spacing.10');
 		}
 	}
@@ -100,7 +101,7 @@
 		}
 	}
 
-	.chat-list-item-trigger > svg,
+	.chat-list-item-trigger>svg,
 	.chat-item-date {
 		display: none;
 	}
@@ -118,4 +119,3 @@
 		}
 	}
 }
-

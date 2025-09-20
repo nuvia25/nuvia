@@ -4,6 +4,7 @@ namespace App\View\Components;
 
 use App\Domains\Entity\EntityStats;
 use App\Models\Plan;
+use App\Models\Team\Team;
 use App\Models\User;
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -39,6 +40,8 @@ class CreditList extends Component
 
     public bool $isJs;
 
+    public ?Team $team;
+
     /**
      * Create a new component instance.
      * When setting param type to User Model, it gave error.
@@ -63,7 +66,8 @@ class CreditList extends Component
         string $modalTriggerPos = 'inline',
         bool $onlyButton = false,
         bool $aiImage = false,
-        bool $isJs = true
+        bool $isJs = true,
+        ?Team $team = null
     ) {
         $this->user = $user ?? auth()->user();
         $this->plan = $plan;
@@ -78,6 +82,7 @@ class CreditList extends Component
         $this->onlyButton = $onlyButton;
         $this->aiImage = $aiImage;
         $this->isJs = $isJs;
+        $this->team = $team;
     }
 
     /**

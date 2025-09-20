@@ -33,6 +33,39 @@ class FluxProQueueCheck extends Command
         self::updateFluxProImages();
     }
 
+    public static function updateFluxProImage(?string $request_id = null): void
+    {
+        if (is_null($request_id)) {
+            return;
+        }
+
+        $item = UserOpenai::query()
+            ->where('response', 'FL')
+            ->where('status', 'IN_QUEUE')
+            ->where('request_id', $request_id)
+            ->first();
+
+        $output = FalAIService::check($item->request_id);
+
+        if ($output) {
+            $payload = data_get($item, 'payload');
+
+            if ($payload && is_array($payload)) {
+                $payload['size'] = data_get($output, 'size');
+            }
+
+            $image = data_get($output, 'image.url');
+
+            $image = static::downloadImageToStorage($image);
+
+            $item->update([
+                'output'  => $image ?: $item->output,
+                'payload' => $payload,
+                'status'  => 'COMPLETED',
+            ]);
+        }
+    }
+
     public static function updateFluxProImages(): void
     {
         UserOpenai::query()
@@ -68,19 +101,10 @@ class FluxProQueueCheck extends Command
         if (! $url) {
             return null;
         }
-
-        // Resmi URL'den indir
         $response = Http::get($url);
-
-        // Eğer dosya başarıyla indirildiyse devam et
         if ($response->successful()) {
-            // Dosya içeriğini al
             $fileContent = $response->body();
-
-            // Dosya uzantısını belirleyin
             $extension = pathinfo($url, PATHINFO_EXTENSION);
-
-            // Eğer dosya adı verilmemişse, bir dosya adı oluşturun
             if (! $filename) {
                 $filename = uniqid('image_') . '.' . $extension;
             } else {

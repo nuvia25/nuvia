@@ -118,10 +118,10 @@
                                     :plan="$plan"
                                     :period="$plan->frequency"
                                 />
-                                <div class="mt-auto text-center">
+                                <div class="mt-7 text-center">
                                     <a
                                         class="btn w-full rounded-md p-[1.15em_2.1em] text-[15px] group-[.theme-dark]/body:!bg-[rgba(255,255,255,1)] group-[.theme-dark]/body:!text-[rgba(0,0,0,0.9)]"
-                                        href="{{  (route('dashboard.user.payment.subscription')) }}"
+                                        href="{{ route('dashboard.user.payment.subscription') }}"
                                     >{{ __('Change Plan') }}</a>
                                 </div>
                             </div>
@@ -204,7 +204,7 @@
                 }).catch((error) => {
                     submitButton.disabled = false;
                     console.error(error);
-                    toastr.error(error);
+                    toastr.error(error?.message || error);
                 });
             });
         });

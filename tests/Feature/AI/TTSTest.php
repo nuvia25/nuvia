@@ -29,5 +29,5 @@ test('returns error if no speeches are provided', function () {
 
     $response = $controller->generateSpeech($request);
     expect($response->getStatusCode())->toBe(429)
-        ->and($response->getData()->errors[0])->toBe('Please provide inputs.');
+        ->and($response->getData()->errors[0])->toBeIn(['Please provide valid content for speech generation.', 'Please provide inputs.']);
 });

@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 @import './base/vars';
 
 @layer base {
@@ -54,3 +55,4 @@
 
 @import './focus-mode/focus-mode';
 @import './advanced-image-editor/advanced-image-editor';
+@import './creative-suite/creative-suite';

@@ -77,6 +77,7 @@
                         class="form-control"
                         id="avatar"
                         type="file"
+						accept="image/*"
                         name="avatar"
                     >
                 </div>

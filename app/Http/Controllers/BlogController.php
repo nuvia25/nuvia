@@ -176,11 +176,11 @@ class BlogController extends Controller
         if ($request->hasFile('feature_image')) {
             $path = 'upload/images/blog/';
             $image = $request->file('feature_image');
-            $image_name = Str::random(4) . '-' . Str::slug($request->slug) . '.' . $image->getClientOriginalExtension();
+            $image_name = Str::random(4) . '-' . Str::slug($request->slug) . '.' . $image->guessExtension();
 
             // Resim uzantı kontrolü
             $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-            if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+            if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                 $data = [
                     'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                 ];

@@ -25,6 +25,8 @@ use Laravel\Octane\Octane;
 
 return [
 
+    'enabled' => env('OCTANE_ENABLED', false),
+
     /*
     |--------------------------------------------------------------------------
     | Octane Server

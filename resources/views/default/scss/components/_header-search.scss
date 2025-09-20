@@ -27,3 +27,26 @@
 .header-search {
 	--input-rounded-multiplier: 2;
 }
+
+[data-theme=default] {
+
+	@media (min-width: 1024px) {
+
+		.lqd-header {
+
+			.header-search {
+				width: 435px;
+			}
+		}
+	}
+
+	@media (max-width: 1335px) {
+
+		.lqd-header {
+
+			.header-search {
+				width: 300px;
+			}
+		}
+	}
+}

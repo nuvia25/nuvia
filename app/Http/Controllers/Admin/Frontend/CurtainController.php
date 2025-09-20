@@ -27,46 +27,60 @@ class CurtainController extends Controller
     public function update(Request $request, Curtain $curtain): RedirectResponse
     {
         $data = $request->validate([
-            'title'       => 'required|max:191',
-            'title_icon'  => 'sometimes',
-            'sliders'     => 'array',
+            'title'                       => 'required|max:191',
+            'title_icon'                  => 'sometimes',
+            'sliders'                     => 'array',
+            'sliders.*.description'       => 'nullable|string',
+            'sliders.*.bg_image'          => 'nullable|file|mimes:jpeg,png,jpg,gif,svg',
+            'sliders.*.bg_video'          => 'nullable|file|mimes:mp4,webm,ogg',
+            'sliders.*.bg_color'          => 'nullable|string',
+            'sliders.*.title_color'       => 'nullable|string',
+            'sliders.*.description_color' => 'nullable|string',
         ]);
 
+        // Update basic curtain info
         $curtain->update([
             'title'       => $data['title'],
-            'title_icon'  => $data['title_icon'],
+            'title_icon'  => $data['title_icon'] ?? null,
         ]);
 
-        $sliders = $curtain['sliders'];
+        $processedSliders = [];
 
-        $sliderData = [];
-        foreach ($data['sliders'] as $key => $slider) {
+        if (isset($data['sliders']) && is_array($data['sliders'])) {
+            foreach ($data['sliders'] as $sliderIndex => $slider) {
+                $processedSlider = [
+                    'title'             => $data['title'], // Use the curtain title
+                    'description'       => $slider['description'] ?? '',
+                    'bg_color'          => $slider['bg_color'] ?? '',
+                    'title_color'       => $slider['title_color'] ?? '',
+                    'description_color' => $slider['description_color'] ?? '',
+                ];
 
-            $sliders[$key]['title'] = $curtain['title'];
+                // Handle existing images/videos - preserve them if no new file uploaded
+                $existingSliders = $curtain->sliders ?? [];
 
-            if (isset($slider['bg_image']) && $slider['bg_image'] instanceof UploadedFile) {
-                $sliders[$key]['bg_image'] = '/uploads/' . $slider['bg_image']->store('curtains', 'uploads');
-            }
+                // Handle background image
+                if (isset($slider['bg_image']) && $slider['bg_image'] instanceof UploadedFile) {
+                    $processedSlider['bg_image'] = '/uploads/' . $slider['bg_image']->store('curtains', 'uploads');
+                } else {
+                    // Keep existing image if available
+                    $processedSlider['bg_image'] = $existingSliders[$sliderIndex]['bg_image'] ?? '';
+                }
 
-            if (isset($slider['bg_video']) && $slider['bg_video'] instanceof UploadedFile) {
-                $sliders[$key]['bg_video'] = '/uploads/' . $slider['bg_video']->store('curtains', 'uploads');
-            }
+                // Handle background video
+                if (isset($slider['bg_video']) && $slider['bg_video'] instanceof UploadedFile) {
+                    $processedSlider['bg_video'] = '/uploads/' . $slider['bg_video']->store('curtains', 'uploads');
+                } else {
+                    // Keep existing video if available
+                    $processedSlider['bg_video'] = $existingSliders[$sliderIndex]['bg_video'] ?? '';
+                }
 
-            $sliders[$key]['description'] = $slider['description'];
-
-            if (isset($slider['bg_color'])) {
-                $sliders[$key]['bg_color'] = $slider['bg_color'];
-            }
-
-            if (isset($slider['title_color'])) {
-                $sliders[$key]['title_color'] = $slider['title_color'];
-            }
-            if (isset($slider['description_color'])) {
-                $sliders[$key]['description_color'] = $slider['description_color'];
+                $processedSliders[] = $processedSlider;
             }
         }
 
-        $curtain->update(['sliders' => $sliders]);
+        // Update curtain with processed sliders
+        $curtain->update(['sliders' => $processedSliders]);
 
         return back()->with([
             'type'    => 'success',

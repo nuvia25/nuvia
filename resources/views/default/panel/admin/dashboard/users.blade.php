@@ -32,7 +32,7 @@
     <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-4">
             <div class="flex justify-between">
-                <span class="text-base font-medium"><strong class="me-2 text-xl font-bold">{{ cache('online_user') }}</strong>Online
+                <span class="text-base font-medium"><strong class="me-2 text-xl font-bold">{{ \App\Helpers\Classes\Helper::appIsDemo() ? 23 : cache('online_user') }}</strong>Online
                     Users</span>
                 <span class="text-xs font-bold">{{ $online_user_percentage }}%</span>
             </div>

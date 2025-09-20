@@ -46,7 +46,7 @@
         <div class="flex flex-col gap-14">
             <div class="w-full">
                 <x-card
-                    class="lqd-plan-overview scroll-mt-11 bg-gradient-to-b from-secondary to-[#F1EEFF] to-100% pb-4 pt-2 dark:from-pink-300/10 dark:to-transparent max-md:text-center"
+                    class="lqd-plan-overview scroll-mt-11 bg-gradient-to-b from-accent/20 to-transparent pb-4 pt-2 dark:from-pink-300/10 dark:to-transparent max-md:text-center"
                     id="overview"
                     size="lg"
                 >
@@ -60,7 +60,7 @@
                                     class="hover:text-red-500"
                                     variant="link"
                                     onclick="return confirm('Are you sure to cancel your plan? You will lose your remaining usage.');"
-                                    href="{{  (route('dashboard.user.payment.cancelActiveSubscription')) }}"
+                                    href="{{ route('dashboard.user.payment.cancelActiveSubscription') }}"
                                 >
                                     {{ __('Cancel My Plan') }}
                                 </x-button>
@@ -130,7 +130,7 @@
                                     <span class="block font-semibold">
                                         @lang('Team Plan')
                                     </span>
-                                    @if ($team)
+                                    @if ($team && $team?->allow_seats > 0)
                                         @lang('Active')
                                     @else
                                         @lang('Not Active')
@@ -171,14 +171,16 @@
                                         'lqd-is-active' => $loop->first,
                                     ])
                                     x-data="{}"
-                                    @click="$store.plansFilter.toggle('{{ $filter }}')"
+                                    type="button"
+                                    @click.prevent="$store.plansFilter.toggle('{{ $filter }}')"
                                     :class="{ 'lqd-is-active': $store.plansFilter.isActive('{{ $filter }}') }"
                                 >
                                     @lang($filter)
 
-									@if($filter === 'Yearly')
-										<span class="ml-1 inline-block rounded-md bg-[#684AE2] bg-opacity-10 p-[0.275rem] px-1 text-[#684AE2]">{{ $fSectSettings?->pricing_save_percent }}</span>
-									@endif
+                                    @if ($filter === 'Yearly')
+                                        <span
+                                            class="-my-[0.275rem] ms-1 inline-block rounded-md bg-[#684AE2] bg-opacity-10 px-1 py-[0.275rem] text-[#684AE2]">{{ $fSectSettings?->pricing_save_percent }}</span>
+                                    @endif
                                 </button>
                             </li>
                         @endforeach
@@ -198,17 +200,8 @@
                                 'shadow-[0_7px_20px_rgba(0,0,0,0.04)]' => $plan->is_featured,
                             ])>
                                 <div class="flex h-full flex-col p-7">
-                                    <div class="mb-2 flex items-start text-[50px] font-bold leading-none text-heading-foreground">
-                                        @if (currencyShouldDisplayOnRight($currency->symbol))
-                                            {{ $plan->price }} <small class='inline-flex text-[0.35em] font-normal'>
-                                                {{ $currency->symbol }}
-                                            </small>
-                                        @else
-                                            <small class='inline-flex text-[0.35em] font-normal'>
-                                                {{ $currency->symbol }}
-                                            </small>
-                                            {{ $plan->price }}
-                                        @endif
+                                    <div class="mb-2 flex flex-wrap text-[50px] font-bold leading-none text-heading-foreground">
+                                        {!! displayPlanPrice($plan, $currency) !!}
                                         <div class="ms-2 mt-2 inline-flex flex-col items-start gap-2 text-[0.3em]">
                                             {{ __(formatCamelCase($plan->frequency)) }}
                                             @if ($plan->is_featured == 1)
@@ -229,7 +222,7 @@
                                     />
 
                                     @if ($activesubid == $plan->id)
-                                        <div class="mt-auto text-center">
+                                        <div class="mt-7 text-center">
                                             <div class="flex flex-col gap-2">
                                                 <span class="text-green-500">
                                                     <b>{{ __('Already Subscribed') }}</b>
@@ -238,14 +231,14 @@
                                                     size="lg"
                                                     variant="danger"
                                                     onclick="return confirm('Are you sure to cancel your plan? You will lose your remaining usage.');"
-                                                    href="{{  (route('dashboard.user.payment.cancelActiveSubscription')) }}"
+                                                    href="{{ route('dashboard.user.payment.cancelActiveSubscription') }}"
                                                 >
                                                     {{ __('Cancel Subscription') }}
                                                 </x-button>
                                             </div>
                                         </div>
                                     @elseif($activesubid != null)
-                                        <div class="mt-auto text-center">
+                                        <div class="mt-7 text-center">
                                             <div class="flex flex-col gap-2">
                                                 <span class="text-foreground/60">
                                                     <b>{{ __('You have an active subscription.') }}</b>
@@ -253,13 +246,13 @@
                                             </div>
                                         </div>
                                     @else
-                                        <div class="mt-auto text-center">
+                                        <div class="mt-7 text-center">
                                             @if ($is_active_gateway == 1)
                                                 @php($planid = $plan->id)
                                                 @if ($plan->price == 0)
                                                     <x-button
                                                         class="w-full"
-                                                        href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => 'freeservice'])) }}"
+                                                        href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => 'freeservice']) }}"
                                                         onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                         variant="ghost-shadow"
                                                     >
@@ -287,7 +280,7 @@
                                                         @php($data = $gatewayControls->gatewayData($gateway->code))
                                                         <x-button
                                                             class="w-full"
-                                                            href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code']])) }}"
+                                                            href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code']]) }}"
                                                             onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                             variant="ghost-shadow"
                                                         >
@@ -311,11 +304,12 @@
                                                                         @if ($gateway->code == 'revenuecat')
                                                                             @continue
                                                                         @endif
+                                                                        @php($planid = $plan->id)
                                                                         @php($data = $gatewayControls->gatewayData($gateway->code))
                                                                         <x-button
                                                                             class="w-full"
                                                                             hover-variant="secondary"
-                                                                            href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code']])) }}"
+                                                                            href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code']]) }}"
                                                                             onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                                             variant="ghost-shadow"
                                                                         >
@@ -369,18 +363,8 @@
                                 'shadow-[0_7px_20px_rgba(0,0,0,0.04)]' => $plan->is_featured,
                             ])>
                                 <div class="flex h-full flex-col p-7">
-                                    <div class="mb-2 flex items-start text-[50px] font-bold leading-none text-heading-foreground">
-                                        @if (currencyShouldDisplayOnRight($currency->symbol))
-                                            {{ $plan->price }}
-                                            <small class='inline-flex text-[0.35em] font-normal'>
-                                                {{ $currency->symbol }}
-                                            </small>
-                                        @else
-                                            <small class='inline-flex text-[0.35em] font-normal'>
-                                                {{ $currency->symbol }}
-                                            </small>
-                                            {{ $plan->price }}
-                                        @endif
+                                    <div class="mb-2 flex flex-wrap text-[50px] font-bold leading-none text-heading-foreground">
+                                        {!! displayPlanPrice($plan, $currency) !!}
                                         <div class="ms-2 mt-2 inline-flex flex-col items-start gap-2 text-[0.3em]">
                                             {{ __('One time') }}
                                             @if ($plan->is_featured == 1)
@@ -398,13 +382,13 @@
                                         :plan="$plan"
                                         :period="$plan->frequency"
                                     />
-                                    <div class="mt-auto text-center">
+                                    <div class="mt-7 text-center">
                                         @if ($is_active_gateway == 1)
                                             @php($planid = $plan->id)
                                             @if ($plan->price == 0)
                                                 <x-button
                                                     class="w-full"
-                                                    href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startPrepaidPaymentProcess', ['planId' => $planid, 'gatewayCode' => 'freeservice'])) }}"
+                                                    href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startPrepaidPaymentProcess', ['planId' => $planid, 'gatewayCode' => 'freeservice']) }}"
                                                     onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                     variant="ghost-shadow"
                                                 >
@@ -432,7 +416,7 @@
                                                     @php($data = $gatewayControls->gatewayData($gateway->code))
                                                     <x-button
                                                         class="w-full"
-                                                        href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startPrepaidPaymentProcess', ['planId' => $planid, 'gatewayCode' => $data['code']])) }}"
+                                                        href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startPrepaidPaymentProcess', ['planId' => $planid, 'gatewayCode' => $data['code']]) }}"
                                                         onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                         variant="ghost-shadow"
                                                     >
@@ -460,7 +444,7 @@
                                                                     <x-button
                                                                         class="w-full"
                                                                         hover-variant="secondary"
-                                                                        href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startPrepaidPaymentProcess', ['planId' => $planid, 'gatewayCode' => $data['code']])) }}"
+                                                                        href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startPrepaidPaymentProcess', ['planId' => $planid, 'gatewayCode' => $data['code']]) }}"
                                                                         onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                                         variant="ghost-shadow"
                                                                     >
@@ -514,17 +498,8 @@
                                 'shadow-[0_7px_20px_rgba(0,0,0,0.04)]' => $plan->is_featured,
                             ])>
                                 <div class="flex h-full flex-col p-7">
-                                    <div class="mb-2 flex items-start text-[50px] font-bold leading-none text-heading-foreground">
-                                        @if (currencyShouldDisplayOnRight($currency->symbol))
-                                            {{ $plan->price }} <small class='inline-flex text-[0.35em] font-normal'>
-                                                {{ $currency->symbol }}
-                                            </small>
-                                        @else
-                                            <small class='inline-flex text-[0.35em] font-normal'>
-                                                {{ $currency->symbol }}
-                                            </small>
-                                            {{ $plan->price }}
-                                        @endif
+                                    <div class="mb-2 flex flex-wrap text-[50px] font-bold leading-none text-heading-foreground">
+                                        {!! displayPlanPrice($plan, $currency) !!}
                                         <div class="ms-2 mt-2 inline-flex flex-col items-start gap-2 text-[0.3em]">
                                             {{ __(formatCamelCase($plan->frequency)) }}
                                             @if ($plan->is_featured == 1)
@@ -545,7 +520,7 @@
                                     />
 
                                     @if ($activesubid == $plan->id)
-                                        <div class="mt-auto text-center">
+                                        <div class="mt-7 text-center">
                                             <div class="flex flex-col gap-2">
                                                 <span class="text-green-500">
                                                     <b>{{ __('Already Subscribed') }}</b>
@@ -554,14 +529,14 @@
                                                     size="lg"
                                                     variant="danger"
                                                     onclick="return confirm('Are you sure to cancel your plan? You will lose your remaining usage.');"
-                                                    href="{{  (route('dashboard.user.payment.cancelActiveSubscription')) }}"
+                                                    href="{{ route('dashboard.user.payment.cancelActiveSubscription') }}"
                                                 >
                                                     {{ __('Cancel Subscription') }}
                                                 </x-button>
                                             </div>
                                         </div>
                                     @elseif($activesubid != null)
-                                        <div class="mt-auto text-center">
+                                        <div class="mt-7 text-center">
                                             <div class="flex flex-col gap-2">
                                                 <span class="text-foreground/60">
                                                     <b>{{ __('You have an active subscription.') }}</b>
@@ -569,13 +544,13 @@
                                             </div>
                                         </div>
                                     @else
-                                        <div class="mt-auto text-center">
+                                        <div class="mt-7 text-center">
                                             @if ($is_active_gateway == 1)
                                                 @php($planid = $plan->id)
                                                 @if ($plan->price == 0)
                                                     <x-button
                                                         class="w-full"
-                                                        href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => 'freeservice'])) }}"
+                                                        href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => 'freeservice']) }}"
                                                         onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                         variant="ghost-shadow"
                                                     >
@@ -603,7 +578,7 @@
                                                         @php($data = $gatewayControls->gatewayData($gateway->code))
                                                         <x-button
                                                             class="w-full"
-                                                            href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code']])) }}"
+                                                            href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code']]) }}"
                                                             onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                             variant="ghost-shadow"
                                                         >
@@ -631,7 +606,7 @@
                                                                         <x-button
                                                                             class="w-full"
                                                                             hover-variant="secondary"
-                                                                            href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code']])) }}"
+                                                                            href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code']]) }}"
                                                                             onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                                             variant="ghost-shadow"
                                                                         >
@@ -684,17 +659,8 @@
                                 'shadow-[0_7px_20px_rgba(0,0,0,0.04)]' => $plan->is_featured,
                             ])>
                                 <div class="flex h-full flex-col p-7">
-                                    <div class="mb-2 flex items-start text-[50px] font-bold leading-none text-heading-foreground">
-                                        @if (currencyShouldDisplayOnRight($currency->symbol))
-                                            {{ $plan->price }} <small class='inline-flex text-[0.35em] font-normal'>
-                                                {{ $currency->symbol }}
-                                            </small>
-                                        @else
-                                            <small class='inline-flex text-[0.35em] font-normal'>
-                                                {{ $currency->symbol }}
-                                            </small>
-                                            {{ $plan->price }}
-                                        @endif
+                                    <div class="mb-2 flex flex-wrap text-[50px] font-bold leading-none text-heading-foreground">
+                                        {!! displayPlanPrice($plan, $currency) !!}
                                         <div class="ms-2 mt-2 inline-flex flex-col items-start gap-2 text-[0.3em]">
                                             {{ __(formatCamelCase($plan->frequency)) }}
                                             @if ($plan->is_featured == 1)
@@ -715,7 +681,7 @@
                                     />
 
                                     @if ($activesubid == $plan->id)
-                                        <div class="mt-auto text-center">
+                                        <div class="mt-7 text-center">
                                             <div class="flex flex-col gap-2">
                                                 <span class="text-green-500">
                                                     <b>{{ __('Already Subscribed') }}</b>
@@ -724,14 +690,14 @@
                                                     size="lg"
                                                     variant="danger"
                                                     onclick="return confirm('Are you sure to cancel your plan? You will lose your remaining usage.');"
-                                                    href="{{  (route('dashboard.user.payment.cancelActiveSubscription')) }}"
+                                                    href="{{ route('dashboard.user.payment.cancelActiveSubscription') }}"
                                                 >
                                                     {{ __('Cancel Subscription') }}
                                                 </x-button>
                                             </div>
                                         </div>
                                     @elseif($activesubid != null)
-                                        <div class="mt-auto text-center">
+                                        <div class="mt-7 text-center">
                                             <div class="flex flex-col gap-2">
                                                 <span class="text-foreground/60">
                                                     <b>{{ __('You have an active subscription.') }}</b>
@@ -739,13 +705,13 @@
                                             </div>
                                         </div>
                                     @else
-                                        <div class="mt-auto text-center">
+                                        <div class="mt-7 text-center">
                                             @if ($is_active_gateway == 1)
                                                 @php($planid = $plan->id)
                                                 @if ($plan->price == 0)
                                                     <x-button
                                                         class="w-full"
-                                                        href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => 'freeservice'])) }}"
+                                                        href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => 'freeservice']) }}"
                                                         onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                         variant="ghost-shadow"
                                                     >
@@ -773,7 +739,7 @@
                                                         @php($data = $gatewayControls->gatewayData($gateway->code))
                                                         <x-button
                                                             class="w-full"
-                                                            href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code']])) }}"
+                                                            href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code'] ?: 'stripe']) }}"
                                                             onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                             variant="ghost-shadow"
                                                         >
@@ -801,7 +767,7 @@
                                                                         <x-button
                                                                             class="w-full"
                                                                             hover-variant="secondary"
-                                                                            href="{{ $app_is_demo ? '#' :  (route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code']])) }}"
+                                                                            href="{{ $app_is_demo ? '#' : route('dashboard.user.payment.startSubscriptionProcess', ['planId' => $planid, 'gatewayCode' => $data['code']]) }}"
                                                                             onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
                                                                             variant="ghost-shadow"
                                                                         >

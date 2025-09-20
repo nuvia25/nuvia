@@ -23,7 +23,7 @@
                 @endif
             </h3>
             <p class="mb-0 flex items-center gap-1 text-[12px] text-heading-foreground/50">
-                @lang('vs Last Week') <x-change-indicator-plus-minus value="{{ floatval($sales_change) }}" />
+                @lang('vs Last Week') <x-change-indicator-plus-minus value="{{ \App\Helpers\Classes\Helper::appIsDemo() ? 34 : floatval($sales_change) }}" />
             </p>
         </div>
     </div>
@@ -37,10 +37,10 @@
                 {{ __('New Users') }}
             </div>
             <h3 class="lqd-statistic-change mb-0.5 flex items-center gap-2 text-2xl sm:text-[30px]">
-                {{ cache('this_week_new_users') }}
+                {{ \App\Helpers\Classes\Helper::appIsDemo() ? 12 : cache('this_week_new_users') }}
             </h3>
             <p class="mb-0 flex items-center gap-1 text-[12px] text-heading-foreground/50">
-                @lang('vs Last Week') <x-change-indicator-plus-minus value="{{ floatval($users_change) }}" />
+                @lang('vs Last Week') <x-change-indicator-plus-minus value="{{ \App\Helpers\Classes\Helper::appIsDemo() ? 18 : floatval($users_change) }}" />
             </p>
         </div>
     </div>
@@ -71,10 +71,11 @@
                 {{ __('Daily Visit') }}
             </div>
             <h3 class="lqd-statistic-change mb-0.5 flex items-center gap-2 text-2xl sm:text-[30px]">
-                {{ cache('total_daily_activity') }}
+                {{ \App\Helpers\Classes\Helper::appIsDemo() ? 2421 :cache('total_daily_activity') }}
             </h3>
             <p class="mb-0 flex items-center gap-1 text-[12px] text-heading-foreground/50">
-                @lang('vs Last Week') <x-change-indicator-plus-minus value="{{ floatval($dialy_activity_change) }}" />
+                @lang('vs Last Week')
+				<x-change-indicator-plus-minus value="{{ \App\Helpers\Classes\Helper::appIsDemo() ? 14 : floatval($dialy_activity_change) }}" />
             </p>
         </div>
     </div>

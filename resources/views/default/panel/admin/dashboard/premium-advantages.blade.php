@@ -1,5 +1,5 @@
 @if ($vip_membership === false && $app_is_not_demo)
-    <x-card
+	<x-card
         class="relative flex items-center border-4"
         class:body="static rounded-[inherit] only:grow-0 lg:p-10 w-full"
         id="{{ 'admin-card-' . ($widget?->name?->value ?? 'premium-advantages') }}"

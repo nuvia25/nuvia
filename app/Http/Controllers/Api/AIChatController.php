@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Entity\Enums\EntityEnum;
 use App\Domains\Entity\Facades\Entity;
 use App\Helpers\Classes\ApiHelper;
+use App\Helpers\Classes\Helper;
 use App\Http\Controllers\Controller;
 use App\Models\OpenAIGenerator;
 use App\Models\OpenaiGeneratorChatCategory;
@@ -220,6 +222,8 @@ class AIChatController extends Controller
      */
     public function startNewChat(Request $request)
     {
+        Helper::clearEmptyConversations();
+
         if ($request->category_id == null) {
             return response()->json(['error' => __('Category ID missing.')], 412);
         }
@@ -559,6 +563,7 @@ class AIChatController extends Controller
                 ->reverse();
             $category = OpenaiGeneratorChatCategory::where('id', $chat->openai_chat_category_id)->first();
             $chat_completions = str_replace(["\r", "\n"], '', $category->chat_completions);
+            $systemRole = EntityEnum::fromSlug($driver->enum()->slug())->isBetaEntity() ? 'system' : 'user';
             if ($chat_completions) {
                 $chat_completions = json_decode($chat_completions, true, 512, JSON_THROW_ON_ERROR);
                 foreach ($chat_completions as $item) {
@@ -568,19 +573,16 @@ class AIChatController extends Controller
                     ];
                 }
             } else {
-                $history[] = ['role' => 'system', 'content' => 'You are a helpful assistant.'];
+                $history[] = ['role' => $systemRole, 'content' => 'You are a helpful assistant.'];
             }
-
-            if ($category->prompt_prefix !== null && ($prompt === null || $prompt === '')) {
-                $prompt = "You will now play a character and respond as that character (You will never break character). Your name is $category->human_name.
-                I want you to act as a $category->role." . $category->prompt_prefix;
-
-                $history[] = [
-                    'role'    => 'system',
-                    'content' => $prompt,
-                ];
-            }
-
+            // if ($category->prompt_prefix !== null && ($prompt === null || $prompt === '')) {
+            //     $prompt = "You will now play a character and respond as that character (You will never break character). Your name is $category->human_name.
+            //     I want you to act as a $category->role." . $category->prompt_prefix;
+            //     $history[] = [
+            //         'role'    => $systemRole,
+            //         'content' => $prompt,
+            //     ];
+            // }
             if (count($lastThreeMessageQuery) > 1) {
                 foreach ($lastThreeMessageQuery as $threeMessage) {
                     $history[] = ['role' => 'user', 'content' => $threeMessage->input];
@@ -597,8 +599,8 @@ class AIChatController extends Controller
                     $stream = OpenAI::chat()->createStreamed([
                         'model'             => $driver->enum()->value,
                         'messages'          => $history,
-                        'presence_penalty'  => 0.6,
-                        'frequency_penalty' => 0,
+                        // 'presence_penalty'  => 0.6,
+                        // 'frequency_penalty' => 0,
                     ]);
                 } catch (Exception $exception) {
                     Log::info($exception);

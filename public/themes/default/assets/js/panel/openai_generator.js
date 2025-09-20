@@ -1,20 +1,36 @@
-$( '#file' ).on( 'change', function () {
+$('#file').on('change', function () {
 	'use strict';
-	var isNull = false;
+	let isInvalid = false;
+	const file = this.files[0];
+	if (!file) return; // No file selected
+	const allowedExtensions = ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm', 'ogg'];
+	const allowedMimes = [
+		'audio/mpeg', 'audio/mp3', 'audio/mp4',
+		'audio/x-m4a', 'audio/wav', 'audio/webm', 'audio/ogg'
+	];
+	if (file.size > 24900000) { // ~25 MB
+		toastr.error(magicai_localize?.file_size_exceed || 'This file exceeds the upload limit');
+		isInvalid = true;
+	}
+	let ext = '';
+	if (file.name.includes('.')) {
+		// Take only the last segment after the last dot
+		ext = file.name.split('.').pop().toLowerCase();
+	}
+	let mime = (file.type || '').toLowerCase();
 
-	if ( this.files[ 0 ]?.size > 24900000 ) {
-		toastr.error(magicai_localize?.file_size_exceed ||'This file exceed the limit of file upload');
-		isNull = true;
+	if (!allowedExtensions.includes(ext) && !allowedMimes.includes(mime)) {
+		toastr.error(
+			magicai_localize?.invalid_extension ||
+			'Invalid file type. Accepted: ogg, mp3, mp4, mpeg, mpga, m4a, wav, webm'
+		);
+		isInvalid = true;
 	}
-	var ext = $( '#file' ).val().split( '.' ).pop().toLowerCase();
-	if ( $.inArray( ext, [ 'mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm', 'ogg' ] ) == -1 ) {
-		toastr.error(magicai_localize?.invalid_extension ||'Invalid extension. Accepted extensions are ogg, mp3, mp4, mpeg, mpga, m4a, wav, and webm');
-		isNull = true;
+	if (isInvalid) {
+		this.value = null;
 	}
-	if ( isNull ) {
-		document.getElementById( 'file' ).value = null;
-	}
-} );
+});
+
 // @formatter:off
 document.addEventListener( 'DOMContentLoaded', function () {
 	'use strict';

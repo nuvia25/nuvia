@@ -531,6 +531,35 @@
                 </div>
             </div>
 
+			@if(setting('front_theme') === 'marketing-bot')
+				<div class="col-md-12">
+					<div class="mb-3">
+						<label class="form-label">{{ __('Testimonials Start') }}</label>
+						<input
+							class="form-control"
+							id="testimonials_stars"
+							type="text"
+							name="testimonials_stars"
+							value="{{setting('testimonials_stars', '4.9 stars')}}"
+						>
+					</div>
+				</div>
+
+				<div class="col-md-12">
+					<div class="mb-3">
+						<label class="form-label">{{ __('Testimonials Count') }}</label>
+						<input
+							class="form-control"
+							id="testimonials_count"
+							type="text"
+							name="testimonials_count"
+							value="{{ setting('testimonials_count', 'Over 5000 testimonials') }}"
+						>
+					</div>
+				</div>
+			@endif
+
+
             <div class="col-md-12">
                 <div class="mb-3">
                     <label class="form-label">{{ __('Testimonials Subtitle Two') }}</label>
@@ -839,6 +868,11 @@
                     >
                 </div>
             </div>
+
+			@if(setting('front_theme') === 'marketing-bot')
+				@includeFirst(['marketing-bot.partials.frontend_settings', 'vendor.empty'])
+			@endif
+
         </div>
 
 

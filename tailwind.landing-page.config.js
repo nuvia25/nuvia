@@ -13,7 +13,9 @@ export default {
 		'./resources/views/**/panel/admin/frontend/**/*.blade.php',
 		'./resources/views/**/panel/admin/custom/**/*.blade.php',
 		'./resources/views/**/panel/chatbot/**/*.blade.php',
+		'./app/Helpers/helpers.php',
 		'./app/Extensions/MegaMenu/**/*.blade.php',
+		'./app/Extensions/DiscountManager/**/*.blade.php',
 	],
 	theme: {
 		extend: {

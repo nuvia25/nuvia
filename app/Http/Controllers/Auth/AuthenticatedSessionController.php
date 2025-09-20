@@ -52,7 +52,7 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
-        if (! $settings->login_without_confirmation) {
+        if ($settings->login_without_confirmation == 0) {
             if (! $user) {
                 return response()->json(['errors' => [trans('auth.failed')]], 401);
             }
@@ -98,6 +98,12 @@ class AuthenticatedSessionController extends Controller
             }
 
             event(new UsersActivityEvent($user->email, $user->type, $request->ip(), $request->header('User-Agent')));
+        }
+
+        if (setting('hard_redirect_to_user_dashboard', '0') === '0' && Auth::user()?->isAdmin()) {
+            return response()->json([
+                'link' => $request->get('plan') ? '/dashboard/user/payment?plan=' . $request->get('plan') : '/dashboard/admin',
+            ]);
         }
 
         return response()->json([

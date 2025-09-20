@@ -41,31 +41,27 @@
                         <td>
                             {{ __($entry->description) }}
                         </td>
-                        <td>
-                            <x-forms.input
-                                class="min-w-[110px]"
-                                id="premium"
-                                name="premium"
-                                type="select"
-                                size="lg"
-                                :disabled="$app_is_demo"
-                                onchange="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\');' : 'return updatePackageStatus(this.value, ' . $entry->id . ');' }}"
-                            >
-                                <option
-                                    value="0"
-                                    @selected($entry->premium == 0)
-                                >
-                                    {{ __('Regular') }}
-                                </option>
-                                <option
-                                    value="1"
-                                    @selected($entry->premium == 1)
-                                >
-                                    {{ __('Premium') }}
-                                </option>
-                            </x-forms.input>
-                        </td>
-                        <td>
+						<td>
+							<x-forms.input
+								class="min-w-[110px]"
+								id="access_type_{{ $entry->id }}"
+								name="access_type"
+								type="select"
+								size="lg"
+								:disabled="$app_is_demo"
+								onchange="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\');' : 'return updatePackageStatus(this.value, ' . $entry->id . ');' }}"
+							>
+								@foreach(\App\Enums\AccessType::cases() as $type)
+									<option
+										value="{{ $type->value }}"
+										@selected($entry->access_type === $type->value)
+									>
+										{{ $type->label() }}
+									</option>
+								@endforeach
+							</x-forms.input>
+						</td>
+						<td>
                             <p class="m-0">
                                 {{ date('j.n.Y', strtotime($entry->updated_at)) }}
                                 <span class="block opacity-60">

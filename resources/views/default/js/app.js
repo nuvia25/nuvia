@@ -4,14 +4,17 @@ import ajax from '~nodeModules/@imacrayon/alpine-ajax';
 import sort from '~nodeModules/@alpinejs/sort';
 import intersect from '~nodeModules/@alpinejs/intersect';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { Sortable, MultiDrag } from 'sortablejs';
 import modal from './components/modal';
 import clipboard from './components/clipboard';
 import assignViewCredits from './components/assignViewCredits';
 import openaiRealtime from './components/realtime-frontend/openaiRealtime';
 import advancedImageEditor from './components/advancedImageEditor';
 import { debounce, throttle } from 'lodash';
+import creativeSuite from './components/creative-suite/creativeSuite';
 import { lqdCustomizer, lqdCustomizerFontPicker } from './components/customizer';
 import elevenlabsRealtime from './components/realtime-frontend/elevenlabsRealtime';
+import tiptapEditor from './tiptapEditor';
 
 window.fetchEventSource = fetchEventSource;
 const darkMode = localStorage.getItem( 'lqdDarkMode' );
@@ -35,6 +38,8 @@ window.Alpine = Alpine;
 Alpine.plugin( ajax );
 Alpine.plugin( sort );
 Alpine.plugin( intersect );
+
+Sortable.mount( new MultiDrag() );
 
 document.addEventListener( 'alpine:init', () => {
 	const persist = Alpine.$persist;
@@ -81,7 +86,8 @@ document.addEventListener( 'alpine:init', () => {
 		dropdownItems: [],
 		dropdownLinks: [],
 		init() {
-			const navbarInner = this.$el.closest( '.lqd-navbar-inner' );
+			const navbar = document.querySelector('.lqd-navbar');
+			const navbarInner = navbar?.querySelector( '.lqd-navbar-inner' );
 
 			this.dropdown = this.$el.nextElementSibling && this.$el.nextElementSibling.classList.contains( 'lqd-navbar-dropdown' ) && this.$el.nextElementSibling;
 			this.dropdownItems = this.dropdown ? this.dropdown.querySelectorAll( '.lqd-navbar-dropdown-link' ) : [];
@@ -94,7 +100,7 @@ document.addEventListener( 'alpine:init', () => {
 			this.$nextTick( () => {
 				this.dropdown?.classList?.toggle( 'hidden', !this.isActive );
 
-				if ( navbarInner && !this.isDemo && this.isActive && this.$el.parentElement.offsetTop + this.$el.parentElement.offsetHeight > window.innerHeight ) {
+				if ( !navbar?.hasAttribute('data-disable-autoscroll') && navbarInner && !this.isDemo && this.isActive && this.$el.parentElement.offsetTop + this.$el.parentElement.offsetHeight > window.innerHeight ) {
 					navbarInner.scrollTo( { top: this.$el.parentElement.offsetTop - ( window.innerHeight / 2 ) } );
 				}
 			} );
@@ -140,6 +146,180 @@ document.addEventListener( 'alpine:init', () => {
 			this.showing = !this.showing;
 		},
 	} );
+
+	Alpine.data('liquidHeaderSearch', () => ({
+		modalOpen: false,
+		searchTerm: '',
+		isSearching: false,
+		doneSearching: false,
+		pending: false,
+		inputFocused: false,
+		timer: null,
+		searchResults: '',
+		recentSearchKeys: [],
+		recentLunchedDocs: '',
+		shortcutKey: navigator.userAgent.indexOf('Mac OS X') != -1 ? 'cmd' : 'ctrl',
+
+		init() {
+			this.applyRecentSearch = this.applyRecentSearch.bind(this);
+
+			// Clear session storage on page load
+			sessionStorage.removeItem('headear-recent-lunch');
+			sessionStorage.removeItem('headear-recent-search-keys');
+
+			// Fetch initial data
+			this.fetchRecentSearchKeys();
+			this.fetchRecentLunchedDocs();
+
+			// Add global keyboard shortcuts
+			this.addKeyboardShortcuts();
+		},
+
+		toggleModal(status) {
+			if (status != null) {
+				return this.modalOpen = status;
+			}
+			this.modalOpen = !this.modalOpen;
+		},
+
+		handleFocus() {
+			this.inputFocused = true;
+			if (!this.onlySpaces(this.searchTerm)) {
+				this.doneSearching = true;
+				this.pending = false;
+			} else {
+				this.pending = true;
+				this.doneSearching = false;
+			}
+		},
+
+		handleBlur() {
+			this.inputFocused = false;
+		},
+
+		handleSearch() {
+			if (this.onlySpaces(this.searchTerm)) {
+				clearTimeout(this.timer);
+				this.isSearching = false;
+				this.doneSearching = false;
+				this.pending = true;
+			} else {
+				this.isSearching = true;
+				this.pending = false;
+				this.doneSearching = false;
+
+				clearTimeout(this.timer);
+				this.timer = setTimeout(() => this.performSearch(), 1000);
+			}
+		},
+
+		addKeyboardShortcuts() {
+			window.addEventListener('keydown', e => {
+				if ((e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) && e.key === 'k') {
+					e.preventDefault();
+					e.stopPropagation();
+					if (this.inputFocused) return;
+
+					// Focus the search input
+					this.$el.querySelector('.header-search-input').focus();
+					this.inputFocused = true;
+
+					if (!this.onlySpaces(this.searchTerm)) {
+						this.doneSearching = true;
+					}
+				}
+				if (e.key === 'Escape') {
+					if (!this.inputFocused) return;
+					this.$el.querySelector('.header-search-input').blur();
+					this.inputFocused = false;
+					this.doneSearching = false;
+				}
+			});
+		},
+
+		onlySpaces(str) {
+			return str.trim().length === 0 || str === '';
+		},
+
+		async performSearch() {
+			const formData = new FormData();
+			formData.append('_token', document.querySelector('input[name=_token]')?.value);
+			formData.append('search', this.searchTerm);
+
+			try {
+				const response = await fetch('/dashboard/api/search', {
+					method: 'POST',
+					body: formData
+				});
+				const result = await response.json();
+
+				this.searchResults = result.html;
+				this.doneSearching = true;
+				this.pending = false;
+				this.isSearching = false;
+
+				// Store and update recent search keys
+				sessionStorage.setItem('headear-recent-search-keys', JSON.stringify(result.keywords));
+				this.recentSearchKeys = result.keywords;
+			} catch (error) {
+				console.error('Search error:', error);
+				this.isSearching = false;
+			}
+		},
+
+		async fetchRecentSearchKeys() {
+			if (sessionStorage.getItem('headear-recent-search-keys') === null) {
+				try {
+					const response = await fetch('/dashboard/api/search/recent-search-keys');
+					const result = await response.json();
+					sessionStorage.setItem('headear-recent-search-keys', JSON.stringify(result.keys));
+					this.recentSearchKeys = result.keys;
+				} catch (error) {
+					console.error('Error fetching recent search keys:', error);
+				}
+			} else {
+				this.recentSearchKeys = JSON.parse(sessionStorage.getItem('headear-recent-search-keys'));
+			}
+		},
+
+		async fetchRecentLunchedDocs() {
+			if (sessionStorage.getItem('headear-recent-lunch') === null) {
+				try {
+					const response = await fetch('/dashboard/api/search/recent-lunch');
+					const result = await response.json();
+					sessionStorage.setItem('headear-recent-lunch', result.html);
+					this.recentLunchedDocs = result.html;
+				} catch (error) {
+					console.error('Error fetching recent launched docs:', error);
+				}
+			} else {
+				this.recentLunchedDocs = sessionStorage.getItem('headear-recent-lunch');
+			}
+		},
+
+		applyRecentSearch(key) {
+			this.searchTerm = key.keyword || key;
+			this.$el.querySelector('.header-search-input').focus();
+			this.handleSearch();
+		},
+
+		async deleteRecentSearchKey(key) {
+			const keyValue = key.keyword || key;
+			this.recentSearchKeys = this.recentSearchKeys.filter(searchKey =>
+				(searchKey.keyword || searchKey) !== keyValue
+			);
+
+			sessionStorage.setItem('headear-recent-search-keys', JSON.stringify(this.recentSearchKeys));
+
+			try {
+				await fetch(`/dashboard/api/search/delete-search-key/${encodeURIComponent(keyValue)}`, {
+					method: 'DELETE'
+				});
+			} catch (error) {
+				console.error('Error deleting search key:', error);
+			}
+		}
+	}));
 
 	// Documents view mode
 	Alpine.store( 'docsViewMode', {
@@ -341,33 +521,131 @@ document.addEventListener( 'alpine:init', () => {
 	} );
 
 	// Dropdown
-	Alpine.data( 'dropdown', ( { triggerType = 'hover' } ) => ( {
+	Alpine.data( 'dropdown', ( { triggerType = 'hover', preferredAnchor = 'start', offsetY = '0px', teleport = true } ) => ( {
 		open: false,
+		triggerType: triggerType || 'hover',
+		preferredAnchor: preferredAnchor || 'start',
+		offsetY: offsetY.trim() || '0px',
+		teleport: teleport ?? true,
+		parentRect: {
+			top: 0,
+			left: 0,
+			width: 0,
+			height: 0
+		},
+		dropdownRect: {
+			top: 0,
+			left: 0,
+			width: 0,
+			height: 0
+		},
 		toggle( state ) {
 			this.open = state ? ( state === 'collapse' ? false : true ) : !this.open;
 			this.$refs.parent.classList.toggle( 'lqd-is-active', this.open );
 		},
 		parent: {
 			[ '@mouseenter' ]() {
-				if ( triggerType !== 'hover' ) return;
-				this.toggle( 'expand' );
+				this.parentRect = this.$refs.parent.getBoundingClientRect();
+				this.dropdownRect = this.$el.getBoundingClientRect();
+
+				this.$el.classList.toggle('dropdown-anchor-bottom', this.parentRect.bottom + this.dropdownRect.height > window.innerHeight && this.parentRect.top - this.dropdownRect.height > 0);
+
+				if ( this.triggerType === 'hover' ) {
+					this.toggle( 'expand' );
+				}
 			},
-			[ '@mouseleave' ]() {
-				if ( triggerType !== 'hover' ) return;
+			[ '@mouseleave' ](event) {
+				if (
+					this.triggerType !== 'hover' ||
+					(
+						event.relatedTarget === this.$refs.dropdown || this.$refs.dropdown.contains(event.relatedTarget)
+					)
+				) return;
+
 				this.toggle( 'collapse' );
 			},
-			[ '@click.outside' ]() {
+			[ '@click.outside' ](event) {
+				if ( event.target === this.$refs.dropdown || this.$refs.dropdown.contains(event.target) ) {
+					return;
+				}
+
 				this.toggle( 'collapse' );
 			},
 		},
 		trigger: {
 			[ '@click.prevent' ]() {
 				// we need to be able to toggle dropdown when focus/enter key is pressed
-				// if (triggerType !== 'click') return;
+				// if (this.triggerType !== 'click') return;
 				this.toggle();
 			},
 		},
-		dropdown: {}
+		dropdown: {
+			[ '@mouseleave' ]() {
+				if ( triggerType !== 'hover' ) return;
+				this.toggle( 'collapse' );
+			},
+			[':style']() {
+				if ( !this.teleport ) return;
+
+				const isRTL = document.dir === 'rtl' || document.documentElement.dir === 'rtl';
+				let yAnchor = 'top';
+				let yAnchorOpposite = 'bottom';
+				let yValue = this.parentRect.top + this.parentRect.height + window.scrollY;
+				let xAnchor = isRTL ? 'inset-inline-end' : 'inset-inline-start';
+				let xAnchorOpposite = isRTL ? 'inset-inline-start' : 'inset-inline-end';
+				let xValue = isRTL ? window.innerWidth - this.parentRect.right : this.parentRect.left;
+
+				// Check if dropdown would overflow bottom of viewport
+				const wouldOverflowBottom = this.parentRect.bottom + this.dropdownRect.height > window.innerHeight;
+				const hasSpaceAbove = this.parentRect.top - this.dropdownRect.height > 0;
+
+				if (wouldOverflowBottom && hasSpaceAbove) {
+					yAnchor = 'bottom';
+					yAnchorOpposite = 'top';
+					yValue = window.innerHeight - this.parentRect.top + window.scrollY;
+				}
+
+				// Handle horizontal positioning with RTL support
+				if (this.preferredAnchor === 'end') {
+					if (isRTL) {
+						xAnchor = 'inset-inline-start';
+						xAnchorOpposite = 'inset-inline-end';
+						xValue = this.parentRect.left;
+					} else {
+						xAnchor = 'inset-inline-end';
+						xAnchorOpposite = 'inset-inline-start';
+						xValue = window.innerWidth - this.parentRect.right;
+					}
+				} else {
+					// Default to start positioning (already set above based on RTL)
+				}
+
+				// Check if dropdown would overflow viewport edges
+				const wouldOverflowRight = this.parentRect.left + this.dropdownRect.width > window.innerWidth;
+				const wouldOverflowLeft = this.parentRect.right - this.dropdownRect.width < 0;
+
+				if (isRTL) {
+					if (wouldOverflowLeft && this.preferredAnchor !== 'end') {
+						xAnchor = 'inset-inline-start';
+						xAnchorOpposite = 'inset-inline-end';
+						xValue = this.parentRect.left;
+					}
+				} else {
+					if (wouldOverflowRight && this.preferredAnchor !== 'end') {
+						xAnchor = 'inset-inline-end';
+						xAnchorOpposite = 'inset-inline-start';
+						xValue = window.innerWidth - this.parentRect.right;
+					}
+				}
+
+				return ({
+					[xAnchorOpposite]: 'auto',
+					[xAnchor]: `${xValue}px`,
+					[yAnchorOpposite]: 'auto',
+					[yAnchor]: `calc(${yValue}px + ${this.offsetY})`,
+				});
+			}
+		}
 	} ) );
 
 	// Notifications
@@ -450,8 +728,6 @@ document.addEventListener( 'alpine:init', () => {
 	Alpine.store( 'focusMode', {
 		active: Alpine.$persist( !!lqdFocusModeEnabled ).as( currentTheme + ':lqdFocusModeEnabled' ),
 		toggle( state ) {
-
-			console.log( currentTheme );
 			this.active = state ? ( state === 'activate' ? true : false ) : !this.active;
 
 			document.body.classList.toggle( 'focus-mode', this.active );
@@ -726,6 +1002,134 @@ document.addEventListener( 'alpine:init', () => {
 		}
 	} ) );
 
+	/**
+	 * Maruqee V2
+	 * @requires GSAP
+	 * @requires Observer
+	 * @requires ScrollTrigger
+	 */
+	Alpine.data( 'marqueev2', (options = {}) => ( {
+		cells: [],
+		timeline: null,
+		IO: null,
+		active: false,
+		options: {
+			cellsSelector: '.lqd-marquee-cell',
+			...options
+		},
+		init() {
+			this.cells = this.$el.querySelectorAll(this.options.cellsSelector);
+
+			this.timeline = this.horizontalLoop(this.cells, {
+				repeat: -1,
+				paddingRight: 24,
+			});
+
+			this.IO = new IntersectionObserver(([ entry ]) => {
+				this.active = entry.isIntersecting;
+
+				this.cells.forEach(cell => {
+					cell.style.willChange = this.active ? 'transform' : 'auto';
+				});
+			}).observe(this.$el);
+
+			this.createObserver();
+		},
+
+		createObserver() {
+			Observer.create({
+				onChangeY: observer => {
+					// let factor = this.active ? 2.5 : 0;
+					let factor = 1.5;
+					if (observer.deltaY < 0) {
+						factor *= -1;
+					}
+
+					gsap.timeline({
+						defaults: {
+							ease: 'none',
+						}
+					})
+						.to(this.timeline, { timeScale: factor * 2.5, duration: 0.2, overwrite: true, })
+						.to(this.timeline, { timeScale: factor / 2.5, duration: 1 }, '+=0.3');
+				}
+			});
+		},
+
+		/*
+			https://gsap.com/docs/v3/HelperFunctions/helpers/seamlessLoop/
+			This helper function makes a group of elements animate along the x-axis in a seamless, responsive loop.
+
+			Features:
+			- Uses xPercent so that even if the widths change (like if the window gets resized), it should still work in most cases.
+			- When each item animates to the left or right enough, it will loop back to the other side
+			- Optionally pass in a config object with values like "speed" (default: 1, which travels at roughly 100 pixels per second), paused (boolean),  repeat, reversed, and paddingRight.
+			- The returned timeline will have the following methods added to it:
+			- next() - animates to the next element using a timeline.tweenTo() which it returns. You can pass in a vars object to control duration, easing, etc.
+			- previous() - animates to the previous element using a timeline.tweenTo() which it returns. You can pass in a vars object to control duration, easing, etc.
+			- toIndex() - pass in a zero-based index value of the element that it should animate to, and optionally pass in a vars object to control duration, easing, etc. Always goes in the shortest direction
+			- current() - returns the current index (if an animation is in-progress, it reflects the final index)
+			- times - an Array of the times on the timeline where each element hits the "starting" spot. There's also a label added accordingly, so "label1" is when the 2nd element reaches the start.
+		*/
+		horizontalLoop(items, config) {
+			items = gsap.utils.toArray(items);
+			config = config || {};
+			let tl = gsap.timeline({ repeat: config.repeat, paused: config.paused, defaults: { ease: 'none' }, onReverseComplete: () => tl.totalTime(tl.rawTime() + tl.duration() * 100) }),
+				length = items.length,
+				startX = items[0].offsetLeft,
+				times = [],
+				widths = [],
+				xPercents = [],
+				curIndex = 0,
+				pixelsPerSecond = (config.speed || 1) * 100,
+				snap = config.snap === false ? v => v : gsap.utils.snap(config.snap || 1), // some browsers shift by a pixel to accommodate flex layouts, so for example if width is 20% the first element's width might be 242px, and the next 243px, alternating back and forth. So we snap to 5 percentage points to make things look more natural
+				totalWidth, curX, distanceToStart, distanceToLoop, item, i;
+			gsap.set(items, { // convert "x" to "xPercent" to make things responsive, and populate the widths/xPercents Arrays to make lookups faster.
+				xPercent: (i, el) => {
+					let w = widths[i] = parseFloat(gsap.getProperty(el, 'width', 'px'));
+					xPercents[i] = snap(parseFloat(gsap.getProperty(el, 'x', 'px')) / w * 100 + gsap.getProperty(el, 'xPercent'));
+					return xPercents[i];
+				}
+			});
+			gsap.set(items, { x: 0 });
+			totalWidth = items[length-1].offsetLeft + xPercents[length-1] / 100 * widths[length-1] - startX + items[length-1].offsetWidth * gsap.getProperty(items[length-1], 'scaleX') + (parseFloat(config.paddingRight) || 0);
+			for (i = 0; i < length; i++) {
+				item = items[i];
+				curX = xPercents[i] / 100 * widths[i];
+				distanceToStart = item.offsetLeft + curX - startX;
+				distanceToLoop = distanceToStart + widths[i] * gsap.getProperty(item, 'scaleX');
+				tl.to(item, { xPercent: snap((curX - distanceToLoop) / widths[i] * 100), duration: distanceToLoop / pixelsPerSecond }, 0)
+					.fromTo(item, { xPercent: snap((curX - distanceToLoop + totalWidth) / widths[i] * 100) }, { xPercent: xPercents[i], duration: (curX - distanceToLoop + totalWidth - curX) / pixelsPerSecond, immediateRender: false }, distanceToLoop / pixelsPerSecond)
+					.add('label' + i, distanceToStart / pixelsPerSecond);
+				times[i] = distanceToStart / pixelsPerSecond;
+			}
+			function toIndex(index, vars) {
+				vars = vars || {};
+				(Math.abs(index - curIndex) > length / 2) && (index += index > curIndex ? -length : length); // always go in the shortest direction
+				let newIndex = gsap.utils.wrap(0, length, index),
+					time = times[newIndex];
+				if (time > tl.time() !== index > curIndex) { // if we're wrapping the timeline's playhead, make the proper adjustments
+					vars.modifiers = { time: gsap.utils.wrap(0, tl.duration()) };
+					time += tl.duration() * (index > curIndex ? 1 : -1);
+				}
+				curIndex = newIndex;
+				vars.overwrite = true;
+				return tl.tweenTo(time, vars);
+			}
+			tl.next = vars => toIndex(curIndex+1, vars);
+			tl.previous = vars => toIndex(curIndex-1, vars);
+			tl.current = () => curIndex;
+			tl.toIndex = (index, vars) => toIndex(index, vars);
+			tl.times = times;
+			tl.progress(1, true).progress(0, true); // pre-render for performance
+			if (config.reversed) {
+				tl.vars.onReverseComplete();
+				tl.reverse();
+			}
+			return tl;
+		}
+	} ) );
+
 	// Curtain
 	Alpine.data( 'curtain', ( id = 'curtain', options = {} ) => ( {
 		id: id,
@@ -842,9 +1246,285 @@ document.addEventListener( 'alpine:init', () => {
 		}
 	} ) );
 
+	// Dynamic Input
+	Alpine.data( 'dynamicInput', ( options = { relativeValue: false, value: 0, min: null, max: null, step: 1, onInput: null } ) => ( {
+		value: options.value ?? 0,
+		_relativeValue: options.relativeValue,
+		originalRelativeValue: null,
+		min: options.min,
+		max: options.max,
+		step: options.step ?? 1,
+		onInputFn: options.onInput,
+		prevMouseX: null,
+		overlay: null,
+		mouseDown: false,
+		changingDelta: 0,
+		prevVal: null,
+
+		get relativeValue() {
+			const opt = this._relativeValue;
+			return typeof opt === 'function' ? opt() : opt;
+		},
+
+		set relativeValue( value ) {
+			this._relativeValue = value;
+		},
+
+		init() {
+			this.onMouseDown = this.onMouseDown.bind( this );
+			this.onMouseMove = this.onMouseMove.bind( this );
+			this.onMouseUp = this.onMouseUp.bind( this );
+			this.onKeyDown = this.onKeyDown.bind( this );
+			this.onInput = this.onInput.bind( this );
+
+			this.revertBackRelativeValue = _.throttle( this.revertBackRelativeValue.bind( this ), 150, { leading: false } );
+
+			if ( this.value != null ) {
+				this.updateValue( this.value );
+			}
+
+			this.events();
+
+			this.$watch( 'mouseDown', isMouseDown => {
+				this.$el.classList.toggle( 'dragging', isMouseDown );
+			} );
+		},
+		events() {
+			const dynamicLabel = this.$refs.dynamicLabel;
+			const dynamicInput = this.$refs.dynamicInput;
+
+			if ( !dynamicLabel || !dynamicInput ) return;
+
+			dynamicLabel.addEventListener( 'mousedown', this.onMouseDown );
+			window.addEventListener( 'mousemove', this.onMouseMove );
+			window.addEventListener( 'mouseup', this.onMouseUp );
+
+			dynamicInput.addEventListener( 'keydown', this.onKeyDown );
+			dynamicInput.addEventListener( 'input', this.onInput );
+		},
+		updateInputValue( value, dispatchInput = true ) {
+			const dynamicInput = this.$refs.dynamicInput;
+
+			if ( !dynamicInput ) return;
+
+			if ( !isNaN( value ) ) {
+				// Get decimal precision from step and value
+				let decimalPrecision = 0;
+				const stepStr = this.step.toString();
+				const valueStr = value.toString();
+
+				// Check step precision
+				if ( stepStr.includes( '.' ) ) {
+					decimalPrecision = Math.min( 2, stepStr.split( '.' )[ 1 ].length );
+				}
+
+				// Check value precision
+				if ( valueStr.includes( '.' ) ) {
+					decimalPrecision = Math.min( 2, valueStr.split( '.' )[ 1 ].length );
+				}
+
+				// Format value with proper decimal places, max 2
+				if ( decimalPrecision > 0 ) {
+					value = parseFloat( value ).toFixed( decimalPrecision );
+				}
+			}
+
+			dynamicInput.value = value;
+
+			dispatchInput && dynamicInput.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+		},
+		updateValue( value, updateInput = true, dispatchInput = true ) {
+			if ( value == null ) return;
+
+			const dynamicInput = this.$refs.dynamicInput;
+
+			if ( !dynamicInput ) return;
+
+			if ( this.relativeValue && isNaN( value ) ) {
+				this.value = value;
+				this.updateInputValue( this.value, false );
+
+				return;
+			}
+
+			let val = parseFloat( value );
+
+			if ( !this.relativeValue && this.min != null && val < this.min ) {
+				val = this.min;
+			}
+			if ( !this.relativeValue && this.max != null && val > this.max ) {
+				val = this.max;
+			}
+
+			this.value = val;
+
+			updateInput && this.updateInputValue( this.value, dispatchInput );
+		},
+		onMouseDown( event ) {
+			const dynamicInput = this.$refs.dynamicInput;
+
+			this.mouseDown = true;
+			this.prevVal = dynamicInput.value;
+
+			// Prevent text selection during dragging
+			event.preventDefault();
+
+			if ( !this.overlay ) {
+				this.overlay = document.createElement( 'div' );
+				this.overlay.classList.add( 'fixed', 'top-0', 'start-0', 'w-screen', 'h-screen', 'z-10' );
+				this.overlay.style.cursor = 'ew-resize';
+				document.body.appendChild( this.overlay );
+			}
+		},
+		onMouseMove( event ) {
+			if ( !this.mouseDown ) return;
+
+			if ( !this.prevMouseX && this.prevMouseX !== 0 ) {
+				this.prevMouseX = event.clientX;
+				return;
+			}
+
+			const mouseX = event.clientX;
+			const deltaX = mouseX - this.prevMouseX;
+			const shiftPressed = event.shiftKey;
+			const metaKey = event.metaKey || event.ctrlKey;
+			const sensitivity = this.step * ( shiftPressed ? 10 : metaKey ? 0.1 : 1 );
+
+			if ( deltaX !== 0 ) {
+				const changeAmount = ( deltaX > 0 ? 1 : -1 ) * sensitivity;
+				const valueIsNumber = !isNaN( parseFloat( this.value ) );
+				let val = ( valueIsNumber ? parseFloat( this.value ) : 0 ) + changeAmount;
+
+				if ( this.relativeValue ) {
+					val = changeAmount;
+				}
+
+				this.changingDelta += changeAmount;
+
+				this.updateValue( val );
+
+				this.prevMouseX = mouseX;
+			}
+		},
+		onMouseUp() {
+			if ( !this.mouseDown ) return;
+
+			if ( this.relativeValue ) {
+				this.updateValue(
+					isNaN( this.prevVal ) ? this.prevVal : parseFloat( this.prevVal || 0 ) + this.changingDelta,
+					true,
+					false
+				);
+			}
+
+			this.mouseDown = false;
+			this.prevMouseX = null;
+			this.changingDelta = 0;
+			this.prevVal = null;
+
+			if ( this.overlay ) {
+				document.body.removeChild( this.overlay );
+				this.overlay = null;
+			}
+		},
+		onKeyDown( event ) {
+			if ( event.key === 'Enter' || event.key === 'Tab' ) {
+				this.updateValue( this.calculateExpression() );
+
+				if ( event.key === 'Tab' ) {
+					// Allow default tab behavior to continue (moving to next input)
+					return true;
+				} else {
+					// Prevent form submission on Enter
+					event.preventDefault();
+				}
+			} else if ( event.key === 'ArrowUp' || event.key === 'ArrowDown' ) {
+				event.preventDefault();
+
+				const shiftPressed = event.shiftKey;
+				const metaKey = event.metaKey || event.ctrlKey;
+				const step = this.step * ( shiftPressed ? 10 : metaKey ? 0.1 : 1 );
+				const changeAmount = event.key === 'ArrowUp' ? step : -step;
+				const inputValue = event.target.value;
+				const valueIsNumber = !isNaN( parseFloat( inputValue ) );
+				let val = ( valueIsNumber ? parseFloat( inputValue ) : 0 ) + changeAmount;
+
+				if ( this.relativeValue ) {
+					val = changeAmount;
+				}
+
+				this.updateValue( val );
+			}
+		},
+		onInput( event ) {
+			this.updateValue( event.target.value, false );
+
+			if ( typeof this.onInputFn === 'function' ) {
+				this.onInputFn.call( this, this.value );
+			}
+		},
+		calculateExpression() {
+			const inputValue = this.$refs.dynamicInput.value.trim();
+			let value = inputValue;
+
+			if ( !inputValue ) return;
+
+			// Check if the input contains an expression and ends with a number or closing parenthesis
+			if ( /[-+*/().]/.test( inputValue ) && /[\d)]$/.test( inputValue ) ) {
+				try {
+					// Make sure the expression is complete before evaluating
+					if ( this.isValidExpression( inputValue ) ) {
+						// Use Function constructor to safely evaluate the expression
+						const result = Function( '"use strict"; return (' + inputValue + ')' )();
+
+						// Check if result is a valid number
+						if ( !isNaN( result ) && isFinite( result ) ) {
+							value = result;
+							return;
+						}
+					}
+				} catch ( error ) {
+					// If expression evaluation fails, keep the current input value
+					console.log( 'Invalid expression:', error );
+				}
+			}
+
+			return value;
+		},
+		isValidExpression( expr ) {
+			// Check for balanced parentheses
+			let parenCount = 0;
+			for ( let i = 0; i < expr.length; i++ ) {
+				if ( expr[ i ] === '(' ) parenCount++;
+				if ( expr[ i ] === ')' ) parenCount--;
+				if ( parenCount < 0 ) return false;
+			}
+			if ( parenCount !== 0 ) return false;
+
+			// Check for invalid sequences of operators
+			if ( /[+\-*/]{2,}/.test( expr ) ) return false;
+
+			// Check if expression starts with an operator (except minus)
+			if ( /^[+*/]/.test( expr ) ) return false;
+
+			// Check if expression ends with an operator
+			if ( /[+\-*/]$/.test( expr ) ) return false;
+
+			return true;
+		},
+		revertBackRelativeValue() {
+			if ( !this.originalRelativeValue ) return;
+
+			this.relativeValue = this.originalRelativeValue;
+
+			this.originalRelativeValue = null;
+		}
+	} ) );
+
 	/**
 	 * Split Text
-	 * @requires GSAP SplitText
+	 * @requires GSAP
+	 * @requires SplitText
 	 */
 	Alpine.data( 'splitText', ( options = {} ) => ( {
 		splitText: null,
@@ -873,13 +1553,245 @@ document.addEventListener( 'alpine:init', () => {
 		},
 	} ) );
 
+	Alpine.data( 'liquidColorPicker', ( options = { colorVal: null, onPick: null } ) => ( {
+		_colorVal: options.colorVal,
+		picker: null,
+		onPick: options.onPick,
+
+		get colorVal() {
+			return this._colorVal;
+		},
+
+		set colorVal( color ) {
+			this._colorVal = color;
+		},
+
+		init() {
+			this.checkDarkMode = this.checkDarkMode.bind( this );
+
+			this.checkDarkMode();
+			this.initColorPicker();
+			this.events();
+		},
+
+		initColorPicker() {
+			this.$refs.colorInput.setAttribute( 'type', 'text' );
+			this.picker = new ColorPicker( this.$refs.colorInputWrap ?? this.$el, {
+				color: this.colorVal,
+				submitMode: 'instant',
+				showClearButton: true
+			} );
+		},
+
+		events() {
+			this.$watch( '$store.darkMode.on', () => {
+				this.checkDarkMode();
+			} );
+
+			this.picker.on( 'pick', color => {
+				this.colorVal = color;
+
+				if ( typeof this.onPick === 'function' ) {
+					this.onPick.call( this, color );
+				}
+				if ( this.$refs.colorInput ) {
+					this.$refs.colorInput.value = color;
+					this.$refs.colorInput.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+				}
+			} );
+		},
+
+		checkDarkMode() {
+			const darkMode = localStorage.getItem( 'lqdDarkMode' ) == 'true';
+
+			document.documentElement.setAttribute( 'data-cp-theme', darkMode ? 'dark' : 'light' );
+			document.documentElement.setAttribute( 'data-bs-theme', darkMode ? 'dark' : 'light' );
+		}
+	} ) );
+
+	/**
+	 * @requires GSAP
+	 * @requires ScrollTrigger
+	 * @requires SplitText
+	 */
+	Alpine.data('liquidTextReveal', ({ splitEl = null, splitType = 'chars', start = 'top bottom', end = 'center 65%', animateFrom = { opacity: 0.2 }, animateTo = { opacity: 1 } }) => ({
+		splitType: splitType === 'chars' ? 'chars,words' : splitType,
+		start: start,
+		end: end,
+		animateFrom: animateFrom,
+		animateTo: animateTo,
+		splittedText: null,
+		splitEl: null,
+
+		getSplitEl() {
+			return splitEl ?? this.$el;
+		},
+
+		init() {
+			this.onTextSplitted = this.onTextSplitted.bind(this);
+
+			this.initSplitText();
+		},
+		initSplitText() {
+			SplitText.create(this.getSplitEl(), {
+				autoSplit: true,
+				onSplit: this.onTextSplitted
+			});
+		},
+		getAnimations() {
+			const els = this.splittedText[this.splitType === 'chars,words' ? 'chars' : this.splitType];
+
+			return gsap.fromTo(els,
+				{ ...this.animateFrom },
+				{
+					stagger: 0.1,
+					...this.animateTo
+				}
+			);
+		},
+		onTextSplitted(splittedText) {
+			this.splittedText = splittedText;
+
+			ScrollTrigger.create({
+				animation: this.getAnimations(),
+				trigger: this.getSplitEl(),
+				scrub: true,
+				start: this.start,
+				end: this.end,
+			});
+		}
+	}));
+
+	/**
+	 * @requires ScrollSmoother
+	 */
+	Alpine.data('liquidScrollSmooth', () => ({
+		init() {
+			ScrollSmoother.create({
+				smooth: 1,
+				effects: true,
+				smoothTouch: 0.1
+			});
+		}
+	}));
+
+	Alpine.data('updateAvailable', ({ routes = {} }) => ({
+		routes: {
+			...routes || {}
+		},
+		route: '#',
+		isAvailable: false,
+		isVersionUpdateAvailable: false,
+		isExtensionUpdateAvailable: false,
+		updateAvailableExtensions: [],
+
+		init() {
+			this.checkAvailability();
+		},
+		async checkAvailability() {
+			const res = await fetch(this.routes.check);
+
+			if (!res.ok) {
+				console.error('Network error: check update availablity');
+				return;
+			}
+
+			const resData = await res.json();
+
+			this.isVersionUpdateAvailable = resData.versionUpdateAvailable;
+			this.isExtensionUpdateAvailable = resData.extensionUpdateAvailable;
+			this.updateAvailableExtensions = resData.updateAvailableExtensions;
+			this.isAvailable = this.isVersionUpdateAvailable || this.isExtensionUpdateAvailable;
+
+			if (this.isVersionUpdateAvailable) {
+				this.route = this.routes.appUpdate;
+			} else if (this.isExtensionUpdateAvailable) {
+				this.route = this.routes.extensionUpdate;
+			}
+		}
+	}));
+
+	Alpine.data('liquidMegamenu', () => ({
+		liEl: null,
+		header: null,
+		posAppliedClassname: 'sub-pos-applied',
+		prevMouseX: null,
+		init() {
+			this.onWindowMouseMove = this.onWindowMouseMove.bind(this);
+
+			this.liEl = this.$el.closest('li');
+			this.header = this.$el.closest('.site-header');
+			this.nav = this.$el.closest('.site-header-nav');
+
+			this.position();
+		},
+		position() {
+			this.liEl.classList.remove(this.posAppliedClassname);
+
+			if (window.innerWidth < 992) {
+				return this.liEl.classList.add(this.posAppliedClassname);
+			}
+
+			const liRect = this.liEl.getBoundingClientRect();
+			const elRect = this.$el.getBoundingClientRect();
+			const navRect = this.nav.getBoundingClientRect();
+			const viewportWidth = window.innerWidth;
+			const liBottomToHeaderBottom = navRect.bottom - liRect.bottom;
+
+			// Center the element in the viewport
+			let diff = (viewportWidth - elRect.width) / 2;
+
+			// Adjust if the element's left edge goes beyond the viewport's left edge
+			if (diff < 0) {
+				diff = 0;
+			}
+
+			// Adjust if the element goes beyond the right boundary of the viewport
+			if (diff + elRect.width > viewportWidth) {
+				diff = viewportWidth - elRect.width;
+			}
+
+			// Adjust if the element goes beyond the right boundary of li element
+			if (diff > liRect.right) {
+				diff = liRect.left - 20;
+			}
+
+			this.$el.style.left = `${diff - liRect.left}px`;
+
+			this.liEl.style.setProperty('--sub-offset', `${liBottomToHeaderBottom}px`);
+
+			this.liEl.classList.add(this.posAppliedClassname);
+		},
+		onWindowMouseMove(event) {
+			if (window.innerWidth < 992) {
+				return;
+			}
+			if (this.prevMouseX !== undefined) {
+				if (event.clientX > this.prevMouseX) {
+					this.$el.setAttribute('data-direction', 'right');
+				} else if (event.clientX < this.prevMouseX) {
+					this.$el.setAttribute('data-direction', 'left');
+				}
+			}
+			this.prevMouseX = event.clientX;
+		}
+	}));
+
 	// OpenAI Realtime
 	Alpine.data( 'openaiRealtime', openaiRealtime );
 
 	// Elevenlabs Realtime
 	Alpine.data( 'elevenlabsRealtime', elevenlabsRealtime );
 
+	// tiptap Editor
+	Alpine.data( 'tiptapEditor', tiptapEditor );
+
 	// Advanced Image Editor
+	Alpine.data( 'advancedImageEditor', advancedImageEditor );
+
+	// Creative Suite
+	Alpine.data( 'creativeSuite', creativeSuite );
+
 	Alpine.data( 'advancedImageEditor', advancedImageEditor );
 
 	// Customizer

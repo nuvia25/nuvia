@@ -209,11 +209,11 @@
                             type="select"
                             name="size_of_images"
                         >
-                            <option value="thumb">Very Small</option>
-                            <option value="small">Small</option>
-                            <option value="small_s3">Normal</option>
-                            <option value="full">Big</option>
-                            <option value="raw">Very Big</option>
+                            <option value="thumb">{{ __('Very Small') }}</option>
+                            <option value="small">{{ __('Small') }}</option>
+                            <option value="small_s3">{{ __('Normal') }}</option>
+                            <option value="full">{{ __('Big') }}</option>
+                            <option value="raw">{{ __('Very Big') }}</option>
                         </x-forms.input>
 
                         <x-forms.input

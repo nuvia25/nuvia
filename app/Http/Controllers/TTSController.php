@@ -9,6 +9,7 @@ use App\Extensions\AzureTTS\System\Services\AzureService;
 use App\Extensions\SpeechifyTTS\System\Services\SpeechifyService;
 use App\Helpers\Classes\ApiHelper;
 use App\Helpers\Classes\Helper;
+use App\Helpers\Classes\RateLimiter\WordLimitRateLimiter;
 use App\Models\OpenAIGenerator;
 use App\Models\RateLimit;
 use App\Models\Setting;
@@ -68,11 +69,24 @@ class TTSController extends Controller
      */
     public function generateSpeech(Request $request)
     {
-        // if (Helper::appIsDemo()) {
-        //    return $this->sendErrorResponse(__('This feature is disabled in Demo version.'));
-        // }
-
         $speeches = json_decode($request->speeches, true, 512, JSON_THROW_ON_ERROR);
+
+        $content = data_get($speeches, '0.content', '');
+
+        if (! $content) {
+            return $this->sendErrorResponse(__('Please provide valid content for speech generation.'));
+        }
+
+        if (Helper::appIsDemo() && $content) {
+            $limiter = WordLimitRateLimiter::make('generator_ai_code_generator', 3);
+
+            $result = $limiter->checkAndRecordInput($content);
+
+            if (! $result['allowed']) {
+                return $this->sendErrorResponse(trans('You have reached the limit of AI Voiceover requests. Please try again later.'));
+            }
+        }
+
         if (empty($speeches)) {
             return $this->sendErrorResponse(__('Please provide inputs.'));
         }

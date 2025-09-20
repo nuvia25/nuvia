@@ -191,11 +191,27 @@
                         break;
                     case 'image-to-image':
                         formData.append("stable_description", $("#img2img_description").val());
-                        formData.append("image_src", resizedImage);
+                        //formData.append("image_src", resizedImage);
+
+						const img2imgFile = $("#img2img_src")[0].files[0];
+						if (!img2imgFile) {
+							toastr.warning('Please select an image file');
+							hideLoadingIndicators();
+							return false;
+						}
+						formData.append("image_src", img2imgFile);
                         break;
                     case 'upscale':
                         formData.append("stable_description", "upscale");
-                        formData.append("image_src", resizedImage);
+                        //formData.append("image_src", resizedImage);
+
+						const upscaleFile = $("#upscale_src")[0].files[0];
+						if (!upscaleFile) {
+							toastr.warning('Please select an image file');
+							hideLoadingIndicators();
+							return false;
+						}
+						formData.append("image_src", upscaleFile);
                         break;
                     case 'multi-prompt':
                         $('.multi_prompts_description').each(function(idx, e) {

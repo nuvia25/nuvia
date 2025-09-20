@@ -81,10 +81,10 @@
                     {{ __('Total Users') }}
                 </div>
                 <h3 class="lqd-statistic-change m-0.5 flex items-center gap-2 text-2xl sm:text-[30px]">
-                    {{ cache('this_week_total_users') }}
+                    {{ \App\Helpers\Classes\Helper::appIsDemo() ? 2 : cache('this_week_total_users') }}
                 </h3>
                 <p class="mb-0 flex items-center gap-1 text-[12px] text-heading-foreground/50">
-                    @lang('vs Last week') <x-change-indicator-plus-minus value="{{ floatval($total_users_change) }}" />
+                    @lang('vs Last week') <x-change-indicator-plus-minus value="{{ \App\Helpers\Classes\Helper::appIsDemo() ? 10 : floatval($total_users_change) }}" />
                 </p>
             </div>
         </div>

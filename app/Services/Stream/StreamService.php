@@ -19,7 +19,6 @@ use App\Models\Usage;
 use App\Models\UserOpenai;
 use App\Models\UserOpenaiChat;
 use App\Models\UserOpenaiChatMessage;
-use App\Services\Ai\OpenAI\FileSearchService;
 use App\Services\Assistant\AssistantService;
 use App\Services\Bedrock\BedrockRuntimeService;
 use Exception;
@@ -29,6 +28,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use JsonException;
 use OpenAI as OpenAIMain;
@@ -39,6 +39,10 @@ use Throwable;
 class StreamService
 {
     public bool $guest = false;
+
+    private string $tempChatSessionKey = 'temp_chat_history_';
+
+    public bool $tempChatActive = false;
 
     public function __construct(
         Setting $setting,
@@ -52,12 +56,76 @@ class StreamService
         };
     }
 
+    private function prepareStreamEnvironment(): void
+    {
+        if (function_exists('ini_set')) {
+            @ini_set('output_buffering', 'off');
+            @ini_set('zlib.output_compression', '0');
+            @ini_set('implicit_flush', '1');
+        }
+
+        if (function_exists('ob_implicit_flush')) {
+            ob_implicit_flush(true);
+        }
+
+        while (ob_get_level() > 0) {
+            if (! @ob_end_flush()) {
+                break;
+            }
+        }
+    }
+
+    private function safeFlush(): void
+    {
+        if (function_exists('ob_flush')) {
+            @ob_flush();
+        }
+        if (function_exists('flush')) {
+            @flush();
+        }
+    }
+
+    private function createDriver(EntityEnum $model): ?BaseDriver
+    {
+        if ($this->guest) {
+            return Entity::driverForGuest($model);
+        }
+
+        return Entity::driver($model);
+    }
+
     /**
      * @throws Exception
      * @throws GuzzleException
      */
-    public function ChatStream(string $chat_bot, $history, $main_message, $chat_type, $contain_images, $ai_engine = null, $assistant = null, $openRouter = null, $responsesApi = false): ?StreamedResponse
+    public function ChatStream(string $chat_bot, $history, $main_message, $chat_type, $contain_images, $ai_engine = null, $assistant = null, $openRouter = null, $fileChat = false, $tempChatActive = false): ?StreamedResponse
     {
+        $this->tempChatActive = $tempChatActive;
+
+        // If temp chat is active, merge with session history
+        if ($this->tempChatActive && $main_message->user_openai_chat_id) {
+            $tempHistory = $this->getTempChatHistory($main_message->user_openai_chat_id);
+
+            // Merge temp history with current history, avoiding duplicates
+            if (! empty($tempHistory)) {
+                // Keep system message at the beginning if it exists
+                $systemMessages = array_filter($history, fn ($msg) => $msg['role'] === 'system');
+                $nonSystemHistory = array_filter($history, fn ($msg) => $msg['role'] !== 'system');
+
+                // Combine: system messages + temp history + current non-system messages
+                $history = array_merge($systemMessages, $tempHistory, $nonSystemHistory);
+
+                // Remove duplicates based on content and role
+                $history = $this->removeDuplicateMessages($history);
+            }
+
+            // Store the current user message immediately for context
+            $this->addToTempHistory($main_message->user_openai_chat_id, [
+                'role'    => 'user',
+                'content' => $main_message->input,
+            ]);
+        }
+
         if (! $ai_engine) {
             $ai_engine = setting('default_ai_engine', EngineEnum::OPEN_AI->value);
         }
@@ -76,8 +144,8 @@ class StreamService
             }
         }
 
-        if ($responsesApi) {
-            return $this->responsesApiStream($chat_bot, $history, $main_message, $chat_type, $contain_images);
+        if ($fileChat) {
+            return $this->openaiFileChat($chat_bot, $history, $main_message, $chat_type, $contain_images);
         }
 
         if (! is_null($assistant)) {
@@ -98,15 +166,6 @@ class StreamService
         };
     }
 
-    private function createDriver(EntityEnum $model): ?BaseDriver
-    {
-        if ($this->guest) {
-            return Entity::driverForGuest($model);
-        }
-
-        return Entity::driver($model);
-    }
-
     private function openRouterChatStream($chat_bot, $history, $main_message, $contain_images, $openRouter)
     {
         $total_used_tokens = 0;
@@ -118,6 +177,8 @@ class StreamService
         } else {
             $driver = $this->createDriver(EntityEnum::fromSlug($openRouter));
         }
+
+        $this->prepareStreamEnvironment();
 
         return response()->stream(function () use ($openRouter, $driver, $chat_bot, $history, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images) {
 
@@ -132,11 +193,11 @@ class StreamService
                 echo "event: data\n";
                 echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
                 return null;
             }
@@ -172,7 +233,7 @@ class StreamService
                                 echo "event: data\n";
                                 echo 'data: ' . $content;
                                 echo "\n\n";
-                                flush();
+                                $this->safeFlush();
 
                                 if (connection_aborted()) {
                                     break;
@@ -184,18 +245,16 @@ class StreamService
             } else {
                 ApiHelper::setOpenAiKey();
                 $chat_bot = 'gpt-4o';
-                $stream = OpenAI::chat()->createStreamed([
+                $stream = OpenAI::responses()->createStreamed([
                     'model'             => $chat_bot,
-                    'messages'          => $history,
-                    'max_tokens'        => 2000,
+                    'input'             => $history,
+                    'max_output_tokens' => 2000,
                     'temperature'       => 1.0,
-                    'frequency_penalty' => 0,
-                    'presence_penalty'  => 0,
                     'stream'            => true,
                 ]);
                 foreach ($stream as $response) {
-                    if (isset($response->choices[0]->delta->content)) {
-                        $text = $response->choices[0]->delta->content;
+                    if (($response->event === 'response.output_text.delta') && isset($response->response->delta)) {
+                        $text = $response->response->delta;
                         $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $text);
                         $output .= $messageFix;
                         $responsedText .= $text;
@@ -207,7 +266,7 @@ class StreamService
                         echo "event: data\n";
                         echo 'data: ' . $messageFix;
                         echo "\n\n";
-                        flush();
+                        $this->safeFlush();
                     }
                 }
             }
@@ -215,22 +274,13 @@ class StreamService
             echo "event: stop\n";
             echo 'data: [DONE]';
             echo "\n\n";
-            flush();
+            $this->safeFlush();
 
-            $main_message->response = $responsedText;
-            $main_message->output = $output;
-            $main_message->credits = $total_used_tokens;
-            $main_message->words = $total_used_tokens;
-            $main_message->save();
-
-            $chat->total_credits += $total_used_tokens;
-            $chat->save();
-
-            $driver->input($responsedText)->calculateCredit()->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
+            $this->saveStreamResponse($main_message, $chat, $responsedText, $output, $total_used_tokens, $driver);
         }, 200, [
             'Cache-Control'     => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
             'Content-Type'      => 'text/event-stream',
         ]);
     }
@@ -279,6 +329,7 @@ class StreamService
         } else {
             $driver = $this->createDriver(EntityEnum::fromSlug($chat_bot));
         }
+        $this->prepareStreamEnvironment();
 
         return response()->stream(
             function () use ($driver, $chat_bot, $history, $main_message, $contain_images, &$total_used_tokens, &$output, &$responsedText) {
@@ -291,11 +342,11 @@ class StreamService
                     echo "event: data\n";
                     echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
                     echo "event: stop\n";
                     echo 'data: [DONE]';
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
 
                     return null;
                 }
@@ -315,9 +366,7 @@ class StreamService
                     $body = [
                         'messages'          => $history,
                         'model'             => $chat_bot,
-                        'frequency_penalty' => 0,
                         'max_tokens'        => (int) setting('deepseek_max_output_length', 200),
-                        'presence_penalty'  => 0,
                         'response_format'   => [
                             'type' => 'text',
                         ],
@@ -366,7 +415,7 @@ class StreamService
                                                 echo "event: data\n";
                                                 echo 'data: ' . $startSignal;
                                                 echo "\n\n";
-                                                flush();
+                                                $this->safeFlush();
                                             }
 
                                             $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $delta['reasoning_content']);
@@ -378,7 +427,7 @@ class StreamService
                                             echo "event: data\n";
                                             echo 'data: ' . $messageFix;
                                             echo "\n\n";
-                                            flush();
+                                            $this->safeFlush();
                                         }
 
                                         // Handle regular content
@@ -393,7 +442,7 @@ class StreamService
                                                 echo "event: data\n";
                                                 echo 'data: ' . $endSignal;
                                                 echo "\n\n";
-                                                flush();
+                                                $this->safeFlush();
 
                                                 unset($reasoningStarted);
                                             }
@@ -402,7 +451,7 @@ class StreamService
                                                 echo "event: data\n";
                                                 echo 'data: <br/><br/><br/>';
                                                 echo "\n\n";
-                                                flush();
+                                                $this->safeFlush();
                                                 $emptyLinesAdded = true;
                                             }
 
@@ -414,7 +463,7 @@ class StreamService
                                             echo "event: data\n";
                                             echo 'data: ' . $messageFix;
                                             echo "\n\n";
-                                            flush();
+                                            $this->safeFlush();
                                         }
                                     }
                                 }
@@ -429,18 +478,16 @@ class StreamService
                 } else {
                     ApiHelper::setOpenAiKey();
                     $chat_bot = 'gpt-4o';
-                    $stream = OpenAI::chat()->createStreamed([
-                        'model'             => $chat_bot,
-                        'messages'          => $history,
-                        'max_tokens'        => 2000,
-                        'temperature'       => 1.0,
-                        'frequency_penalty' => 0,
-                        'presence_penalty'  => 0,
-                        'stream'            => true,
+                    $stream = OpenAI::responses()->createStreamed([
+                        'model'                    => $chat_bot,
+                        'input'                    => $history,
+                        'max_output_tokens'        => 2000,
+                        'temperature'              => 1.0,
+                        'stream'                   => true,
                     ]);
                     foreach ($stream as $response) {
-                        if (isset($response->choices[0]->delta->content)) {
-                            $text = $response->choices[0]->delta->content;
+                        if (($response->event === 'response.output_text.delta') && isset($response->response->delta)) {
+                            $text = $response->response->delta;
                             $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $text);
                             $output .= $messageFix;
                             $responsedText .= $text;
@@ -452,32 +499,22 @@ class StreamService
                             echo "event: data\n";
                             echo 'data: ' . $messageFix;
                             echo "\n\n";
-                            flush();
+                            $this->safeFlush();
                         }
                     }
                 }
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
-                $main_message->response = $responsedText;
-                $main_message->output = $output;
-                $main_message->credits = $total_used_tokens;
-                $main_message->words = $total_used_tokens;
-                $main_message->save();
-
-                $chat->total_credits += $total_used_tokens;
-                $chat->save();
-
-                $driver->input($responsedText)->calculateCredit()->decreaseCredit();
-                Usage::getSingle()->updateWordCounts($driver->calculate());
-
+                $this->saveStreamResponse($main_message, $chat, $responsedText, $output, $total_used_tokens, $driver);
             },
             200,
             [
                 'Cache-Control'     => 'no-cache',
                 'X-Accel-Buffering' => 'no',
+                'Connection'        => 'keep-alive',
                 'Content-Type'      => 'text/event-stream',
             ]
         );
@@ -500,6 +537,8 @@ class StreamService
         $history[] = ['role' => 'user', 'content' => $prompt];
 
         $driver = $this->createDriver(EntityEnum::fromSlug($chat_bot));
+
+        $this->prepareStreamEnvironment();
 
         return response()->stream(function () use (&$total_used_tokens, &$output, &$responsedText, $driver, $message_id, $title, $openai_id, $prompt, $history, $chat_bot) {
 
@@ -525,11 +564,11 @@ class StreamService
                 echo "event: data\n";
                 echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
                 return null;
             }
@@ -549,9 +588,7 @@ class StreamService
             $body = [
                 'messages'          => $history,
                 'model'             => $chat_bot,
-                'frequency_penalty' => 0,
                 'max_tokens'        => (int) setting('deepseek_max_output_length', 200),
-                'presence_penalty'  => 0,
                 'response_format'   => [
                     'type' => 'text',
                 ],
@@ -597,7 +634,7 @@ class StreamService
                                     echo "event: data\n";
                                     echo 'data: ' . $messageFix;
                                     echo "\n\n";
-                                    flush();
+                                    $this->safeFlush();
                                 }
 
                                 if (isset($delta['content']) && $delta['content'] !== null) {
@@ -605,7 +642,7 @@ class StreamService
                                         echo "event: data\n";
                                         echo 'data: <br/><br/><br/>';
                                         echo "\n\n";
-                                        flush();
+                                        $this->safeFlush();
                                         $emptyLinesAdded = true;
                                     }
                                     $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $delta['content']);
@@ -617,7 +654,7 @@ class StreamService
                                     echo "event: data\n";
                                     echo 'data: ' . $messageFix;
                                     echo "\n\n";
-                                    flush();
+                                    $this->safeFlush();
                                 }
                             }
                         }
@@ -632,7 +669,7 @@ class StreamService
             echo "event: stop\n";
             echo 'data: [DONE]';
             echo "\n\n";
-            flush();
+            $this->safeFlush();
 
             $entry->update([
                 'title'    => $title ?: null,
@@ -650,6 +687,7 @@ class StreamService
         }, 200, [
             'Cache-Control'     => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
             'Content-Type'      => 'text/event-stream',
         ]);
     }
@@ -678,6 +716,10 @@ class StreamService
             $ai_engine = setting('default_ai_engine', EngineEnum::OPEN_AI->value);
         }
 
+        if ($chat_bot === EntityEnum::AZURE_OPENAI->slug() && MarketplaceHelper::isRegistered('azure-openai')) {
+            return \App\Extensions\AzureOpenai\System\Services\AzureOpenaiService::azureOpenaiOtherStream($request, $chat_bot);
+        }
+
         if (setting('open_router_status') == 1 && $request->open_router_model !== 'undefined' && ! empty($request->open_router_model)) {
             return $this->openRouterStream($request);
         }
@@ -703,6 +745,8 @@ class StreamService
         $responsedText = '';
         $driver = $this->createDriver(EntityEnum::fromSlug($open_router_model));
 
+        $this->prepareStreamEnvironment();
+
         return response()->stream(function () use ($driver, &$total_used_tokens, &$output, &$responsedText, $message_id, $title, $openai_id, $prompt, $open_router_model) {
             $user = Auth::user();
             $entry = UserOpenai::find($message_id);
@@ -723,11 +767,11 @@ class StreamService
                 echo "event: data\n";
                 echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
                 return null;
             }
@@ -759,7 +803,7 @@ class StreamService
                             echo "event: data\n";
                             echo 'data: ' . $content;
                             echo "\n\n";
-                            flush();
+                            $this->safeFlush();
 
                             if (connection_aborted()) {
                                 break;
@@ -772,27 +816,20 @@ class StreamService
             echo "event: stop\n";
             echo 'data: [DONE]';
             echo "\n\n";
-            flush();
+            $this->safeFlush();
 
-            $driver->input($responsedText)->calculateCredit()->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
-
-            $entry->title = $title ?: null;
-            $entry->credits = $total_used_tokens;
-            $entry->words = $total_used_tokens;
-            $entry->response = $responsedText;
-            $entry->output = $output;
-            $entry->save();
+            $this->saveOtherStreamResponse($entry, $title, $responsedText, $output, $total_used_tokens, $driver);
         }, 200, [
             'Cache-Control'     => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
             'Content-Type'      => 'text/event-stream',
         ]);
     }
 
     public function reduceTokensWhenIntterruptStream(Request $request, $type): void
     {
-        $model = Helper::setting('openai_default_model') ?: EntityEnum::GPT_3_5_TURBO_16K->value;
+        $model = Helper::setting('openai_default_model') ?: EntityEnum::GPT_4_O->value;
         $streamed_text = $request->get('streamed_text');
         $message_id = $request->get('streamed_message_id');
         if ($streamed_text) {
@@ -844,8 +881,9 @@ class StreamService
         } else {
             $driver = $this->createDriver(EntityEnum::fromSlug($chat_bot));
         }
+        $this->prepareStreamEnvironment();
 
-        return response()->stream(static function () use ($driver, $history, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images) {
+        return response()->stream(function () use ($driver, $history, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images) {
             $chat_id = $main_message->user_openai_chat_id;
             $chat = UserOpenaiChat::whereId($chat_id)->first();
 
@@ -856,11 +894,11 @@ class StreamService
                 echo "event: data\n";
                 echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
                 return null;
             }
@@ -868,13 +906,11 @@ class StreamService
             $model = $driver->enum()->value;
             if ($contain_images) {
                 $options = [
-                    'model'             => EntityEnum::GPT_4_O->value,
-                    'messages'          => $history,
-                    'temperature'       => 1.0,
-                    'frequency_penalty' => 0,
-                    'presence_penalty'  => 0,
-                    'stream'            => true,
-                    'max_tokens'        => 2000,
+                    'model'                       => EntityEnum::GPT_4_O->value,
+                    'messages'                    => $history,
+                    'temperature'                 => 1.0,
+                    'stream'                      => true,
+                    'max_output_tokens'           => 2000,
                 ];
                 $stream = OpenAI::chat()->createStreamed($options);
             } else {
@@ -896,11 +932,11 @@ class StreamService
                     echo "event: data\n";
                     echo 'data: ' . __('Something went wrong. Please try again later.');
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
                     echo "event: stop\n";
                     echo 'data: [DONE]';
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
 
                     return null;
                 }
@@ -920,28 +956,19 @@ class StreamService
                     echo "event: data\n";
                     echo 'data: ' . $messageFix;
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
                 }
             }
             echo "event: stop\n";
             echo 'data: [DONE]';
             echo "\n\n";
-            flush();
+            $this->safeFlush();
 
-            $main_message->response = $responsedText;
-            $main_message->output = $output;
-            $main_message->credits = $total_used_tokens;
-            $main_message->words = $total_used_tokens;
-            $main_message->save();
-            $chat->total_credits += $total_used_tokens;
-            $chat->save();
-
-            $driver->input($responsedText)->calculateCredit()->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
-
+            $this->saveStreamResponse($main_message, $chat, $responsedText, $output, $total_used_tokens, $driver);
         }, 200, [
             'Cache-Control'     => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
             'Content-Type'      => 'text/event-stream',
         ]);
     }
@@ -966,7 +993,9 @@ class StreamService
         $user = Auth::user();
         $driver = $this->createDriver(EntityEnum::fromSlug($chat_bot));
 
-        return response()->stream(static function () use ($user, $driver, $history, &$total_used_tokens, &$output, &$responsedText, $message_id, $title, $openai_id, $prompt) {
+        $this->prepareStreamEnvironment();
+
+        return response()->stream(function () use ($user, $driver, $history, &$total_used_tokens, &$output, &$responsedText, $message_id, $title, $openai_id, $prompt) {
             $entry = UserOpenai::find($message_id);
             if (! $entry) {
                 $entry = new UserOpenai;
@@ -986,11 +1015,11 @@ class StreamService
                 echo "event: data\n";
                 echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
                 return null;
             }
@@ -1013,11 +1042,11 @@ class StreamService
                 echo "event: data\n";
                 echo 'data: ' . __('Something went wrong. Please try again later.');
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
                 return null;
             }
@@ -1036,29 +1065,19 @@ class StreamService
                     echo "event: data\n";
                     echo 'data: ' . $messageFix;
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
                 }
             }
             echo "event: stop\n";
             echo 'data: [DONE]';
             echo "\n\n";
-            flush();
+            $this->safeFlush();
 
-            $entry->title = $title ?: null;
-            $entry->credits = $total_used_tokens;
-            $entry->words = $total_used_tokens;
-            $entry->response = $responsedText;
-            $entry->output = $output;
-            $entry->save();
-
-            $driver
-                ->input($responsedText)
-                ->calculateCredit()
-                ->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
+            $this->saveOtherStreamResponse($entry, $title, $responsedText, $output, $total_used_tokens, $driver);
         }, 200, [
             'Cache-Control'     => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
             'Content-Type'      => 'text/event-stream',
         ]);
     }
@@ -1077,10 +1096,15 @@ class StreamService
         if ($contain_images) {
             $driver = $this->createDriver(EntityEnum::GPT_4_O);
         } else {
+            if ($tools && EntityEnum::fromSlug($chat_bot) === EntityEnum::GPT_5_CHAT) {
+                $chat_bot = EntityEnum::GPT_5->slug();
+            }
+
             $driver = $this->createDriver(EntityEnum::fromSlug($chat_bot));
         }
+        $this->prepareStreamEnvironment();
 
-        return response()->stream(static function () use ($driver, $history, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images, $tools) {
+        return response()->stream(function () use ($driver, $history, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images, $tools) {
             $chat_id = $main_message->user_openai_chat_id;
             $chat = UserOpenaiChat::whereId($chat_id)->first();
 
@@ -1091,11 +1115,11 @@ class StreamService
                 echo "event: data\n";
                 echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
                 return null;
             }
@@ -1103,18 +1127,15 @@ class StreamService
             $model = $driver->enum()->value;
             $options = [
                 'model'             => $model,
-                'messages'          => $history,
                 'stream'            => true,
             ];
 
             if (! in_array($model, [EntityEnum::GPT_4_O_MINI_SEARCH_PREVIEW->value, EntityEnum::GPT_4_O_SEARCH_PREVIEW->value], true)) {
                 $options['temperature'] = 1.0;
-                $options['frequency_penalty'] = 0;
-                $options['presence_penalty'] = 0;
             }
 
             if ($contain_images) {
-                $options['max_tokens'] = 2000;
+                $options['max_output_tokens'] = 2000;
                 $options['model'] = EntityEnum::GPT_4_O;
             }
 
@@ -1123,52 +1144,135 @@ class StreamService
                 $argumentsString = '';
             }
 
-            $stream = OpenAI::chat()->createStreamed($options);
+            $options['input'] = $history;
+            if ($driver->enum()->isReasoningModel()) {
+                $options['reasoning']['effort'] = setting('openai_reasoning_models_effort', 'low');
+            }
+            $stream = OpenAI::responses()->createStreamed($options);
+
             foreach ($stream as $response) {
-                if (empty($response->choices) || ! isset($response->choices[0])) {
+                if (! isset($response->event)) {
                     continue;
                 }
-                $choices = $response->choices[0];
 
-                if (! empty($tools) && isset($choices->delta->toolCalls)) {
-                    if (connection_aborted()) {
-                        break;
-                    }
-                    // static $signalSent = false;
-                    static $functionName = null;
-                    static $callId = null;
-                    if (! empty($choices->delta->toolCalls) && isset($choices->delta->toolCalls[0])) {
-                        $toolCalls = $choices->delta->toolCalls[0];
-                        if ($functionName === null) {
-                            $functionName = $toolCalls?->function?->name;
-                        }
-                        if ($callId === null) {
-                            $callId = $toolCalls?->id;
-                        }
-                        $argumentsString .= $toolCalls?->function?->arguments;
-                        // if (! empty($functionName) && ! $signalSent) {
-                        //     echo PHP_EOL;
-                        //     echo "event: function_call\n";
-                        //     echo 'data: ' . $functionName . "\n\n";
-                        //     echo "\n\n";
-                        //     flush();
-                        //     $signalSent = true;
-                        // }
-                    }
-
-                    if (isset($choices->finishReason) && $choices->finishReason === 'tool_calls') {
-                        $functionResponse = \App\Extensions\AIChatPro\System\Services\AiChatProService::callFunction($functionName, $argumentsString);
-                        $output .= $functionResponse;
-                        echo PHP_EOL;
-                        echo "event: data\n";
-                        echo 'data: ' . $functionResponse;
-                        echo "\n\n";
-                        flush();
-                    }
+                if (connection_aborted()) {
+                    break;
                 }
 
-                if (isset($choices->delta->content)) {
-                    $text = $choices->delta->content;
+                if (! empty($tools) && $response->event === 'response.completed' && isset($response->response->output)) {
+                    $calls = $response->response->output;
+                    foreach ($calls ?? [] as $call) {
+                        if ($call instanceof \OpenAI\Responses\Responses\Output\OutputFunctionToolCall) {
+                            $functionName = $call?->name;
+                            $argumentsString = $call?->arguments;
+                            // we can send event to display image loader
+                            // if (! empty($functionName) && ! $signalSent) {
+                            //     echo PHP_EOL;
+                            //     echo "event: function_call\n";
+                            //     echo 'data: ' . $functionName . "\n\n";
+                            //     echo "\n\n";
+                            //     $this->safeFlush();
+                            //     $signalSent = true;
+                            // }
+                            $functionResponse = \App\Extensions\AIChatPro\System\Services\AiChatProService::callFunction($functionName, $argumentsString);
+                            $output .= $functionResponse;
+                            echo PHP_EOL;
+                            echo "event: data\n";
+                            echo 'data: ' . $functionResponse;
+                            echo "\n\n";
+                            $this->safeFlush();
+                        }
+                    }
+                }
+                if ((isset($response->response->delta) && $response->event === 'response.output_text.delta')) {
+                    $text = $response->response->delta;
+                    $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $text);
+                    $output .= $messageFix;
+                    $responsedText .= $text;
+                    $total_used_tokens += countWords($text);
+                    echo PHP_EOL;
+                    echo "event: data\n";
+                    echo 'data: ' . $messageFix;
+                    echo "\n\n";
+                    $this->safeFlush();
+                }
+            }
+            echo "event: stop\n";
+            echo 'data: [DONE]';
+            echo "\n\n";
+            $this->safeFlush();
+
+            $this->saveStreamResponse($main_message, $chat, $responsedText, $output, $total_used_tokens, $driver);
+        }, 200, [
+            'Cache-Control'     => 'no-cache',
+            'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
+            'Content-Type'      => 'text/event-stream',
+        ]);
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function openaiFileChat(string $chat_bot, $history, $main_message, $chat_type, $contain_images): ?StreamedResponse
+    {
+        $total_used_tokens = 0;
+        $output = '';
+        $responsedText = '';
+
+        if ($contain_images) {
+            $driver = $this->createDriver(EntityEnum::GPT_4_O);
+        } else {
+            $driver = $this->createDriver(EntityEnum::fromSlug($chat_bot));
+        }
+        $this->prepareStreamEnvironment();
+
+        return response()->stream(function () use ($driver, $history, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images) {
+            $chat_id = $main_message->user_openai_chat_id;
+            $chat = UserOpenaiChat::whereId($chat_id)->first();
+
+            echo "event: message\n";
+            echo 'data: ' . $main_message->id . "\n\n";
+            if (! $driver->hasCreditBalance()) {
+                echo PHP_EOL;
+                echo "event: data\n";
+                echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
+                echo "\n\n";
+                $this->safeFlush();
+                echo "event: stop\n";
+                echo 'data: [DONE]';
+                echo "\n\n";
+                $this->safeFlush();
+
+                return null;
+            }
+
+            $model = $driver->enum()->value;
+            $options = [
+                'model'             => $model,
+                'input'             => $history,
+                'stream'            => true,
+            ];
+
+            if (! in_array($model, [EntityEnum::GPT_4_O_MINI_SEARCH_PREVIEW->value, EntityEnum::GPT_4_O_SEARCH_PREVIEW->value], true)) {
+                $options['temperature'] = 1.0;
+            }
+
+            if ($contain_images) {
+                $options['max_output_tokens'] = 2000;
+                $options['model'] = EntityEnum::GPT_4_O;
+            } else {
+                $options['tools'] = [
+                    [
+                        'type'             => 'file_search',
+                        'vector_store_ids' => [$chat?->openai_vector_id],
+                    ],
+                ];
+            }
+            $stream = OpenAI::responses()->createStreamed($options);
+            foreach ($stream as $response) {
+                if (($response->event === 'response.output_text.delta') && isset($response->response->delta)) {
+                    $text = $response->response->delta;
                     $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $text);
                     $output .= $messageFix;
                     $responsedText .= $text;
@@ -1180,133 +1284,19 @@ class StreamService
                     echo "event: data\n";
                     echo 'data: ' . $messageFix;
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
                 }
-            }
-            echo "event: stop\n";
-            echo 'data: [DONE]';
-            echo "\n\n";
-            flush();
-
-            $main_message->response = $responsedText;
-            $main_message->output = $output;
-            $main_message->credits = $total_used_tokens;
-            $main_message->words = $total_used_tokens;
-            $main_message->save();
-            $chat->total_credits += $total_used_tokens;
-            $chat->save();
-
-            $driver->input($responsedText)->calculateCredit()->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
-        }, 200, [
-            'Cache-Control'     => 'no-cache',
-            'X-Accel-Buffering' => 'no',
-            'Content-Type'      => 'text/event-stream',
-        ]);
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function responsesApiStream(string $chat_bot, $history, $main_message, $chat_type, $contain_images): ?StreamedResponse
-    {
-        $total_used_tokens = 0;
-        $output = '';
-        $responsedText = '';
-
-        if ($contain_images) {
-            $driver = $this->createDriver(EntityEnum::GPT_4_O);
-        } else {
-            $driver = $this->createDriver(EntityEnum::fromSlug($chat_bot));
-        }
-
-        return response()->stream(static function () use ($driver, $history, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images) {
-            $chat_id = $main_message->user_openai_chat_id;
-            $chat = UserOpenaiChat::whereId($chat_id)->first();
-
-            echo "event: message\n";
-            echo 'data: ' . $main_message->id . "\n\n";
-            if (! $driver->hasCreditBalance()) {
-                echo PHP_EOL;
-                echo "event: data\n";
-                echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
-                echo "\n\n";
-                flush();
-                echo "event: stop\n";
-                echo 'data: [DONE]';
-                echo "\n\n";
-                flush();
-
-                return null;
-            }
-
-            $model = $driver->enum()->value;
-            $options = [
-                'model'             => $model,
-                'messages'          => $history,
-                'stream'            => true,
-            ];
-
-            if (! in_array($model, [EntityEnum::GPT_4_O_MINI_SEARCH_PREVIEW->value, EntityEnum::GPT_4_O_SEARCH_PREVIEW->value], true)) {
-                $options['temperature'] = 1.0;
-                $options['frequency_penalty'] = 0;
-                $options['presence_penalty'] = 0;
-            }
-
-            if ($contain_images) {
-                $options['max_tokens'] = 2000;
-                $options['model'] = EntityEnum::GPT_4_O;
-
-                $stream = OpenAI::chat()->createStreamed($options);
-                foreach ($stream as $response) {
-                    if (isset($response->choices[0]->delta->content)) {
-                        $text = $response->choices[0]->delta->content;
-                        $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $text);
-                        $output .= $messageFix;
-                        $responsedText .= $text;
-                        $total_used_tokens += countWords($text);
-                        if (connection_aborted()) {
-                            break;
-                        }
-                        echo PHP_EOL;
-                        echo "event: data\n";
-                        echo 'data: ' . $messageFix;
-                        echo "\n\n";
-                        flush();
-                    }
-                }
-            } else {
-                $fileSearchService = new FileSearchService;
-                $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $fileSearchService->searchInFile($options, $chat) ?? '');
-                $responsedText = $output = $messageFix;
-
-                echo PHP_EOL;
-                echo "event: data\n";
-                echo 'data: ' . $responsedText;
-                echo "\n\n";
-                flush();
-
-                $total_used_tokens = countWords($responsedText);
             }
 
             echo "event: stop\n";
             echo 'data: [DONE]';
             echo "\n\n";
-            flush();
-
-            $main_message->response = $responsedText;
-            $main_message->output = $output;
-            $main_message->credits = $total_used_tokens;
-            $main_message->words = $total_used_tokens;
-            $main_message->save();
-            $chat->total_credits += $total_used_tokens;
-            $chat->save();
-
-            $driver->input($responsedText)->calculateCredit()->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
+            $this->safeFlush();
+            $this->saveStreamResponse($main_message, $chat, $responsedText, $output, $total_used_tokens, $driver);
         }, 200, [
             'Cache-Control'     => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
             'Content-Type'      => 'text/event-stream',
         ]);
     }
@@ -1325,7 +1315,9 @@ class StreamService
         $user = Auth::user();
         $driver = $this->createDriver(EntityEnum::fromSlug($chat_bot));
 
-        return response()->stream(static function () use ($user, $driver, $history, &$total_used_tokens, &$output, &$responsedText, $message_id, $title, $openai_id, $prompt) {
+        $this->prepareStreamEnvironment();
+
+        return response()->stream(function () use ($user, $driver, $history, &$total_used_tokens, &$output, &$responsedText, $message_id, $title, $openai_id, $prompt) {
             $entry = UserOpenai::find($message_id);
             if (! $entry) {
                 $entry = new UserOpenai;
@@ -1345,27 +1337,32 @@ class StreamService
                 echo "event: data\n";
                 echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
                 return null;
             }
 
-            $stream = OpenAI::chat()->createStreamed([
+            $stream = OpenAI::responses()->createStreamed([
                 'model'             => $driver->enum()->value,
-                'messages'          => $history,
-                'temperature'       => 1.0,
-                'frequency_penalty' => 0,
-                'presence_penalty'  => 0,
+                'input'             => $history,
+                ...($driver->enum()->isReasoningModel() ? [
+                    'reasoning' => [
+                        'effort' => setting('openai_reasoning_models_effort', 'low'),
+                    ],
+                ] : []),
+                ...(! in_array($driver->enum()->value, [EntityEnum::GPT_4_O_MINI_SEARCH_PREVIEW->value, EntityEnum::GPT_4_O_SEARCH_PREVIEW->value], true) ? [
+                    'temperature' => 1.0,
+                ] : []),
                 'stream'            => true,
             ]);
 
             foreach ($stream as $response) {
-                if (isset($response->choices[0]->delta->content)) {
-                    $text = $response->choices[0]->delta->content;
+                if (($response->event === 'response.output_text.delta') && isset($response->response->delta)) {
+                    $text = $response->response->delta;
                     $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $text);
                     $output .= $messageFix;
                     $responsedText .= $text;
@@ -1377,29 +1374,19 @@ class StreamService
                     echo "event: data\n";
                     echo 'data: ' . $messageFix;
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
                 }
             }
             echo "event: stop\n";
             echo 'data: [DONE]';
             echo "\n\n";
-            flush();
+            $this->safeFlush();
 
-            $entry->title = $title ?: null;
-            $entry->credits = $total_used_tokens;
-            $entry->words = $total_used_tokens;
-            $entry->response = $responsedText;
-            $entry->output = $output;
-            $entry->save();
-
-            $driver
-                ->input($responsedText)
-                ->calculateCredit()
-                ->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
+            $this->saveOtherStreamResponse($entry, $title, $responsedText, $output, $total_used_tokens, $driver);
         }, 200, [
             'Cache-Control'     => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
             'Content-Type'      => 'text/event-stream',
         ]);
     }
@@ -1413,18 +1400,20 @@ class StreamService
         $client = app(AnthropicService::class);
         $driver = $this->createDriver(EntityEnum::fromSlug($chat_bot));
 
-        return response()->stream(static function () use ($driver, $client, $history, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images) {
+        $this->prepareStreamEnvironment();
+
+        return response()->stream(function () use ($driver, $client, $history, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images) {
 
             if (! $driver->hasCreditBalance()) {
                 echo PHP_EOL;
                 echo "event: data\n";
                 echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
                 return null;
             }
@@ -1460,11 +1449,11 @@ class StreamService
                         echo "event: data\n";
                         echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                         echo "\n\n";
-                        flush();
+                        $this->safeFlush();
                         echo "event: stop\n";
                         echo 'data: [DONE]';
                         echo "\n\n";
-                        flush();
+                        $this->safeFlush();
 
                         return null;
                     }
@@ -1501,7 +1490,7 @@ class StreamService
                             echo "event: data\n";
                             echo 'data: ' . $messageFix;
                             echo "\n\n";
-                            flush();
+                            $this->safeFlush();
                         }
                         if (connection_aborted()) {
                             break;
@@ -1511,18 +1500,16 @@ class StreamService
             } else {
                 ApiHelper::setOpenAiKey();
                 $driver = $this->createDriver(EntityEnum::GPT_4_O);
-                $stream = OpenAI::chat()->createStreamed([
-                    'model'             => $driver->enum()->value,
-                    'messages'          => $history,
-                    'max_tokens'        => 2000,
-                    'temperature'       => 1.0,
-                    'frequency_penalty' => 0,
-                    'presence_penalty'  => 0,
-                    'stream'            => true,
+                $stream = OpenAI::responses()->createStreamed([
+                    'model'                    => $driver->enum()->value,
+                    'input'                    => $history,
+                    'max_output_tokens'        => 2000,
+                    'temperature'              => 1.0,
+                    'stream'                   => true,
                 ]);
                 foreach ($stream as $response) {
-                    if (isset($response->choices[0]->delta->content)) {
-                        $text = $response->choices[0]->delta->content;
+                    if (($response->event === 'response.output_text.delta') && isset($response->response->delta)) {
+                        $text = $response->response->delta;
                         $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $text);
                         $output .= $messageFix;
                         $responsedText .= $text;
@@ -1534,7 +1521,7 @@ class StreamService
                         echo "event: data\n";
                         echo 'data: ' . $messageFix;
                         echo "\n\n";
-                        flush();
+                        $this->safeFlush();
                     }
                 }
             }
@@ -1542,22 +1529,13 @@ class StreamService
             echo "event: stop\n";
             echo 'data: [DONE]';
             echo "\n\n";
-            flush();
+            $this->safeFlush();
 
-            $main_message->response = $responsedText;
-            $main_message->output = $output;
-            $main_message->credits = $total_used_tokens;
-            $main_message->words = $total_used_tokens;
-            $main_message->save();
-            $chat->total_credits += $total_used_tokens;
-            $chat->save();
-
-            $driver->input($responsedText)->calculateCredit()->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
-
+            $this->saveStreamResponse($main_message, $chat, $responsedText, $output, $total_used_tokens, $driver);
         }, 200, [
             'Cache-Control'     => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
             'Content-Type'      => 'text/event-stream',
         ]);
     }
@@ -1574,17 +1552,19 @@ class StreamService
         $output = '';
         $responsedText = '';
 
-        return response()->stream(static function () use ($driver, $history, &$total_used_tokens, &$output, &$responsedText, $message_id, $title, $openai_id, $prompt) {
+        $this->prepareStreamEnvironment();
+
+        return response()->stream(function () use ($driver, $history, &$total_used_tokens, &$output, &$responsedText, $message_id, $title, $openai_id, $prompt) {
             if (! $driver->hasCreditBalance()) {
                 echo PHP_EOL;
                 echo "event: data\n";
                 echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
                 return null;
             }
@@ -1628,11 +1608,11 @@ class StreamService
                     echo "event: data\n";
                     echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
                     echo "event: stop\n";
                     echo 'data: [DONE]';
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
 
                     return null;
                 }
@@ -1645,7 +1625,7 @@ class StreamService
                     echo "event: stop\n";
                     echo 'data: [DONE]';
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
                 }
 
             } else {
@@ -1673,7 +1653,7 @@ class StreamService
                         echo "event: data\n";
                         echo 'data: ' . $messageFix;
                         echo "\n\n";
-                        flush();
+                        $this->safeFlush();
                     }
                     if (connection_aborted()) {
                         break;
@@ -1682,24 +1662,15 @@ class StreamService
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
             }
 
-            $entry->title = $title ?: null;
-            $entry->credits = $total_used_tokens;
-            $entry->words = $total_used_tokens;
-            $entry->response = $responsedText;
-            $entry->output = $output;
-            $entry->save();
-            $driver
-                ->input($responsedText)
-                ->calculateCredit()
-                ->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
+            $this->saveOtherStreamResponse($entry, $title, $responsedText, $output, $total_used_tokens, $driver);
         }, 200, [
             'Cache-Control'     => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
             'Content-Type'      => 'text/event-stream',
         ]);
     }
@@ -1726,8 +1697,9 @@ class StreamService
 
             $newhistory = [$newhistory];
         }
+        $this->prepareStreamEnvironment();
 
-        return response()->stream(static function () use ($driver, $newhistory, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images) {
+        return response()->stream(function () use ($driver, $newhistory, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images) {
 
             $chat_id = $main_message->user_openai_chat_id;
             $chat = UserOpenaiChat::whereId($chat_id)->first();
@@ -1743,11 +1715,11 @@ class StreamService
                 echo "event: data\n";
                 echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
                 echo "event: stop\n";
                 echo 'data: [DONE]';
                 echo "\n\n";
-                flush();
+                $this->safeFlush();
 
                 return null;
             }
@@ -1758,17 +1730,15 @@ class StreamService
                 ->streamGenerateContent($driver->enum()->value);
 
             while (! $response->getBody()->eof()) {
+                $line = trim($client->readLine($response->getBody()));
 
-                $line = $client->readLine($response->getBody());
+                // Skip empty lines or JSON brackets
+                if ($line === '' || $line === '[' || $line === ']') {
+                    continue;
+                }
 
                 try {
                     $decodedLine = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
-
-                    if ($decodedLine === null || ! isset($decodedLine['candidates'])) {
-                        Log::info('Decoded line does not contain expected data: ' . json_encode($decodedLine));
-
-                        continue;
-                    }
                 } catch (JsonException $e) {
                     Log::error('JSON decoding error: ' . $e->getMessage());
                     Log::error('Offending line: ' . $line);
@@ -1776,7 +1746,24 @@ class StreamService
                     continue;
                 }
 
-                if ($decodedLine === null || ! isset($decodedLine['candidates'])) {
+                // ✅ If it's an error object from Gemini
+                if (isset($decodedLine['error'])) {
+                    $errorMessage = $decodedLine['error']['message'] ?? 'Unknown error occurred.';
+                    $formattedMessage = '⚠️ ' . $errorMessage;
+
+                    echo PHP_EOL;
+                    echo "event: data\n";
+                    echo 'data: ' . $formattedMessage;
+                    echo "\n\n";
+                    $this->safeFlush();
+
+                    // Optionally stop streaming here if it's fatal
+                    break;
+                }
+
+                if (! isset($decodedLine['candidates'])) {
+                    Log::info('Decoded line does not contain expected data: ' . json_encode($decodedLine));
+
                     continue;
                 }
 
@@ -1795,30 +1782,20 @@ class StreamService
                     echo "event: data\n";
                     echo 'data: ' . $messageFix;
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
                 }
             }
 
             echo "event: stop\n";
             echo 'data: [DONE]';
             echo "\n\n";
-            flush();
+            $this->safeFlush();
 
-            $main_message->response = $responsedText;
-            $main_message->output = $output;
-            $main_message->credits = $total_used_tokens;
-            $main_message->words = $total_used_tokens;
-            $main_message->save();
-            $chat->total_credits += $total_used_tokens;
-            $chat->save();
-            $driver
-                ->input($responsedText)
-                ->calculateCredit()
-                ->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
+            $this->saveStreamResponse($main_message, $chat, $responsedText, $output, $total_used_tokens, $driver);
         }, 200, [
             'Cache-Control'     => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
             'Content-Type'      => 'text/event-stream',
         ]);
     }
@@ -1848,8 +1825,9 @@ class StreamService
         $total_used_tokens = 0;
         $output = '';
         $responsedText = '';
+        $this->prepareStreamEnvironment();
 
-        return response()->stream(static function () use ($driver, $history, &$total_used_tokens, &$output, &$responsedText, $message_id, $title, $openai_id, $prompt) {
+        return response()->stream(function () use ($driver, $history, &$total_used_tokens, &$output, &$responsedText, $message_id, $title, $openai_id, $prompt) {
             $user = Auth::user();
             $entry = UserOpenai::find($message_id);
             if (is_null($entry)) {
@@ -1905,29 +1883,20 @@ class StreamService
                     echo "event: data\n";
                     echo 'data: ' . $messageFix;
                     echo "\n\n";
-                    flush();
+                    $this->safeFlush();
                 }
             }
 
             echo "event: stop\n";
             echo 'data: [DONE]';
             echo "\n\n";
-            flush();
+            $this->safeFlush();
 
-            $entry->title = $title ?: null;
-            $entry->credits = $total_used_tokens;
-            $entry->words = $total_used_tokens;
-            $entry->response = $responsedText;
-            $entry->output = $output;
-            $entry->save();
-            $driver
-                ->input($responsedText)
-                ->calculateCredit()
-                ->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
+            $this->saveOtherStreamResponse($entry, $title, $responsedText, $output, $total_used_tokens, $driver);
         }, 200, [
             'Cache-Control'     => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
             'Content-Type'      => 'text/event-stream',
         ]);
     }
@@ -1951,7 +1920,7 @@ class StreamService
             echo "event: data\n";
             echo 'data: ' . $messageFix;
             echo "\n\n";
-            flush();
+            $this->safeFlush();
 
             if (connection_aborted()) {
                 break;
@@ -1963,5 +1932,219 @@ class StreamService
             'responsedText'     => $responsedText,
             'total_used_tokens' => $total_used_tokens,
         ];
+    }
+
+    private function saveStreamResponse($main_message, $chat, $responsedText, $output, $total_used_tokens, $driver): void
+    {
+        if ($this->tempChatActive) {
+            // Add the assistant response to temp history
+            if ($chat) {
+                $this->addToTempHistory($chat->id, [
+                    'role'    => 'assistant',
+                    'content' => $responsedText,
+                ]);
+
+                // Delete from database to maintain temp nature
+                $chat->messages()->delete();
+            }
+
+            return;
+        }
+
+        // Regular saving logic for non-temp chats
+        $main_message->response = $responsedText;
+        $main_message->output = $output;
+        $main_message->credits = $total_used_tokens;
+        $main_message->words = $total_used_tokens;
+        $main_message->save();
+
+        if ($chat) {
+            $chat->total_credits += $total_used_tokens;
+            $chat->save();
+        }
+
+        $driver->input($responsedText)->calculateCredit()->decreaseCredit();
+        Usage::getSingle()->updateWordCounts($driver->calculate());
+    }
+
+    private function saveOtherStreamResponse($entry, $title, $responsedText, $output, $total_used_tokens, $driver): void
+    {
+        $entry->title = $title ?: null;
+        $entry->credits = $total_used_tokens;
+        $entry->words = $total_used_tokens;
+        $entry->response = $responsedText;
+        $entry->output = $output;
+        $entry->save();
+
+        $driver->input($responsedText)->calculateCredit()->decreaseCredit();
+        Usage::getSingle()->updateWordCounts($driver->calculate());
+    }
+
+    /**
+     * Get temporary chat history from session
+     */
+    private function getTempChatHistory(string $chatId): array
+    {
+        if (! $this->tempChatActive) {
+            return [];
+        }
+
+        if (! auth()->check()) {
+            return [];
+        }
+
+        $sessionKey = auth()->user()->id . '_' . $this->tempChatSessionKey . $chatId;
+
+        return Session::get($sessionKey, []);
+    }
+
+    /**
+     * Store temporary chat history in session
+     */
+    private function storeTempChatHistory(string $chatId, array $history): void
+    {
+        if (! $this->tempChatActive) {
+
+            return;
+        }
+
+        if (! auth()->check()) {
+            return;
+        }
+
+        // Limit history to last 20 messages to prevent session bloat
+        $limitedHistory = array_slice($history, -20);
+
+        $sessionKey = auth()->user()->id . '_' . $this->tempChatSessionKey . $chatId;
+
+        Session::put($sessionKey, $limitedHistory);
+    }
+
+    /**
+     * Add message to temporary chat history
+     */
+    private function addToTempHistory(string $chatId, array $message): void
+    {
+        if (! $this->tempChatActive) {
+            return;
+        }
+
+        if (! auth()->check()) {
+            return;
+        }
+
+        $history = $this->getTempChatHistory($chatId);
+        $history[] = $message;
+
+        $this->storeTempChatHistory($chatId, $history);
+    }
+
+    /**
+     * Remove duplicate messages from history
+     */
+    private function removeDuplicateMessages(array $history): array
+    {
+        $seen = [];
+        $filtered = [];
+
+        foreach ($history as $message) {
+            $key = $message['role'] . '|' . (is_array($message['content']) ? json_encode($message['content']) : $message['content']);
+
+            if (! in_array($key, $seen)) {
+                $seen[] = $key;
+                $filtered[] = $message;
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Clear temporary chat history
+     */
+    public function clearTempChatHistory(bool $deleteConversations = true): void
+    {
+        if (! auth()->check()) {
+            return;
+        }
+
+        $userId = auth()->user()->id;
+        $sessionKeyPrefix = $userId . '_' . $this->tempChatSessionKey;
+
+        // Get all session keys
+        $allSessionKeys = array_keys(Session::all());
+
+        // Filter keys that match our temp chat pattern
+        $tempChatKeys = array_filter($allSessionKeys, static function ($key) use ($sessionKeyPrefix) {
+            return str_starts_with($key, $sessionKeyPrefix);
+        });
+
+        $deletedConversations = [];
+        $errors = [];
+
+        // Remove each temp chat session and optionally delete conversations
+        foreach ($tempChatKeys as $key) {
+            try {
+                // Extract chatId from the session key
+                $chatId = $this->extractChatIdFromSessionKey($key, $sessionKeyPrefix);
+
+                if ($chatId && $deleteConversations) {
+                    // Delete the conversation from database
+                    $deleted = $this->deleteConversation($chatId);
+                    if ($deleted) {
+                        $deletedConversations[] = $chatId;
+                    }
+                }
+
+                // Remove from session
+                Session::forget($key);
+            } catch (Exception $e) {
+                $errors[] = "Error with session {$key}: " . $e->getMessage();
+            }
+        }
+
+        if (! empty($errors)) {
+            Log::warning('Errors during temp chat cleanup: ' . json_encode($errors));
+        }
+    }
+
+    /**
+     * Extract chatId from session key
+     */
+    private function extractChatIdFromSessionKey(string $sessionKey, string $prefix): ?string
+    {
+        // Remove the prefix to get just the chatId
+        if (str_starts_with($sessionKey, $prefix)) {
+            $chatId = substr($sessionKey, strlen($prefix));
+
+            // Validate that it's a valid chat ID (numeric or UUID format)
+            if (is_numeric($chatId)) {
+                return $chatId;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Delete conversation from database
+     */
+    private function deleteConversation(string $chatId): bool
+    {
+        try {
+            $chat = UserOpenaiChat::find($chatId);
+            if (! $chat) {
+                return false;
+            }
+
+            // Delete the chat itself
+            $chat?->delete();
+
+            return true;
+        } catch (Exception $e) {
+            Log::error("Error deleting conversation {$chatId}: " . $e->getMessage());
+
+            return false;
+        }
     }
 }

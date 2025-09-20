@@ -27,6 +27,11 @@ class UserOpenaiChat extends Model
         return $this->hasMany(UserOpenaiChatMessage::class);
     }
 
+    public function messagesWithoutInitial(): HasMany
+    {
+        return $this->hasMany(UserOpenaiChatMessage::class)->where('response', '!==', 'First Initiation');
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(OpenaiGeneratorChatCategory::class, 'openai_chat_category_id', 'id');

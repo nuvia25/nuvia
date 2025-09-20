@@ -7,14 +7,20 @@
     </thead>
     <tbody>
         @foreach ($categories as $key => $model)
-            @php
-                $drivers = $plan->exists ? $model->forPlan($plan)->list() : $model->forUser(auth()->user())->list();
-                $groupName = $drivers->isNotEmpty() ? $drivers->first()->enum()->subLabel() : '';
-                $isUnlimited = $model->checkIfThereUnlimited();
-                $credits = $model->totalCredits();
-                $tooltip_anchor = $loop->index < 4 ? 'top' : 'bottom';
-            @endphp
-            @if (!$isUnlimited && $credits <= 0)
+			@php
+				if (isset($plan) && $plan->exists) {
+					$drivers = $model->forPlan($plan)->list();
+				} else {
+					$drivers = $model->forUser(auth()->user())->list();
+				}
+
+				$groupName = $drivers->isNotEmpty() ? $drivers->first()->enum()->subLabel() : '';
+				$isUnlimited = $model->checkIfThereUnlimited();
+				$credits = $model->totalCredits();
+				$tooltip_anchor = $loop->index < 4 ? 'top' : 'bottom';
+			@endphp
+
+			@if (!$isUnlimited && $credits <= 0)
                 @continue
             @endif
             <tr>

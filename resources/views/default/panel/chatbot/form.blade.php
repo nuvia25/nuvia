@@ -103,9 +103,9 @@
                                     name="model"
                             >
                                 <option
-                                        value="{{\App\Domains\Entity\Enums\EntityEnum::GPT_3_5_TURBO_16K->value}}"
-                                        {{ $chatbotData != null && $chatbotData->model == $chatbotData->model ? 'selected' : null }}
-                                >{{\App\Domains\Entity\Enums\EntityEnum::GPT_3_5_TURBO_16K->label()}}</option>
+                                        value="{{\App\Domains\Entity\Enums\EntityEnum::GPT_4_O->value}}"
+                                        {{ $chatbotData !== null && $chatbotData->model === \App\Domains\Entity\Enums\EntityEnum::GPT_4_O->value ? 'selected' : null }}
+                                >{{\App\Domains\Entity\Enums\EntityEnum::GPT_4_O->label()}}</option>
                                 @php
                                     if ($chatbotData != null) {
                                         App\Http\Controllers\AIFineTuneController::getFineModelOption($chatbotData->model);
@@ -160,6 +160,7 @@
                                     id="image"
                                     type="file"
                                     name="image"
+									accept="image/*"
                             >
                         </div>
 

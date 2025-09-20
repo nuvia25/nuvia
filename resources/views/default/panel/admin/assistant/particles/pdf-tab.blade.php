@@ -33,6 +33,7 @@
                     name="files[]"
                     type="file"
                     multiple
+					accept="file/*"
                     onchange="handlePdfFileSelect(event)"
             />
         </label>

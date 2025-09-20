@@ -1,15 +1,15 @@
 @php
     $premium_features = [
         'VIP Support' => 'Get instant help whenever you need it.',
-        'Access to All Current & Future Extensions <span class="font-bold text-[#6977DE]">worth $900+</span>' => 'Always stay ahead with the latest features.' ,
-        'Access to All Current & Future Themes <span class="font-bold text-[#6977DE]">worth $390</span>'=> 'Always stay ahead with the latest designs.' ,
+        'Access to All Current & Future Extensions <span class="font-bold text-[#6977DE]">worth $2000+</span>' => 'Always stay ahead with the latest features.' ,
+        'Access to All Current & Future Themes <span class="font-bold text-[#6977DE]">worth $670</span>'=> 'Always stay ahead with the latest designs.' ,
+		'Get the Mobile App Free in Your 4th Month! <span class="font-bold text-[#6977DE]">worth $3000+</span>' => 'Enjoy a free mobile app after your fourth month of subscription.' ,
         '10 Hours of Custom Development Every Month' => 'Tailored improvements, at no extra cost.' ,
         'Direct Communication with Our Development Team' => 'No middlemen, just solutions.' ,
         'Exclusive Extensions Not Available to Others' => 'Stay ahead of competition, reserved for VIPs only.' ,
         'Complimentary Logo Design' => 'A custom logo to elevate your brand.' ,
         'Personalized Onboarding Assistance' => 'We’ll help you get up and running smoothly.' ,
         'Free Setup & Configuration Services' => 'Let us handle the technical details for you.' ,
-        'Get the Mobile App Free in Your 4th Month!' => 'Enjoy a free mobile app after your third month of subscription.' ,
     ];
 @endphp
 

@@ -35,13 +35,15 @@
             messages.push(message);
             message = {
                 role: "assistant",
-                content:@json(str_replace('/http', 'http', $entry->output))
+                content: @json(str_replace('/http', 'http', $entry->output))
             };
             messages.push(message);
         @endforeach
     @endif
 </script>
+
 <script src="{{ custom_theme_url('/assets/js/panel/openai_chat.js?v=' . time()) }}"></script>
+
 @if (count($list) == 0 && $category->slug != 'ai_pdf')
     <script>
         window.addEventListener("load", (event) => {

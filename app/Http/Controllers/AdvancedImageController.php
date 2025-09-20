@@ -79,6 +79,9 @@ class AdvancedImageController extends Controller
                 'payload'   => $request->input('selected_tool'),
             ];
 
+            $data['model'] = EntityEnum::CLIPDROP->value;
+            $data['engine'] = EntityEnum::CLIPDROP?->engine()?->value;
+
             UserOpenai::query()->create($data);
 
             Usage::getSingle()->updateImageCounts($driver->calculate());

@@ -45,7 +45,7 @@
                         class="hidden"
                         id="img2img_src"
                         type="file"
-                        accept=".png, .jpg, .jpeg"
+                        accept="image/*"
                         onchange="handleFileSelect('img2img_src')"
                     />
                 </label>
@@ -113,16 +113,16 @@
                 this.activeItemId = data.id;
                 videoItem = document.querySelector(`.lqd-modal-fig > video`);
                 currentVideoItem = document.querySelector(`.lqd-modal-fig > video > source`);
-        
+
                 const currenturl = window.location.href;
                 const server = currenturl.split('/')[0];
                 const delete_url = `${server}/dashboard/user/openai/documents/delete/image/${data.slug}`;
                 deleteVideoBtn = document.querySelector(`.lqd-modal-img-content .delete`);
                 deleteVideoBtn.href = delete_url;
-        
+
                 currentVideoItem.src = data.output;
                 videoItem.load();
-        
+
             },
             prevItem() {
                 const currentEl = document.querySelector(`.video-result[data-id='${this.activeItemId}']`);

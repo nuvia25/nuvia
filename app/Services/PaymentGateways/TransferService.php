@@ -234,7 +234,7 @@ class TransferService
             $order->tax_value = taxToVal($plan->price, $gateway->tax);
             $order->save();
 
-            $filename = Str::random(20) . '_' . time() . '.' . $request->file('proof_image')->getClientOriginalExtension();
+            $filename = Str::random(20) . '_' . time() . '.' . $request->file('proof_image')?->guessExtension();
             $paymentProof = new PaymentProof;
             $paymentProof->order_id = $orderID;
             $paymentProof->user_id = $user->id;
@@ -242,7 +242,7 @@ class TransferService
             $paymentProof->total_amount = $total;
             $paymentProof->proof_image = $filename;
             $paymentProof->save();
-            $request->file('proof_image')->move(public_path('proofs'), $filename);
+            $request->file('proof_image')?->move(public_path('proofs'), $filename);
             \App\Models\Usage::getSingle()->updateSalesCount($total);
             CreateActivity::for($user, __('initiated a subscription approval-awaiting bank transaction.'), $plan->name . ' ' . __('Plan'));
 

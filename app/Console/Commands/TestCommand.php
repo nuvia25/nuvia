@@ -26,6 +26,6 @@ class TestCommand extends Command
      */
     public function handle(): void
     {
-        Log::info('Cron calisiyor');
+        Log::info('Cronjob Test Command executed successfully.');
     }
 }

@@ -82,18 +82,14 @@
                                 :disabled="$app_is_demo"
                                 onchange="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\');' : 'return updatePackageStatus(this.value, ' . $entry->id . ');' }}"
                             >
-                                <option
-                                    value="0"
-                                    @selected($entry->premium == 0)
-                                >
-                                    {{ __('Regular') }}
-                                </option>
-                                <option
-                                    value="1"
-                                    @selected($entry->premium == 1)
-                                >
-                                    {{ __('Premium') }}
-                                </option>
+								@foreach(\App\Enums\AccessType::cases() as $type)
+									<option
+										value="{{ $type->value }}"
+										@selected($entry->access_type === $type->value)
+									>
+										{{ $type->label() }}
+									</option>
+								@endforeach
                             </x-forms.input>
                         </td>
                         <td>

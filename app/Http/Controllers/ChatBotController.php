@@ -49,11 +49,11 @@ class ChatBotController extends Controller
             if ($request->hasFile('image')) {
                 $path = 'upload/images/logo/';
                 $image = $request->file('image');
-                $image_name = Str::random(8) . '-chatbot-img.' . $image->getClientOriginalExtension();
+                $image_name = Str::random(8) . '-chatbot-img.' . $image->guessExtension();
 
                 // Check image file-type
                 $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-                if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+                if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                     $data = [
                         'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                     ];

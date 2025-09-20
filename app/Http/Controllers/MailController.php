@@ -32,15 +32,17 @@ class MailController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if ($user) {
+
             $user->update([
                 'password_reset_code' => Str::random(67),
             ]);
-            dispatch(new SendPasswordResetEmail($user));
 
-            return back()->with(['message' => __('Password reset mail sent succesfully'), 'type' => 'success']);
+            SendPasswordResetEmail::dispatchSync($user);
+
+            return response()->json(['message' => __('Password reset link sent successfully. Please also check your spam folder.'), 'type' => 'success']);
         }
 
-        return back()->with(['message' => __('Password reset mail sent succesfully'), 'type' => 'success']);
+        return response()->json(['message' => __('Password reset mail sent successfully'), 'type' => 'success']);
     }
 
     public function passwordResetCallback($password_reset_code)

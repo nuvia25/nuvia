@@ -2,6 +2,7 @@
 
 namespace App\View\Components\Documents;
 
+use App\Extensions\AiVideoPro\System\Models\UserFall;
 use App\Models\Folders;
 use App\Models\UserOpenai;
 use Closure;
@@ -15,7 +16,7 @@ class Item extends Component
      * Create a new component instance.
      */
     public function __construct(
-        public UserOpenai $entry,
+        public UserOpenai|UserFall $entry,
         public string $style = 'min',
         public string $trim = '50',
         public bool $hideFav = false,

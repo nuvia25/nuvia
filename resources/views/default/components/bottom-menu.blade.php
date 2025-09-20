@@ -1,5 +1,24 @@
-<nav class="lqd-bottom-menu fixed inset-x-0 bottom-0 z-50 hidden h-16 flex-wrap border-t bg-background/10 text-2xs font-medium backdrop-blur-md backdrop-saturate-150 max-lg:flex">
-    <ul class="grid w-full grid-cols-4 place-items-center">
+<nav
+    class="lqd-bottom-menu fixed inset-x-0 bottom-0 z-50 hidden h-16 flex-wrap border-t border-foreground/10 bg-background/10 text-2xs font-medium backdrop-blur-lg backdrop-saturate-150 max-lg:flex"
+    x-data="{
+        searchShow: false,
+        setSearchShow(status) {
+            if (status == null) {
+                this.searchShow = !this.searchShow;
+            } else {
+                this.searchShow = status;
+            }
+
+            if (this.searchShow) {
+                this.$nextTick(() => {
+                    this.$refs.searchInput?.focus();
+                });
+            }
+        }
+    }"
+    @keyup.esc.window="setSearchShow(false)"
+>
+    <ul class="relative z-1 grid w-full grid-cols-4 place-items-center">
         <li class="w-full">
             <a
                 class="flex flex-col items-center text-inherit"
@@ -17,7 +36,7 @@
             </a>
         </li>
         <li class="w-full">
-            <button
+            {{-- <button
                 class="group flex h-auto w-full flex-col items-center text-inherit"
                 type="button"
                 x-init
@@ -25,7 +44,15 @@
                 :class="{ 'lqd-is-active': !$store.mobileNav.searchCollapse }"
             >
                 <x-tabler-search />
-            </button>
+            </button> --}}
+            <x-header-search
+                class="bg-transparent lg:hidden"
+                class:icon="start-1/2 -translate-x-1/2 opacity-100 rtl:translate-x-1/2 size-[22px] opacity-100 stroke-2"
+                class:arrow="hidden"
+                class:kbd="hidden"
+                class:input="p-0 opacity-0 cursor-pointer"
+                style="modern"
+            />
         </li>
         <li class="w-full">
             <button
