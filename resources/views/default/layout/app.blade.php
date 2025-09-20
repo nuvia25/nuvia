@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html
     class="max-sm:overflow-x-hidden"
-    lang="{{ LaravelLocalization::getCurrentLocale() }}"
-    dir="{{ LaravelLocalization::getCurrentLocaleDirection() }}"
+    lang="{{ \App\Helpers\Classes\Localization::getLocale() }}"
+    dir="{{ \App\Helpers\Classes\Localization::getCurrentLocaleDirection() }}"
 >
-<head>
-	@if(setting('facebook_domain_verification'))
-		<meta
-			name="facebook-domain-verification"
-			content="{{ setting('facebook_domain_verification') }}"
-		/>
-	@endif
 
-	@if(setting('google_robots'))
-		<meta name="robots" content="noindex, nofollow" />
-	@endif
+<head>
+    @if (setting('facebook_domain_verification'))
+        <meta
+            name="facebook-domain-verification"
+            content="{{ setting('facebook_domain_verification') }}"
+        />
+    @endif
+
+    @if (setting('google_robots'))
+        <meta
+            name="robots"
+            content="noindex, nofollow"
+        />
+    @endif
 
     <meta charset="UTF-8" />
     <meta
@@ -129,11 +133,26 @@
         </div>
     </div>
 
+    @if (isset($smoothScroll) && filled($smoothScroll))
+        <div x-data="liquidScrollSmooth">
+            <div id="smooth-wrapper">
+                <div
+                    class="bg-background"
+                    id="smooth-content"
+                >
+    @endif
+
     @include('layout.header')
 
     @yield('content')
 
     @include('layout.footer')
+
+    @if (isset($smoothScroll) && filled($smoothScroll))
+        </div><!-- liquidScrollSmooth -->
+        </div><!-- #smooth-wrapper -->
+        </div><!-- #smooth-content -->
+    @endif
 
     @if ($setting->frontend_custom_js != null)
         <script src="{{ $setting->frontend_custom_js }}"></script>
@@ -141,6 +160,10 @@
 
     @if ($setting->frontend_code_before_body != null)
         {!! $setting->frontend_code_before_body !!}
+    @endif
+
+    @if (isset($show_promo_banner) && $show_promo_banner === true)
+        @include('discount-manager::components.promo-banner', ['bannerInfo' => $bannerInfo, 'landingPage' => true])
     @endif
 
     <script src="{{ custom_theme_url('assets/libs/jquery/jquery.min.js') }}"></script>
@@ -153,9 +176,6 @@
     <script src="{{ custom_theme_url('assets/libs/flickity.pkgd.min.js') }}"></script>
     <script src="{{ custom_theme_url('assets/js/frontend.js') }}"></script>
     <script src="{{ custom_theme_url('assets/js/frontend/frontend-animations.js') }}"></script>
-    <script src="{{ custom_theme_url('assets/libs/vanillajs-scrollspy.min.js') }}"></script>
-    <script src="{{ custom_theme_url('assets/libs/flickity.pkgd.min.js') }}"></script>
-    <script src="{{ custom_theme_url('assets/js/frontend/frontend-animations.js') }}"></script>
 
     @if ($setting->gdpr_status == 1)
         <script src="{{ custom_theme_url('assets/js/gdpr.js') }}"></script>
@@ -163,6 +183,9 @@
 
     <script src="{{ custom_theme_url('assets/libs/fslightbox/fslightbox.js') }}"></script>
     <script src="{{ custom_theme_url('assets/libs/toastr/toastr.min.js') }}"></script>
+    @if (isset($smoothScroll) && filled($smoothScroll))
+        <script src="{{ custom_theme_url('/assets/libs/gsap/minified/ScrollSmoother.min.js') }}"></script>
+    @endif
 
     @if (\Session::has('message'))
         <script>
@@ -174,9 +197,9 @@
 
     @stack('script')
 
-	@if ($app_is_demo)
-		<x-demo-switcher themes-type="Frontend" />
-	@endif
+    @if ($app_is_demo)
+        <x-demo-switcher themes-type="Frontend" />
+    @endif
 </body>
 
 </html>

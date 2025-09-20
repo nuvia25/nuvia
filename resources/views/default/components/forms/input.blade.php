@@ -100,7 +100,10 @@
             @endif
 
             <span {{ $attributes->withoutTwMergeClasses()->twMergeFor('label-txt', 'lqd-input-label-txt', $attributes->get('class:label-txt')) }}>
-                {{ $label }}
+                @if (!empty($labelIcon))
+					{!! $labelIcon !!}
+				@endif
+				{{ $label }}
             </span>
 
             @if ($type === 'checkbox' || $type === 'radio')
@@ -134,7 +137,7 @@
             value="{{ $value }}"
             @if ($type === 'password') :type="type" @endif
             type={{ $type }}
-            placeholder="{{ $placeholder }}"
+            placeholder="{!! $placeholder !!}"
             {{ $attributes }}
             @if ($stepper) :value="(value).toString().includes('.') ? parseFloat(value).toFixed(2) : value" x-ref="input" @endif
             @if ($attributes->has('x-ref') && filled($attributes->get('x-ref'))) x-ref="{{ $attributes->get('x-ref') }}" @endif
@@ -152,7 +155,7 @@
             {{ $attributes->withoutTwMergeClasses()->twMerge('cursor-pointer', $input_base_class, $size, $attributes->get('class')) }}
             name="{{ $name }}"
             value="{{ $value }}"
-            placeholder="{{ $placeholder }}"
+            placeholder="{!! $placeholder !!}"
             {{ $attributes }}
             @if ($attributes->has('x-model')) x-model="{{ $attributes->get('x-model') }}" @endif
         >
@@ -167,7 +170,7 @@
             {{ $attributes->withoutTwMergeClasses()->twMerge($input_base_class, $size, $attributes->get('class')) }}
             name="{{ $name }}"
             value="{{ $value }}"
-            placeholder="{{ $placeholder }}"
+            placeholder="{!! $placeholder !!}"
             {{ $attributes }}
             @if ($attributes->has('x-model')) x-model="{{ $attributes->get('x-model') }}" @endif
         >{{ $slot }}</textarea>
@@ -177,38 +180,39 @@
     @if ($type === 'color')
         <div
             {{ $attributes->withoutTwMergeClasses()->twMerge($input_base_class, 'flex items-center gap-3', $size, $attributes->get('class')) }}
-            x-data="{ 'colorVal': '{{ $value }}' }"
+            x-data="liquidColorPicker({ colorVal: '{{ $value }}' })"
         >
-            <div class="relative size-5 gap-4 overflow-hidden rounded-full border shadow-sm focus-within:ring focus-within:ring-secondary">
-                <input
-                    class="relative -start-1/2 -top-1/2 h-[200%] w-[200%] cursor-pointer appearance-none rounded-full border-none p-0"
-                    id="{{ $id }}"
-                    name="{{ $name }}"
-                    value="{{ $value }}"
-                    type={{ $type }}
-                    :value="colorVal"
-                    @input="colorVal = $event.target.value"
-                    x-ref="colorInput"
-                    {{ $attributes }}
-                    @if ($attributes->has('x-model')) x-model="{{ $attributes->get('x-model') }}" @endif
-                />
+            <div
+                class="lqd-input-color-wrap relative size-5 shrink-0 gap-4 overflow-hidden rounded-full border shadow-sm focus-within:ring focus-within:ring-secondary"
+                x-ref="colorInputWrap"
+            >
+                <span
+                    class="absolute left-0 top-0 size-full"
+                    :style="{ backgroundColor: colorVal }"
+                ></span>
             </div>
-            <input
-                class="grow border-none bg-transparent text-inherit outline-none"
-                id="{{ $id }}_value"
-                name="{{ $name }}_value"
-                value="{{ $value }}"
-                type="text"
-                :value="colorVal"
-                placeholder="{{ $placeholder }}"
-                @input="colorVal = $event.target.value"
-                @click="$refs.colorInput.click()"
-            />
+
+			<input
+				{{ $attributes->twMergeFor('input', 'grow border-none bg-transparent text-inherit outline-none') }}
+				id="{{ $id }}"
+				name="{{ $name }}"
+				value="{{ $value }}"
+				type="text"
+				placeholder="{!! $placeholder !!}"
+				:value="colorVal"
+				x-ref="colorInput"
+				@if ($attributes->has('x-model')) x-model="{{ $attributes->get('x-model') }}" @endif
+				{{ $attributes }}
+				@change="picker?.setColor($event.target.value);"
+				@keydown.enter.prevent="picker?.setColor($event.target.value);"
+				@focus="picker?.open(); $el.select()"
+			/>
             <x-button
-                class="hidden"
+                {{ $attributes->twMergeFor('clear-btn', 'hidden text-2xs font-medium') }}
                 variant="outline"
                 size="sm"
-                @click="colorVal = ''"
+                type="button"
+                @click.prevent="picker?.clear()"
                 ::class="{ 'hidden': colorVal === '' }"
             >
                 @lang('Clear')
@@ -243,7 +247,9 @@
 
     {{-- Action --}}
     @if (!empty($action))
-        <div class="absolute inset-y-0 end-0 border-s">
+        <div
+			{{ $attributes->twMergeFor('action', "absolute inset-y-0 end-0 border-s") }}
+		>
             {{ $action }}
         </div>
     @endif
@@ -278,13 +284,25 @@
 @endif
 </div>
 
-{{-- Initiate Select2 for select elements with multiple attribute --}}
-@if ($type === 'select' && $attributes->has('multiple'))
+@if ($type === 'color')
     @pushOnce('script')
         <link
-            href="{{ custom_theme_url('/assets/libs/tom-select/dist/css/tom-select.min.css') }}"
             rel="stylesheet"
-        />
+            href="{{ custom_theme_url('assets/libs/jscolorpicker/dist/colorpicker.css') }}"
+        >
+        <script src="{{ custom_theme_url('assets/libs/jscolorpicker/dist/colorpicker.iife.min.js') }}"></script>
+	@endPushOnce
+@endif
+
+{{-- Initiate Select2 for select elements with multiple attribute --}}
+@if ($type === 'select' && $attributes->has('multiple'))
+@pushOnce('css')
+<link
+	href="{{ custom_theme_url('/assets/libs/tom-select/dist/css/tom-select.min.css') }}"
+	rel="stylesheet"
+/>
+@endPushOnce
+    @pushOnce('script')
         <script src="{{ custom_theme_url('/assets/libs/tom-select/dist/js/tom-select.complete.min.js') }}"></script>
 
         <script>
@@ -297,6 +315,7 @@
                         allSelectElements.forEach(el => {
                             el.style.display = 'none';
                             const elId = el.id;
+							const label = el.closest('.lqd-input-container')?.querySelector('.lqd-input-label');
 
                             const tomSelect = new TomSelect(el, {
                                 create: {{ $addNew ? 'true' : 'false' }} && elId === '{{ $id }}',
@@ -328,7 +347,17 @@
 								tomSelect.clear();
 							});
 
-                            tomSelect.wrapper.insertAdjacentElement('afterend', buttonsWrapper);
+							if ( !Object.keys(tomSelect.options).length ) {
+								buttonsWrapper.classList.add('hidden');
+							}
+
+							if ( label ) {
+								buttonsWrapper.classList.remove('mt-1');
+								buttonsWrapper.classList.add('ms-auto');
+								label.insertAdjacentElement('beforeend', buttonsWrapper);
+							} else {
+								tomSelect.wrapper.insertAdjacentElement('afterend', buttonsWrapper);
+							}
 
                             buttonsWrapper.appendChild(selectAllBtn);
                             buttonsWrapper.appendChild(deselectAllBtn);
@@ -337,6 +366,7 @@
 								const total = Object.keys(tomSelect.options).length;
 								const currentValues = tomSelect.getValue();
 
+								buttonsWrapper.classList.toggle('hidden', !currentValues.length);
 								selectAllBtn.classList.toggle('hidden', currentValues.length === total);
 								deselectAllBtn.classList.toggle('hidden', !currentValues.length);
 							})

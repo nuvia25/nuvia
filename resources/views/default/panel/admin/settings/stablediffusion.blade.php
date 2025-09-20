@@ -206,6 +206,10 @@
                             {{ $settings_two->stablediffusion_default_language == 'ms-MY' ? 'selected' : null }}
                         >
                             {{ __('Malay (Malaysia)') }}</option>
+						<option
+							value="mk-MK"
+							{{ $settings_two->stablediffusion_default_language == 'mk-MK' ? 'selected' : null }}
+						>{{ __('Macedonian (North Macedonia)') }}</option>
                         <option
                             value="nb-NO"
                             {{ $settings_two->stablediffusion_default_language == 'nb-NO' ? 'selected' : null }}

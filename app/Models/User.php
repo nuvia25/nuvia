@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Billable;
 use Laravel\Cashier\Subscription as Subscriptions;
@@ -55,6 +56,7 @@ class User extends Authenticatable
         'affiliate_status',
         'entity_credits',
         'last_activity_at',
+        'two_checkout_customer_reference',
     ];
 
     protected $hidden = [
@@ -129,7 +131,11 @@ class User extends Authenticatable
 
     public function teamManager(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'team_manager_id', 'id');
+        return $this->belongsTo(__CLASS__, 'team_manager_id', 'id')
+            ->withDefault([
+                'name'    => '',
+                'surname' => '',
+            ]);
     }
 
     public function teamMember(): HasOne
@@ -139,7 +145,7 @@ class User extends Authenticatable
 
     public function team(): BelongsTo
     {
-        return $this->belongsTo(Team::class, 'team_id', 'id');
+        return $this->belongsTo(Team::class, 'id', 'user_id');
     }
 
     public function myCreatedTeam()
@@ -281,7 +287,7 @@ class User extends Authenticatable
     }
 
     // Chat
-    public function openaiChat()
+    public function openaiChat(): HasMany
     {
         return $this->hasMany(UserOpenaiChat::class);
     }
@@ -367,5 +373,35 @@ class User extends Authenticatable
     public function externalChatbots(): HasMany
     {
         return $this->hasMany(\App\Extensions\Chatbot\System\Models\Chatbot::class, 'user_id');
+    }
+
+    public function myTeam()
+    {
+        if ($this->team && $this->team_manager_id === $this->team->user_id) {
+            return $this->team();
+        }
+
+        if ($this->teamManager) {
+            return $this->teamManager->team();
+        }
+
+        return $this->team();
+    }
+
+    public function myTeamMembers(): HasMany
+    {
+        return $this->hasMany(TeamMember::class, 'id', 'user_id');
+    }
+
+    // recent search keys
+    public function recentSearchKeys(): HasMany
+    {
+        return $this->hasMany(RecentSearchKey::class);
+    }
+
+    // exported video
+    public function exportedVideos(): HasMany
+    {
+        return $this->hasMany(ExportedVideo::class);
     }
 }

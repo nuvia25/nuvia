@@ -233,8 +233,8 @@
 						switcher
 						type="checkbox"
 						:checked="$setting->login_without_confirmation == 1"
-						label="{{ __('Disable Login Without Confirmation') }}"
-						tooltip="{{ __('If this is enabled users cannot login unless they confirm their emails.') }}"
+						label="{{ __('Login Without Mail Confirmation') }}"
+						tooltip="{{ __('If this is disabled users cannot login unless they confirm their emails.') }}"
 					/>
 				</div>
 			</div>

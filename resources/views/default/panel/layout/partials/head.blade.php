@@ -48,7 +48,6 @@
     <title>{{ getMetaTitle($setting, $settings_two, ' ') ?? $setting->site_name }} | @yield('title')</title>
 
     @if (filled($google_fonts_string = \App\Helpers\Classes\ThemeHelper::googleFontsString('dashboard')))
-
         <link
             rel="preconnect"
             href="https://fonts.googleapis.com"

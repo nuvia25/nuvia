@@ -35,8 +35,7 @@
             type="hidden"
             value="{{ isset($chat) ? $chat->id : null }}"
         />
-        <div
-            class="lqd-chat-form-inputs-container flex min-h-[52px] w-full flex-col rounded-[26px] border border-input-border max-md:min-h-[45px]">
+        <div class="lqd-chat-form-inputs-container flex min-h-[52px] w-full flex-col rounded-[26px] border border-input-border max-md:min-h-[45px]">
             <div
                 class="hidden max-h-32 w-full grid-cols-3 gap-5 overflow-y-auto p-2.5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 [&.active]:grid"
                 id="chat_images"
@@ -54,7 +53,8 @@
                     id="selectImageInput"
                     type="file"
                     style="display: none;"
-                    @if ($category->slug != 'ai_vision' && $category->slug != 'ai_pdf') accept="image/*" @endif
+                    accept="images/*"
+                    @if ($category->slug == 'ai_pdf') accept="image/*, file/*" @endif
                 />
 
                 <x-button
@@ -86,8 +86,7 @@
                     ::bind="prompt"
                 />
 
-                <div
-                    class="pointer-events-none absolute bottom-0 end-2 start-2 flex items-end justify-between py-[5px] text-sm max-md:static">
+                <div class="lqd-chat-actions pointer-events-none absolute bottom-0 end-2 start-2 flex items-end justify-between py-[5px] text-sm max-md:static">
                     <div
                         class="flex grow items-center justify-between max-md:invisible max-md:absolute max-md:-end-12 max-md:-start-1 max-md:bottom-full max-md:mb-3 max-md:translate-y-1 max-md:scale-95 max-md:flex-col max-md:items-start max-md:gap-4 max-md:rounded-xl max-md:bg-background max-md:px-4 max-md:py-0 max-md:opacity-0 max-md:shadow-lg max-md:transition-all md:flex md:h-full max-md:[&.active]:visible max-md:[&.active]:translate-y-0 max-md:[&.active]:scale-100 max-md:[&.active]:opacity-100"
                         id="chat-options"
@@ -115,10 +114,7 @@
 
                         @if ($category->slug == 'ai_realtime_voice_chat')
                             @includeFirst(
-                                [
-                                    'elevenlabs-voice-chat::components.chat-button',
-                                    'openai-realtime-chat::chat-button',
-                                ],
+                                ['elevenlabs-voice-chat::components.chat-button', 'openai-realtime-chat::chat-button'],
                                 [
                                     'compact' => true,
                                     'category_slug' => $category->slug,
@@ -150,8 +146,7 @@
                             </div>
                         @endif
                         {{-- Brand Voice --}}
-                        <div
-                            class="pointer-events-auto flex items-center max-md:flex-col max-md:items-start max-md:gap-4 max-md:pb-4">
+                        <div class="pointer-events-auto flex items-center max-md:flex-col max-md:items-start max-md:gap-4 max-md:pb-4">
                             <x-modal
                                 class="lqd-chat-brand-voice"
                                 id="brandVoiceModal"
@@ -286,9 +281,7 @@
             id="{{ $category->slug == 'ai_vision' && $app_is_demo ? '' : 'send_message_button' }}"
             size="none"
             tag="button"
-            onclick="{!! $category->slug == 'ai_vision' && $app_is_demo
-                ? 'return toastr.info(\'{{ __('This feature is disabled in Demo version.') }}\')'
-                : '' !!}"
+            onclick="{!! $category->slug == 'ai_vision' && $app_is_demo ? 'return toastr.info(\'{{ __('This feature is disabled in Demo version.') }}\')' : '' !!}"
             type="submit"
         >
             <x-tabler-send-2

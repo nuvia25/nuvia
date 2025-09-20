@@ -2,6 +2,7 @@
 
 namespace MagicAI\Updater;
 
+use App\Helpers\Classes\VersionComparator;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
@@ -32,9 +33,15 @@ class Updater
             return $this->nextVersion;
         });
 
+        if (! $magicAIVersion) {
+            $versions = $this->prepareVersion();
+
+            $magicAIVersion = $versions['version'];
+        }
+
         $currentMagicAIVersion = $this->currentMagicAIVersion();
 
-        return version_compare($magicAIVersion, $currentMagicAIVersion, '=');
+        return VersionComparator::compareVersion($magicAIVersion, $currentMagicAIVersion, '=');
     }
 
     public function backupView(): array
@@ -43,7 +50,7 @@ class Updater
 
         $currentMagicAIVersion = $this->currentMagicAIVersion();
 
-        if (version_compare($magicAIVersion, $currentMagicAIVersion, '=')) {
+        if (VersionComparator::compareVersion($magicAIVersion, $currentMagicAIVersion, '=')) {
             return [
                 'updated' => true,
             ];
@@ -64,7 +71,7 @@ class Updater
 
         $currentMagicAIVersion = $this->currentMagicAIVersion();
 
-        if (version_compare($magicAIVersion, $currentMagicAIVersion, '=')) {
+        if (VersionComparator::compareVersion($magicAIVersion, $currentMagicAIVersion, '=')) {
             return [
                 'updated' => true,
             ];
@@ -90,7 +97,7 @@ class Updater
 
         $currentMagicAIVersion = $this->currentMagicAIVersion();
 
-        if (version_compare($magicAIVersion, $currentMagicAIVersion, '=')) {
+        if (VersionComparator::compareVersion($magicAIVersion, $currentMagicAIVersion, '=')) {
             cache()->forget('magicai_next_version_cache');
 
             return [
@@ -100,7 +107,7 @@ class Updater
             ];
         }
 
-        if ($updaterVersion && version_compare($updaterVersion, $currentUpdater['version'], '=')) {
+        if ($updaterVersion && VersionComparator::compareVersion($updaterVersion, $currentUpdater['version'], '=')) {
 
             cache()->forget('magicai_next_version_cache');
 

@@ -52,9 +52,11 @@ class Handler extends ExceptionHandler
 
     public function render($request, Throwable $e): JsonResponse|RedirectResponse|Response
     {
-
         if ($e instanceof MagicResponseApiException || $e instanceof MagicResponseApiRuntimeException) {
-            return response()->json($e->getData(), $e->getCode());
+            $data = $e->getData();
+            $data['status'] = 'error';
+
+            return response()->json($data, $e->getCode());
         }
 
         return parent::render($request, $e);

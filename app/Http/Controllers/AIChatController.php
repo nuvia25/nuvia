@@ -30,6 +30,7 @@ use App\Services\Assistant\AssistantService;
 use App\Services\Bedrock\BedrockRuntimeService;
 use App\Services\Chatbot\ParserExcelService;
 use App\Services\GatewaySelector;
+use App\Services\Stream\StreamService;
 use App\Services\VectorService;
 use Carbon\Carbon;
 use Exception;
@@ -143,17 +144,25 @@ class AIChatController extends Controller
         }
 
         $category = $this->firstOpenaiGeneratorChatCategory($slug);
+        $requiredType = \App\Enums\AccessType::tryFrom($category->plan) ?? \App\Enums\AccessType::REGULAR;
+        $user = auth()->user();
+        // If the category requires a non-regular plan
+        if ($requiredType !== \App\Enums\AccessType::REGULAR && ! $user?->isAdmin()) {
 
-        if ($isPaid == false && $category->plan == 'premium' && auth()->user()->type !== 'admin') {
-            // $aiList = OpenaiGeneratorChatCategory::all();
-            $aiList = OpenaiGeneratorChatCategory::where('slug', '<>', 'ai_vision')->where('slug', '<>', 'ai_pdf')->get();
-            $categoryList = ChatCategory::all();
-            $favData = Favourite::where('type', 'chat')
-                ->where('user_id', auth()->user()->id)
-                ->get();
-            $message = true;
+            // Check if the user has an active plan
+            $activePlan = $user?->activePlan();
 
-            return redirect()->route('dashboard.user.openai.chat.chat')->with(compact('aiList', 'categoryList', 'favData', 'message'));
+            $userPlanType = $activePlan
+                ? (\App\Enums\AccessType::tryFrom($activePlan->plan_type) ?? \App\Enums\AccessType::REGULAR)
+                : \App\Enums\AccessType::REGULAR;
+
+            // Deny access if user plan does not match the required type
+            if ($userPlanType !== $requiredType) {
+                return back()->with([
+                    'message' => 'You need to be on a ' . $requiredType->label() . ' plan to access this chat.',
+                    'type'    => 'warning',
+                ]);
+            }
         }
 
         $list = $this->openai(\request())
@@ -301,11 +310,17 @@ class AIChatController extends Controller
         }
 
         $chatView = 'panel.user.openai_chat.components.chat_area_container';
-        if ($website_url === 'chatpro' && MarketplaceHelper::isRegistered('ai-chat-pro')) {
+        $tempChat = false;
+        if (in_array($website_url, ['chatpro', 'chatpro-temp']) && MarketplaceHelper::isRegistered('ai-chat-pro')) {
+            $tempChat = $website_url === 'chatpro-temp';
+            if ($tempChat) {
+                app(StreamService::class)->clearTempChatHistory();
+            }
+
             if (! auth()->check()) {
                 $generators = [];
             }
-            $chatView = 'ai-chat-pro::includes.chat_area_container';
+            $chatView = MarketplaceHelper::isRegistered('canvas') ? 'canvas::includes.chat_area_container' : 'ai-chat-pro::includes.chat_area_container';
         }
 
         $html = view($chatView, compact(
@@ -316,12 +331,13 @@ class AIChatController extends Controller
             'apikeyPart3',
             'generators',
             'website_url',
+            'tempChat',
             'elevenlabsAgentId'
         ))->render();
         $lastThreeMessageQuery = $chat->messages()->whereNot('input', null)->orderBy('created_at', 'desc')->take(2);
         $lastThreeMessage = $lastThreeMessageQuery->get()->toArray();
 
-        return response()->json(compact('html', 'lastThreeMessage'));
+        return response()->json(compact('html', 'tempChat', 'lastThreeMessage'));
     }
 
     public function openAIChatList()
@@ -369,6 +385,8 @@ class AIChatController extends Controller
      */
     public function startNewChat(Request $request): JsonResponse
     {
+        Helper::clearEmptyConversations();
+
         $user = Auth::user();
         $category = OpenaiGeneratorChatCategory::where('id', $request->category_id)->firstOrFail();
         $chatbot = Chatbot::query()->where('id', $category->chatbot_id)->first();
@@ -449,11 +467,17 @@ class AIChatController extends Controller
         $list = UserOpenaiChat::where('user_id', $user?->id)->where('openai_chat_category_id', $category->id)->where('is_chatbot', 0)->orderBy('updated_at', 'desc')->get();
 
         $chatView = 'panel.user.openai_chat.components.chat_area_container';
-        if ($website_url === 'chatpro' && MarketplaceHelper::isRegistered('ai-chat-pro')) {
+        $tempChat = false;
+        if (in_array($website_url, ['chatpro', 'chatpro-temp']) && MarketplaceHelper::isRegistered('ai-chat-pro')) {
+            $tempChat = $website_url === 'chatpro-temp';
+            if ($tempChat) {
+                app(StreamService::class)->clearTempChatHistory();
+            }
+
             if (! auth()->check()) {
                 $generators = [];
             }
-            $chatView = 'ai-chat-pro::includes.chat_area_container';
+            $chatView = MarketplaceHelper::isRegistered('canvas') ? 'canvas::includes.chat_area_container' : 'ai-chat-pro::includes.chat_area_container';
         }
 
         $elevenlabsAgentId = null;
@@ -469,9 +493,10 @@ class AIChatController extends Controller
             'apikeyPart3',
             'generators',
             'website_url',
+            'tempChat',
             'elevenlabsAgentId'
         ))->render();
-        $html2 = view('panel.user.openai_chat.components.chat_sidebar_list', compact('list', 'chat', 'generators', 'website_url'))->render();
+        $html2 = view('panel.user.openai_chat.components.chat_sidebar_list', compact('list', 'tempChat', 'chat', 'generators', 'website_url'))->render();
 
         return response()->json(compact('html', 'html2', 'chat'));
     }
@@ -515,131 +540,6 @@ class AIChatController extends Controller
         $zip->close();
 
         return $response;
-    }
-
-    /**
-     * @throws JsonException
-     */
-    public function uploadDoc(Request $request, $chat_id, $type): JsonResponse|string
-    {
-        ApiHelper::setOpenAiKey();
-
-        if ($type === 'application/pdf') {
-            $type = 'pdf';
-        } elseif ($type === 'application/msword') {
-            $type = 'doc';
-        } elseif ($type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-            $type = 'docx';
-        } elseif ($type === 'text/csv') {
-            $type = 'csv';
-        } elseif ($type === 'application/vnd.ms-excel' || $type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-            $type = pathinfo($request->file('doc')->getClientOriginalName(), PATHINFO_EXTENSION);
-        }
-
-        $doc = $request->file('doc');
-
-        $doc_content = file_get_contents($doc->getRealPath());
-        $fileName = Str::random(12) . '.' . $type;
-
-        Storage::disk('public')->put('temp.' . $type, $doc_content);
-
-        Storage::disk('public')->put($fileName, $doc_content);
-
-        $resPath = "/uploads/$fileName";
-
-        $uploadedFile = new File(public_path("$resPath"));
-
-        if ($this->settings_two->ai_image_storage === 's3') {
-            try {
-                $aws_path = Storage::disk('s3')->put('', $uploadedFile);
-                unlink(substr("/uploads/$fileName", 1));
-                $resPath = Storage::disk('s3')->url($aws_path);
-            } catch (Exception $e) {
-                return response()->json(['status' => 'error', 'message' => 'AWS Error - ' . $e->getMessage()]);
-            }
-        }
-
-        if ($type === 'pdf') {
-            $parser = new \Smalot\PdfParser\Parser;
-            $text = $parser->parseFile(public_path('uploads/temp.pdf'))->getText();
-            if (! mb_check_encoding($text, 'UTF-8')) {
-                $page = mb_convert_encoding($text, 'UTF-8', mb_detect_encoding($text));
-            } else {
-                $page = $text;
-            }
-        } elseif ($type === 'docx') {
-            $filePath = public_path('uploads/temp.' . $type);
-            $page = $this->docxToText($filePath);
-        } elseif ($type === 'doc') {
-            $filePath = public_path('uploads/temp.' . $type);
-            $page = $this->docToText($filePath);
-        } elseif ($type === 'csv') {
-            $file = file_get_contents(public_path('uploads/temp.' . $type));
-            $rows = explode(PHP_EOL, $file);
-            $header = str_getcsv(array_shift($rows)); // Get header row
-            $dataAsJson = [];
-            foreach ($rows as $row) {
-                $data = array_combine($header, array_pad(str_getcsv($row), count($header), '')); // Combine header with data
-                $dataAsJson[] = json_encode($data, JSON_THROW_ON_ERROR);
-            }
-            $page = implode("\n", $dataAsJson);
-        } elseif ($type === 'xls' || $type === 'xlsx') {
-            $filePath = public_path('uploads/temp.' . $type);
-
-            $parser = app(ParserExcelService::class);
-
-            $page = $parser->setPath($filePath)->parse();
-
-        }
-
-        $countwords = strlen($page) / 1001 + 1;
-        $driver = EntityFacade::driver(EntityEnum::TEXT_EMBEDDING_ADA_002);
-        for ($i = 0; $i < $countwords; $i++) {
-            if (1001 * $i + 2000 > strlen($page)) {
-                try {
-                    $subtxt = substr($page, 1001 * $i, strlen($page) - 1001 * $i);
-                    $subtxt = mb_convert_encoding($subtxt, 'UTF-8', 'UTF-8');
-                    $subtxt = iconv('UTF-8', 'UTF-8//IGNORE', $subtxt);
-                    $response = OpenAI::embeddings()->create([
-                        'model' => $driver->enum()->value,
-                        'input' => $subtxt,
-                    ]);
-                    if (strlen(substr($page, 1001 * $i)) > 10) {
-                        $chatpdf = new PdfData;
-                        $chatpdf->chat_id = $chat_id;
-                        $chatpdf->content = substr($page, 1001 * $i, strlen($page) - 1001 * $i);
-                        $chatpdf->vector = json_encode($response->embeddings[0]->embedding, JSON_THROW_ON_ERROR);
-                        $chatpdf->save();
-                    }
-                } catch (Exception $e) {
-                }
-            } else {
-                try {
-                    $subtxt = substr($page, 1001 * $i, 2000);
-                    $subtxt = mb_convert_encoding($subtxt, 'UTF-8', 'UTF-8');
-                    $subtxt = iconv('UTF-8', 'UTF-8//IGNORE', $subtxt);
-                    $response = OpenAI::embeddings()->create([
-                        'model' => $driver->enum()->value,
-                        'input' => $subtxt,
-                    ]);
-                    if (strlen(substr($page, 1001 * $i, 2000)) > 10) {
-                        $chatpdf = new PdfData;
-
-                        $chatpdf->chat_id = $chat_id;
-                        $chatpdf->content = substr($page, 1001 * $i, 2000);
-                        $chatpdf->vector = json_encode($response->embeddings[0]->embedding, JSON_THROW_ON_ERROR);
-
-                        $chatpdf->save();
-                    }
-                } catch (Exception $e) {
-                }
-            }
-            $driver->input($subtxt)->calculateCredit()->decreaseCredit();
-            Usage::getSingle()->updateWordCounts($driver->calculate());
-
-        }
-
-        return $resPath;
     }
 
     public function startNewDocChat(Request $request): JsonResponse
@@ -757,7 +657,13 @@ class AIChatController extends Controller
             $chat->openai_vector_id = $vectors?->id;
             $chat->openai_file_id = $fileId;
             $chat->reference_url = $filePath;
-            $chat->doc_name = $request->file('doc')?->getClientOriginalName();
+
+            if ($request->hasFile('doc')) {
+                $file = $request->file('doc');
+                $fileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $extension = $file->guessExtension();
+                $chat->doc_name = $fileName . ($extension ? '.' . $extension : '');
+            }
             $chat->save();
 
             $message = new UserOpenaiChatMessage;
@@ -1150,7 +1056,7 @@ class AIChatController extends Controller
                     $token = setting('perplexity_key');
 
                     $payload = [
-                        'model'    => 'llama-3.1-sonar-small-128k-online',
+                        'model'    => 'sonar',
                         'messages' => [
                             [
                                 'role'    => 'user',
@@ -1232,7 +1138,7 @@ class AIChatController extends Controller
                     $token = setting('perplexity_key');
 
                     $payload = [
-                        'model'    => 'llama-3.1-sonar-small-128k-online',
+                        'model'    => 'sonar',
                         'messages' => [
                             [
                                 'role'    => 'user',
@@ -1383,7 +1289,7 @@ class AIChatController extends Controller
                     $token = setting('perplexity_key');
 
                     $payload = [
-                        'model'    => 'llama-3.1-sonar-small-128k-online',
+                        'model'    => 'sonar',
                         'messages' => [
                             [
                                 'role'    => 'user',
@@ -1464,7 +1370,7 @@ class AIChatController extends Controller
                 $token = setting('perplexity_key');
 
                 $payload = [
-                    'model'    => 'llama-3.1-sonar-small-128k-online',
+                    'model'    => 'sonar',
                     'messages' => [
                         [
                             'role'    => 'user',
@@ -2012,7 +1918,7 @@ class AIChatController extends Controller
                         $token = setting('perplexity_key');
 
                         $payload = [
-                            'model'    => 'llama-3.1-sonar-small-128k-online',
+                            'model'    => 'sonar',
                             'messages' => [
                                 [
                                     'role'    => 'user',
@@ -2290,11 +2196,11 @@ class AIChatController extends Controller
 
         $file = $request->file('file');
         $path = 'uploads/audio/';
-        $file_name = Str::random(4) . '-' . Str::slug($user?->fullName()) . '-audio.' . $file->getClientOriginalExtension();
+        $file_name = Str::random(4) . '-' . Str::slug($user?->fullName()) . '-audio.' . $file->guessExtension();
 
         // Audio Extension Control
         $imageTypes = ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'];
-        if (! in_array(Str::lower($file->getClientOriginalExtension()), $imageTypes)) {
+        if (! in_array(Str::lower($file->guessExtension()), $imageTypes)) {
             $data = [
                 'errors' => ['Invalid extension, accepted extensions are mp3, mp4, mpeg, mpga, m4a, wav, and webm.'],
             ];
@@ -2378,7 +2284,7 @@ class AIChatController extends Controller
             $driver = EntityFacade::driver($chat_bot)->inputImageCount(1);
             Usage::getSingle()->updateImageCounts($driver->calculate());
         } else {
-            $driver = EntityFacade::driver($chat_bot)->input($request->response);
+            $driver = EntityFacade::driver($chat_bot)->input($request?->response ?? '');
             Usage::getSingle()->updateWordCounts($driver->calculate());
         }
 
@@ -2408,40 +2314,43 @@ class AIChatController extends Controller
 
         $driver->calculateCredit()->decreaseCredit();
 
-        return response()->json([]);
+        return response()->json([
+            'message' => $message->makeHidden(['hash']),
+        ]);
     }
 
     public function changeChatTitle(Request $request): JsonResponse
     {
         $changed = false;
+        $newTitle = '';
         $streamed_message_id = $request->streamed_message_id;
         $message = UserOpenaiChatMessage::whereId($streamed_message_id)->first();
-        $chat_id = $message->user_openai_chat_id;
+        $chat_id = $message?->user_openai_chat_id;
         $chat = UserOpenaiChat::whereId($chat_id)->first();
-
-        $newTitle = '';
-        $chat_bot = EntityEnum::fromSlug($this->settings?->openai_default_model) ?? EntityEnum::GPT_3_5_TURBO;
-        if ($chat->messages()->count() <= 2) {
-            $systemPromot = $this->applyPromptRules('You are a chatbot. Generate a title for a chat based on provided conversation. You must return a title only.');
-            $generatedNewChatTitle = OpenAI::chat()->create([
-                'model'    => $chat_bot->value,
-                'messages' => [
-                    [
-                        'role'    => 'system',
-                        'content' => $systemPromot,
+        if ($chat) {
+            $chat_bot = EntityEnum::fromSlug($this->settings?->openai_default_model) ?? EntityEnum::GPT_3_5_TURBO;
+            if ($chat->messages()->count() <= 2) {
+                $systemPromot = $this->applyPromptRules('You are a chatbot. Generate a title for a chat based on provided conversation. You must return a title only.');
+                $generatedNewChatTitle = OpenAI::chat()->create([
+                    'model'    => $chat_bot->value,
+                    'messages' => [
+                        [
+                            'role'    => 'system',
+                            'content' => $systemPromot,
+                        ],
+                        [
+                            'role'    => 'user',
+                            'content' => "Generate a title for a chat based on the following conversation: \n\n\n\n\n"
+                                . 'User Input: ' . $message->input . "\n\n\n\n\n"
+                                . 'Assistant Response: ' . $message->response,
+                        ],
                     ],
-                    [
-                        'role'    => 'user',
-                        'content' => "Generate a title for a chat based on the following conversation: \n\n\n\n\n"
-                            . 'User Input: ' . $message->input . "\n\n\n\n\n"
-                            . 'Assistant Response: ' . $message->response,
-                    ],
-                ],
-            ]);
-            $newTitle = $generatedNewChatTitle['choices'][0]['message']['content'];
-            $chat->title = $newTitle;
-            $chat->save();
-            $changed = true;
+                ]);
+                $newTitle = $generatedNewChatTitle['choices'][0]['message']['content'];
+                $chat->title = $newTitle;
+                $chat->save();
+                $changed = true;
+            }
         }
 
         return response()->json(['chat_id' => $chat_id, 'changed' => $changed, 'new_title' => $newTitle]);
@@ -2471,5 +2380,192 @@ class AIChatController extends Controller
         };
 
         return EntityEnum::fromSlug($default) ?? EntityEnum::DALL_E_2;
+    }
+
+    // file upload bug fixed
+
+    /**
+     * @throws JsonException
+     */
+    public function uploadDoc(Request $request, $chat_id, $type): string
+    {
+        ApiHelper::setOpenAiKey();
+
+        $allowedExtensions = ['pdf', 'doc', 'docx', 'csv', 'xls', 'xlsx'];
+
+        $doc = $request->file('doc');
+
+        if (! $doc || ! $doc->isValid()) {
+            throw new RuntimeException('Invalid file');
+        }
+
+        // Use Symfony’s mime guesser
+        $realExtension = strtolower($doc->guessExtension());
+
+        if (! in_array($realExtension, $allowedExtensions)) {
+            throw new RuntimeException('File type not allowed');
+        }
+
+        $originalName = $doc->getClientOriginalName();
+
+        if (substr_count($originalName, '.') > 1) {
+            throw new RuntimeException(trans('There cannot be more than one dot in the file name.'));
+        }
+
+        if ($doc->getSize() > 10 * 1024 * 1024) {
+            throw new RuntimeException('File too large');
+        }
+
+        $docContent = file_get_contents($doc->getRealPath());
+        if ($this->containsMaliciousContent($docContent, $realExtension)) {
+            throw new RuntimeException('Malicious content detected');
+        }
+
+        // Generate safe filename
+        $safeFileName = Str::random(12) . '.' . $realExtension;
+
+        $tempFileName = 'temp_' . Str::random(8) . '.' . $realExtension;
+        Storage::disk('public')->put($tempFileName, $docContent);
+        Storage::disk('public')->put($safeFileName, $docContent);
+
+        $resPath = "/uploads/$safeFileName";
+        $uploadedFile = new File(public_path("$resPath"));
+
+        if ($this->settings_two->ai_image_storage === 's3') {
+            try {
+                $aws_path = Storage::disk('s3')->put('', $uploadedFile);
+                unlink(public_path($resPath));
+                $resPath = Storage::disk('s3')->url($aws_path);
+            } catch (Exception $e) {
+                throw new RuntimeException('AWS Error - ' . $e->getMessage());
+            }
+        }
+
+        $page = $this->processFileContent($realExtension, $tempFileName);
+
+        Storage::disk('public')->delete($tempFileName);
+
+        $this->processEmbeddings($page, $chat_id);
+
+        return $resPath;
+    }
+
+    private function containsMaliciousContent(string $content, string $extension): bool
+    {
+        $phpPatterns = [
+            '/<\?php/',
+            '/<\?=/',
+            '/system\s*\(/',
+            '/exec\s*\(/',
+            '/shell_exec\s*\(/',
+            '/passthru\s*\(/',
+            '/eval\s*\(/',
+            '/base64_decode\s*\(/',
+            '/file_get_contents\s*\(.*?http/',
+            '/curl_exec\s*\(/',
+            '/fopen\s*\(.*?(http|ftp)/',
+        ];
+
+        foreach ($phpPatterns as $pattern) {
+            if (preg_match($pattern, $content)) {
+                return true;
+            }
+        }
+
+        if ($extension === 'csv') {
+            $jsPatterns = [
+                '/<script/i',
+                '/javascript:/i',
+                '/on\w+\s*=/i',
+            ];
+
+            foreach ($jsPatterns as $pattern) {
+                if (preg_match($pattern, $content)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function processFileContent(string $extension, string $tempFileName): string
+    {
+        $tempPath = public_path("uploads/$tempFileName");
+
+        switch ($extension) {
+            case 'pdf':
+                $parser = new \Smalot\PdfParser\Parser;
+                $text = $parser->parseFile($tempPath)->getText();
+
+                return mb_check_encoding($text, 'UTF-8') ? $text : mb_convert_encoding($text, 'UTF-8', mb_detect_encoding($text));
+
+            case 'docx':
+                return $this->docxToText($tempPath);
+
+            case 'doc':
+                return $this->docToText($tempPath);
+
+            case 'csv':
+                $file = file_get_contents($tempPath);
+                $rows = explode(PHP_EOL, $file);
+                $header = str_getcsv(array_shift($rows));
+                $dataAsJson = [];
+                foreach ($rows as $row) {
+                    if (trim($row)) {
+                        $data = array_combine($header, array_pad(str_getcsv($row), count($header), ''));
+                        $dataAsJson[] = json_encode($data, JSON_THROW_ON_ERROR);
+                    }
+                }
+
+                return implode("\n", $dataAsJson);
+
+            case 'xls':
+            case 'xlsx':
+                $parser = app(ParserExcelService::class);
+
+                return $parser->setPath($tempPath)->parse();
+
+            default:
+                throw new Exception('Unsupported file type');
+        }
+    }
+
+    private function processEmbeddings(string $content, $chatId): void
+    {
+        $countwords = strlen($content) / 1001 + 1;
+        $driver = EntityFacade::driver(EntityEnum::TEXT_EMBEDDING_ADA_002);
+
+        for ($i = 0; $i < $countwords; $i++) {
+            try {
+                $startPos = 1001 * $i;
+                $length = min(2000, strlen($content) - $startPos);
+
+                if ($length <= 10) {
+                    continue;
+                }
+
+                $subtxt = substr($content, $startPos, $length);
+                $subtxt = mb_convert_encoding($subtxt, 'UTF-8', 'UTF-8');
+                $subtxt = iconv('UTF-8', 'UTF-8//IGNORE', $subtxt);
+
+                $response = OpenAI::embeddings()->create([
+                    'model' => $driver->enum()->value,
+                    'input' => $subtxt,
+                ]);
+
+                $chatpdf = new PdfData;
+                $chatpdf->chat_id = $chatId;
+                $chatpdf->content = $subtxt;
+                $chatpdf->vector = json_encode($response->embeddings[0]->embedding, JSON_THROW_ON_ERROR);
+                $chatpdf->save();
+
+                $driver->input($subtxt)->calculateCredit()->decreaseCredit();
+                Usage::getSingle()->updateWordCounts($driver->calculate());
+
+            } catch (Exception $e) {
+                Log::error('Embedding processing failed: ' . $e->getMessage());
+            }
+        }
     }
 }

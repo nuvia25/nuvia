@@ -33,6 +33,7 @@ class EntityRemover
         self::removeFromTable(User::all(), 'entity_credits', $entitySlug);
         self::removeFromTable(Plan::all(), 'ai_models', $entitySlug);
         self::removeFromSettings($entitySlug);
+        self::removeFromAppSettings($entitySlug);
     }
 
     private static function removeFromEntityTable(string $entitySlug): void
@@ -94,6 +95,16 @@ class EntityRemover
         if ($savedKey !== null) {
             unset($freeCreditsUponRegistration[$savedKey][$entitySlug]);
             setting(['freeCreditsUponRegistration' => $freeCreditsUponRegistration])->save();
+        }
+    }
+
+    private static function removeFromAppSettings(string $entitySlug): void
+    {
+        $settings = setting()->all();
+        foreach ($settings as $key => $value) {
+            if ($value === $entitySlug && str_contains($key, '_default_')) {
+                setting([$key => null])->save();
+            }
         }
     }
 }

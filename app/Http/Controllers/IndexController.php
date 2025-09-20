@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Extensions\DiscountManager\System\Models\PromoBanner;
+use App\Helpers\Classes\MarketplaceHelper;
 use App\Models\Blog;
 use App\Models\Clients;
 use App\Models\CustomSettings;
@@ -41,7 +43,7 @@ class IndexController extends Controller
         }
 
         $filters = OpenaiGeneratorFilter::all();
-        $templates = OpenAIGenerator::all();
+        $templates = OpenAIGenerator::where('active', 1)->get();
         $plansSubscription = $this->planService->getSubscriptionPlans();
         $plansSubscriptionMonthly = $this->planService->getMonthlySubscriptions();
         $plansSubscriptionLifetime = $this->planService->getLifetimeSubscriptions();
@@ -67,6 +69,16 @@ class IndexController extends Controller
 
         $currency = currency()->symbol;
 
+        $show_promo_banner = false;
+        $bannerInfo = null;
+
+        if (MarketplaceHelper::isRegistered('discount-manager')) {
+            $bannerInfo = PromoBanner::where('active', '1')->first();
+            if ($bannerInfo) {
+                $show_promo_banner = true;
+            }
+        }
+
         return view('index', compact(
             'templates',
             'plansPrepaid',
@@ -85,7 +97,9 @@ class IndexController extends Controller
             'plansSubscriptionLifetime',
             'plansSubscriptionAnnual',
             'posts',
-            'currency'
+            'currency',
+            'show_promo_banner',
+            'bannerInfo'
         ));
     }
 

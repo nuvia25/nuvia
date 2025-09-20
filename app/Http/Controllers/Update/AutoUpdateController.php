@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Update;
 
 use App\Domains\Marketplace\Repositories\Contracts\ExtensionRepositoryInterface;
+use App\Helpers\Classes\VersionComparator;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use Exception;
@@ -474,7 +475,7 @@ class AutoUpdateController extends Controller
 
         $lastVersion = $this->getLastVersion();
 
-        if (version_compare($lastVersion['version'], $this->getCurrentVersion(), '>')) {
+        if (VersionComparator::compareVersion($lastVersion['version'], $this->getCurrentVersion(), '>')) {
             $lastVersion['update'] = 'yes'; // Trigger the new version available.
             $lastVersion['version_format'] = format_double($lastVersion['version']);
         }

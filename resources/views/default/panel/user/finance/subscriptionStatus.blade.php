@@ -7,12 +7,12 @@
     $teamManager = auth()->user()->getAttribute('teamManager');
 @endphp
 
-@if ($team)
+@if ($team && $team?->allow_seats > 0)
     <div class="flex flex-wrap items-center justify-between gap-y-4 text-base font-medium leading-normal">
         <div class="lg-w/5-12 w-full md:w-1/2">
             <h2 class="mb-[1em]">{{ __('Active Workspace:') }}</h2>
             <p class="mb-4 font-bold">
-                {{ $teamManager->name . ' ' . $teamManager->surname }}
+                {{ $teamManager?->name . ' ' . $teamManager?->surname }}
                 <x-badge class="ms-2 text-2xs">
                     @lang('Team Manager')
                 </x-badge>
@@ -107,6 +107,7 @@
 
     <div class="mt-4 flex flex-wrap items-center justify-center gap-4">
         <x-credit-list
+            class="items-center"
             showType="button"
             modal-trigger-pos="block"
             expanded-modal-trigger

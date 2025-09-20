@@ -37,8 +37,8 @@ test('rules', function () {
             fn ($rule) => $rule->toBeString()->toBe('sometimes|boolean')
         )
         ->toHaveKeys([
-            'plan.ai_models.openai.gpt-3__5-turbo-16k.credit',
-            'plan.ai_models.openai.gpt-3__5-turbo-16k.isUnlimited',
+            'plan.ai_models.openai.gpt-4o.credit',
+            'plan.ai_models.openai.gpt-4o.isUnlimited',
         ]);
 
 });

@@ -18,6 +18,6 @@ class Gemini25ProExp0325Driver extends BaseDriver implements WithInputInterface,
 
     public function enum(): EntityEnum
     {
-        return EntityEnum::GEMINI_2_5_PRO_EXP_03_25;
+        return EntityEnum::GEMINI_2_5_PRO;
     }
 }

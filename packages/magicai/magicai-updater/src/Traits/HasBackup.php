@@ -57,10 +57,14 @@ trait HasBackup
 
         } catch (Exception $e) {
 
+            \Illuminate\Support\Facades\Log::error('Backup failed: ', [
+                'message' => $e->getMessage(),
+            ]);
+
             Cache::forget($this->backupFileNameCacheKey);
 
             throw ValidationException::withMessages([
-                'message' => __('Something went wrong!'),
+                'message' => __('Server Error:') . ' ' . $e->getMessage(),
             ]);
         }
 

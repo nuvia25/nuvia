@@ -24,12 +24,14 @@ class ClearUserOpenAICommand extends Command
         Log::info('Clearing user OpenAI data (except last 22)...');
 
         $idsToRetain = UserOpenai::query()
+            ->where('is_demo', false)
             ->orderByDesc('id')
             ->take($this->itemsToRetain)
             ->pluck('id')
             ->toArray();
 
         UserOpenai::query()
+            ->where('is_demo', false)
             ->whereNotIn('id', $idsToRetain)
             ->where('openai_id', '!=', 36)
             ->orderByDesc('id')

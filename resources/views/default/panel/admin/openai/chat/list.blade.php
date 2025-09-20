@@ -63,18 +63,14 @@
                                 name="premium"
                                 type="select"
                             >
-                                <option
-                                    value="premium"
-                                    @selected($entry->plan == 'premium')
-                                >
-                                    {{ __('Premium') }}
-                                </option>
-                                <option
-                                    value="regular"
-                                    @selected($entry->plan == 'regular')
-                                >
-                                    {{ __('Regular') }}
-                                </option>
+								@foreach(\App\Enums\AccessType::cases() as $type)
+									<option
+										value="{{ $type->value }}"
+										@selected($entry->plan === $type->value)
+									>
+										{{ $type->label() }}
+									</option>
+								@endforeach
                             </x-forms.input>
                         </td>
                         <td>

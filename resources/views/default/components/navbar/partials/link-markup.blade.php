@@ -33,7 +33,6 @@
     target="{{ $target }}"
     x-data="navbarLink({ isDemo: {{ $app_is_demo ? 'true' : 'false' }} })"
     @if ($dropdownTrigger) @click.prevent="toggleDropdownOpen()" @endif
-    @if ($app_is_not_demo && ($activeCondition && !empty(trim($activeCondition)))) x-init="$el.parentElement.offsetTop > window.innerHeight && $el.closest('.lqd-navbar-inner').scrollTo({ top: (($el.parentElement.offsetHeight + $el.parentElement.offsetTop) / 2) })" @endif
     @if ($triggerType === 'modal') @click.prevent="toggleModal()" @endif
 >
     @if ($letterIcon && !empty($label))
@@ -46,7 +45,7 @@
     @endif
     @if (!empty($icon) || !empty($iconHtml))
         <span
-            class="lqd-nav-link-icon bg-navbar-icon-background text-navbar-icon-foreground group-hover/link:bg-navbar-icon-background-hover group-hover/link:text-navbar-icon-foreground-hover group-[&.active]/link:bg-navbar-icon-background-active group-[&.active]/link:text-navbar-icon-foreground-active"
+            class="lqd-nav-link-icon bg-navbar-icon-background text-navbar-icon-foreground group-hover/nav-item:bg-navbar-icon-background-hover group-hover/nav-item:text-navbar-icon-foreground-hover group-[&.active]/link:bg-navbar-icon-background-active group-[&.active]/link:text-navbar-icon-foreground-active"
         >
             @if (!empty($iconHtml))
                 {!! $iconHtml !!}

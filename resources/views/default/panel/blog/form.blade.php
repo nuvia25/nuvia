@@ -1,7 +1,7 @@
 @extends('panel.layout.settings', ['layout' => 'fullwidth', 'disable_tblr' => true])
 @section('title', __('Add or Edit Post'))
 @section('titlebar_actions')
-    <div class="flex space-x-1 lg:justify-end">
+    <div class="flex gap-4 lg:justify-end">
         @if ($blog != null)
             <x-button
                 variant="ghost-shadow"
@@ -66,7 +66,7 @@
                         size="lg"
                         name="feature_image"
                         value="/{{ $blog != null ? $blog->feature_image : null }}"
-                        accept=".jpg, .jpeg, .png, .webp"
+                        accept="image/*"
                         label="{{ __('Post Image') }}"
                     />
                 </div>

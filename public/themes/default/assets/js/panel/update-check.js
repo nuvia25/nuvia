@@ -6,7 +6,8 @@
 		const cache = getCookie( 'magicai_update_check' );
 
 		if ( localStorage.getItem( 'magicai_update_badge' ) ) {
-			$( '.nav-link--update .lqd-nav-link-label' ).append( localStorage.getItem( 'magicai_update_badge' ) );
+			const el = $(localStorage.getItem( 'magicai_update_badge' )).addClass('lqd-link-update-badge');
+			$( '.nav-link--update .lqd-nav-link-label' ).append( el );
 		} else {
 			if ( !cache ) {
 				$.ajax( {
@@ -15,7 +16,7 @@
 					async: false,
 					success: function ( response ) {
 						if ( response != '' ) {
-							let html = '<span class="text-xs rounded-full flex justify-center items-center bg-[#F3E2FD] text-black size-5 ms-auto">1</span>';
+							let html = '<span class="lqd-link-update-badge text-xs rounded-full flex justify-center items-center bg-[#F3E2FD] text-black size-5 ms-auto">1</span>';
 							$( '.nav-link--update .lqd-nav-link-label' ).append( html );
 							localStorage.setItem( 'magicai_update_badge', html );
 						}

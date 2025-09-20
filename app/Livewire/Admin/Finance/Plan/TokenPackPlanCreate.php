@@ -32,6 +32,7 @@ class TokenPackPlanCreate extends Component
             'plan.name'               => 'required_if:step,1|string|max:190',
             'plan.description'        => 'required_if:step,1|nullable|string|max:15000',
             'plan.price'              => 'required_if:step,1|numeric|min:0',
+            'plan.price_tax_included' => 'nullable|boolean',
             'plan.features'           => 'required_if:step,1|string|max:15000',
             'plan.type'               => 'nullable',
             'plan.plan_ai_tools'      => 'nullable',

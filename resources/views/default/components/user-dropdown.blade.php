@@ -9,7 +9,7 @@
 <x-dropdown.dropdown
     {{ $attributes->twMerge('header-user-dropdown') }}
     anchor="end"
-    offsetY="20px"
+    offsetY="{{ $attributes->get('dropdown-offset-y') ?? '20px' }}"
 >
     <x-slot:trigger
         class="{{ @twMerge('size-9 p-0', $attributes->get('class:trigger')) }}"
@@ -25,20 +25,20 @@
     </x-slot:trigger>
 
     <x-slot:dropdown
-        class="min-w-52"
+        class="w-52"
     >
         <div class="px-3 pt-3">
             <p class="m-0 text-foreground">{{ Auth::user()?->fullName() }}</p>
             <p class="text-3xs text-foreground/70">{{ Auth::user()->email }}</p>
         </div>
         <hr>
-		@if($app_is_not_demo)
-			@include('components.includes.credit-list-for-user')
-		@else
-			{!! \Illuminate\Support\Facades\Cache::remember('components.includes.credit-list-for-user', 3600 * 36000, function () {
-				return view('components.includes.credit-list-for-user')->render();
+        @if ($app_is_not_demo)
+            @include('components.includes.credit-list-for-user')
+        @else
+            {!! \Illuminate\Support\Facades\Cache::remember('components.includes.credit-list-for-user', 3600 * 36000, function () {
+                return view('components.includes.credit-list-for-user')->render();
             }) !!}
-		@endif
+        @endif
         <hr>
 
         <div class="pb-2 text-2xs">

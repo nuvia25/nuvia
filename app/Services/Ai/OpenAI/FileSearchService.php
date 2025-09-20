@@ -76,10 +76,12 @@ class FileSearchService
 
     /**
      * Perform a file search using OpenAI's API.
+     * This function replaced with the responses() endpoint that added after we updated the openai-php client
+     * Its not in use right now, but we keep it for backup purpose
      */
     public function searchInFile(array $options, ?UserOpenaiChat $chat): ?string
     {
-        $history = $options['messages'];
+        $history = $options['input'] ?? $options['messages'];
         $lastPrompt = end($history)['content'] ?? '';
 
         $payload = [

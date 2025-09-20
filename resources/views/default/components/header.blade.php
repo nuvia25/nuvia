@@ -1,6 +1,4 @@
-<header
-    class="lqd-header relative flex h-[--header-height] border-b border-header-border bg-header-background text-xs font-medium transition-colors max-lg:h-[65px]"
->
+<header class="lqd-header relative flex h-[--header-height] border-b border-header-border bg-header-background text-xs font-medium transition-colors max-lg:h-[65px]">
     <div @class([
         'lqd-header-container flex w-full grow gap-2 px-4 max-lg:w-full max-lg:max-w-none',
         'container' => !$attributes->get('layout-wide'),
@@ -36,9 +34,8 @@
         @includeFirst(['focus-mode::header', 'components.includes.ai-tools', 'vendor.empty'])
 
         {{-- Search form --}}
-        <div
-            class="header-search-container flex items-center peer-[&.header-title-container]/title:grow peer-[&.header-title-container]/title:justify-center">
-            <x-header-search />
+        <div class="header-search-container hidden items-center peer-[&.header-title-container]/title:grow peer-[&.header-title-container]/title:justify-center lg:flex">
+            <x-header-search class:input="ps-10" />
         </div>
 
         <div class="header-actions-container flex grow justify-end gap-4 max-lg:basis-2/3 max-lg:gap-2">
@@ -94,31 +91,36 @@
             @endif
 
             <div class="flex items-center gap-4 max-lg:gap-2">
+                @includeIf('marketing-bot::header.inbox-notification')
+                @includeIf('chatbot-agent::header.inbox-notification')
+
                 {{-- Dark/light switch --}}
                 @if (Theme::getSetting('dashboard.supportedColorSchemes') === 'all')
                     <x-light-dark-switch />
                 @endif
 
-                @includeFirst([
-                    'focus-mode::ai-tools-button',
-                    'components.includes.ai-tools-button',
-                    'vendor.empty',
-                ])
+                @includeFirst(['focus-mode::ai-tools-button', 'components.includes.ai-tools-button', 'vendor.empty'])
 
-                @if ($app_is_not_demo)
+                @if ($app_is_not_demo && Auth::user()->isAdmin() && !\App\Helpers\Classes\Helper::showIntercomForVipMembership())
                     {{-- Upgrade button --}}
-                    <x-modal type="page">
+                    <x-modal
+                        class="max-lg:hidden"
+                        type="page"
+                    >
                         <x-slot:trigger
                             custom
                         >
                             <x-button
-                                class="lqd-header-upgrade-btn flex size-10 items-center justify-center border p-0 text-current dark:bg-white/[3%]"
+                                class="lqd-header-upgrade-btn flex items-center justify-center p-0 text-current"
                                 href="#"
                                 variant="link"
                                 title="{{ __('Premium Membership') }}"
                                 @click.prevent="toggleModal()"
                             >
-                                <x-tabler-bolt stroke-width="1.5" />
+                                <x-tabler-bolt
+                                    class="size-[22px]"
+                                    stroke-width="1.5"
+                                />
                             </x-button>
                         </x-slot:trigger>
                         <x-slot:modal>

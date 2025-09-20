@@ -6,6 +6,8 @@ use Closure;
 
 interface ExtensionRepositoryInterface extends PortalRepositoryInterface
 {
+    public function supportExtensions(): array;
+
     public function storeCoupon(string $couponCode): array;
 
     public function deleteCoupon(): array;
@@ -23,6 +25,8 @@ interface ExtensionRepositoryInterface extends PortalRepositoryInterface
     public function subscription();
 
     public function all(bool $isTheme = false): array;
+
+    public function findSupport(string $slug);
 
     public function find(string $slug);
 

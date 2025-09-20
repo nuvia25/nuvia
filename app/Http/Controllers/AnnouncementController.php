@@ -49,7 +49,7 @@ class AnnouncementController extends Controller
             if ($request->hasFile('announcement_image')) {
                 $path = 'upload/images/';
                 $image = $request->file('announcement_image');
-                $image_name = Str::random(8) . '-ann-img.' . $image->getClientOriginalExtension();
+                $image_name = Str::random(8) . '-ann-img.' . $image->guessExtension();
                 $image->move($path, $image_name);
                 $image_name = '/' . $path . $image_name;
             }
@@ -58,7 +58,7 @@ class AnnouncementController extends Controller
             if ($request->hasFile('announcement_image_dark')) {
                 $path = 'upload/images/';
                 $image = $request->file('announcement_image_dark');
-                $dark_image_name = Str::random(8) . '-ann-img-dark.' . $image->getClientOriginalExtension();
+                $dark_image_name = Str::random(8) . '-ann-img-dark.' . $image->guessExtension();
                 $image->move($path, $dark_image_name);
                 $dark_image_name = '/' . $path . $dark_image_name;
             }
@@ -67,7 +67,7 @@ class AnnouncementController extends Controller
             if ($request->hasFile('announcement_background_image_dark')) {
                 $path = 'upload/images/';
                 $image = $request->file('announcement_background_image_dark');
-                $dark_bg_image_name = Str::random(8) . '-ann-bg-dark.' . $image->getClientOriginalExtension();
+                $dark_bg_image_name = Str::random(8) . '-ann-bg-dark.' . $image->guessExtension();
                 $image->move($path, $dark_bg_image_name);
                 $dark_bg_image_name = '/' . $path . $dark_bg_image_name;
             }
@@ -76,7 +76,7 @@ class AnnouncementController extends Controller
             if ($request->hasFile('announcement_background_image')) {
                 $path = 'upload/images/';
                 $image = $request->file('announcement_background_image');
-                $bg_image_name = Str::random(8) . '-ann-bg.' . $image->getClientOriginalExtension();
+                $bg_image_name = Str::random(8) . '-ann-bg.' . $image->guessExtension();
                 $image->move($path, $bg_image_name);
                 $bg_image_name = '/' . $path . $bg_image_name;
             }

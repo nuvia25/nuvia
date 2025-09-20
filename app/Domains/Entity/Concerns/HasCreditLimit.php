@@ -6,15 +6,16 @@ namespace App\Domains\Entity\Concerns;
 
 use App\Domains\Entity\Enums\EntityEnum;
 use App\Enums\MagicResponse;
+use App\Helpers\Classes\Helper;
 use App\Models\Plan;
 use App\Models\Setting;
 use App\Models\SettingTwo;
+use App\Models\Team\Team;
 use App\Models\User;
 use App\Models\UserUsageCredit;
 use Closure;
 use Exception;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Support\Facades\RateLimiter;
 
 trait HasCreditLimit
 {
@@ -32,6 +33,13 @@ trait HasCreditLimit
         return $this->plan;
     }
 
+    protected function getTeamWithCredit(): ?Team
+    {
+        $this->ensureTeamProvided();
+
+        return $this->team;
+    }
+
     protected function getUserWithCredit(): null|User|Authenticatable
     {
         $this->ensureUserProvided();
@@ -41,7 +49,40 @@ trait HasCreditLimit
 
     public function getCredit(): array
     {
-        return ($this->plan?->exists ? $this->getPlanWithCredit() : $this->getUserWithCredit())?->getCredit($this->engine()->slug(), $this->creditKey());
+        if ($this->plan?->exists) {
+            return $this->getPlanWithCredit()?->getCredit($this->engine()->slug(), $this->creditKey());
+        }
+        $user = $this->getUserWithCredit();
+        if ($this->team?->exists || $user?->myTeam?->exists) {
+            if (! $this->team?->exists) {
+                $this->team = $user?->myTeam;
+            }
+
+            $memberStat = $user->teamMember;
+            if (isset($memberStat) && $memberStat->status !== 'active') {
+                // If the user is not an active member of the team, return the user's credit
+                return $user?->getCredit($this->engine()->slug(), $this->creditKey()) ?? [];
+            }
+
+            $userCredits = $this->getUserWithCredit()?->getCredit($this->engine()->slug(), $this->creditKey());
+            $teamCredits = $this->getTeamWithCredit()?->getCredit($this->engine()->slug(), $this->creditKey());
+
+            $mergedCredits = [
+                'credit'      => 0,
+                'isUnlimited' => false,
+            ];
+
+            if (($userCredits['isUnlimited'] ?? false) || ($teamCredits['isUnlimited'] ?? false)) {
+                $mergedCredits['isUnlimited'] = true;
+                $mergedCredits['credit'] = 0;
+            } else {
+                $mergedCredits['credit'] = ($userCredits['credit'] ?? 0) + ($teamCredits['credit'] ?? 0);
+            }
+
+            return $mergedCredits;
+        }
+
+        return $user?->getCredit($this->engine()->slug(), $this->creditKey());
     }
 
     /**
@@ -49,9 +90,12 @@ trait HasCreditLimit
      */
     public function creditBalance(): float
     {
-        return once(function () {
-            return $this->getCreditBalance();
-        });
+        return match (config('octane.enabled') || isset($this->team)) {
+            true    => $this->getCreditBalance(),
+            default => once(function () {
+                return $this->getCreditBalance();
+            }),
+        };
     }
 
     /**
@@ -59,9 +103,12 @@ trait HasCreditLimit
      */
     public function isUnlimitedCredit(): bool
     {
-        return once(function () {
-            return $this->getIsUnlimitedCredit();
-        });
+        return match (config('octane.enabled')) {
+            true    => $this->getIsUnlimitedCredit(),
+            default => once(function () {
+                return $this->getIsUnlimitedCredit();
+            }),
+        };
     }
 
     public function getCreditBalance(): float
@@ -75,7 +122,7 @@ trait HasCreditLimit
         $aiFinances = app('ai_chat_model_plan');
 
         $engineDefaultModels = $this->engine()->getDefaultModels(Setting::getCache(), SettingTwo::getCache());
-        $model = $this->model();
+        $model = $this->model(config('octane.enabled'));
         if (
             $model && ! $model->is_selected &&
             ! in_array($model->key, $engineDefaultModels, true) &&
@@ -96,7 +143,7 @@ trait HasCreditLimit
 
         $engineDefaultModels = $this->engine()->getDefaultModels(Setting::getCache(), SettingTwo::getCache());
 
-        $model = $this->model();
+        $model = $this->model(config('octane.enabled'));
 
         if (
             $model && ! $model->is_selected &&
@@ -123,11 +170,9 @@ trait HasCreditLimit
 
     public function guestHasAttempts(): bool
     {
-        $key = 'guest-attempt:' . ($_SERVER['HTTP_CF_CONNECTING_IP'] ?? request()?->ip());
-        $tryCount = (int) setting('guest_user_daily_message_limit', '10') + 1;
-        if (! RateLimiter::tooManyAttempts($key, $tryCount)) {
-            RateLimiter::hit($key, 60 * 60 * 24);
-
+        $clientIp = Helper::getRequestIp();
+        $rateLimiter = new \App\Helpers\Classes\RateLimiter\RateLimiter('guest-chat-attempt', (int) setting('guest_user_daily_message_limit', '10'));
+        if ($rateLimiter->attempt($clientIp)) {
             return true;
         }
 
@@ -228,6 +273,7 @@ trait HasCreditLimit
     private function updateUserCredit(float $value, Closure $callback, bool $skipCalculatedCredit = false): bool
     {
         $user = $this->getUserWithCredit();
+        $team = $this->team;
 
         if ($skipCalculatedCredit) {
             $credit = $value;
@@ -239,14 +285,17 @@ trait HasCreditLimit
 
         $engineKey = $this->engine()->slug();
 
-        $creditsArr = $user?->entity_credits ?? User::getFreshCredits();
+        $isTeamCredit = isset($team) && $team->exists;
+
+        $target = $isTeamCredit ? $team : $user;
+        $creditsArr = $target && isset($target->entity_credits) ? $target->entity_credits : User::getFreshCredits();
 
         $creditsArr[$engineKey][$creditKey] = [
             'credit'      => $callback($this->creditBalance(), $credit),
-            'isUnlimited' => $creditsArr[$engineKey][$creditKey]['isUnlimited'],
+            'isUnlimited' => $creditsArr[$engineKey][$creditKey]['isUnlimited'] ?? false,
         ];
 
-        return $user?->update([
+        return $target?->update([
             'entity_credits' => $creditsArr,
         ]);
     }

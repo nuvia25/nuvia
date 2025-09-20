@@ -87,6 +87,46 @@
                     </div>
                 </div>
             @endif
+			<div class="col-md-12">
+				<div class="mb-3">
+					<x-card
+						class="w-full"
+						size="sm"
+					>
+						<label class="form-label">{{ __('Reasoning Models Effort') }}
+							<x-badge
+								class="ms-2 text-2xs"
+								variant="secondary"
+							>
+								@lang('New')
+							</x-badge>
+						</label>
+						<select
+							class="form-select"
+							id="openai_reasoning_models_effort"
+							type="text"
+							name="openai_reasoning_models_effort"
+							required
+						>
+							<option
+								value="low"
+								{{ setting('openai_reasoning_models_effort', 'low') === 'low' ? 'selected' : '' }}
+							>
+								{{ __('Low') }}</option>
+							<option
+								value="medium"
+								{{ setting('openai_reasoning_models_effort', 'low') === 'medium' ? 'selected' : '' }}
+							>
+								{{ __('Medium') }}</option>
+							<option
+								value="high"
+								{{ setting('openai_reasoning_models_effort', 'low') === 'high' ? 'selected' : '' }}
+							>
+								{{ __('High') }}</option>
+						</select>
+					</x-card>
+				</div>
+			</div>
             <div class="col-md-12">
                 <div class="mb-3">
                     <x-card
@@ -101,12 +141,6 @@
                             :checked="setting('openai_file_search', 0) == 1"
                             label="{{ __('Enable OpenAI File Search API for (AI File Chat)') }}"
                         >
-                            <x-badge
-                                class="ms-2 text-2xs"
-                                variant="secondary"
-                            >
-                                @lang('New')
-                            </x-badge>
                         </x-forms.input>
                     </x-card>
                 </div>
@@ -549,7 +583,7 @@
                                 id="fine_tune_file"
                                 type="file"
                                 name="fine_tune_file"
-                                accept=".jsonl"
+                                accept="file/*, .jsonl"
                                 required
                             >
                         </div>

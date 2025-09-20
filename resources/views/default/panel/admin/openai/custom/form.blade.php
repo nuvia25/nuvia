@@ -88,18 +88,14 @@
                 label="{{ __('Package Type') }}"
                 tooltip="{{ __('Choose package type for which plans accessible.') }}"
             >
-                <option
-                    value="0"
-                    @selected($template != null && $template->premium == 0)
-                >
-                    {{ __('Regular') }}
-                </option>
-                <option
-                    value="1"
-                    @selected($template != null && $template->premium == 1)
-                >
-                    {{ __('Premium') }}
-                </option>
+				@foreach(\App\Enums\AccessType::cases() as $type)
+					<option
+						value="{{ $type->value }}"
+						@selected($template?->access_type === $type->value)
+					>
+						{{ $type->label() }}
+					</option>
+				@endforeach
             </x-forms.input>
         </div>
 

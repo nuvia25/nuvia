@@ -32,7 +32,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use JsonException;
-use OpenAI;
 use OpenAI\Laravel\Facades\OpenAI as FacadesOpenAI;
 use Random\RandomException;
 use RuntimeException;
@@ -645,6 +644,8 @@ class AIController extends Controller
             'hash'      => str()->random(256),
             'credits'   => 0,
             'words'     => 0,
+            'model'		   => Entity::driver()->enum()?->value,
+            'engine'	   => Entity::driver()->engine()?->value,
         ]);
 
         $message_id = $entry->id;
@@ -721,7 +722,7 @@ class AIController extends Controller
             $number_of_images = (int) $param['image_number_of_images'];
 
             $driver = Entity::driver($model)->inputImageCount($number_of_images)->calculateCredit();
-            $chkLmt = Helper::checkImageDailyLimit();
+            $chkLmt = Helper::checkImageDailyLimit('generate_image_output_api_lock');
             if ($chkLmt->getStatusCode() === 429) {
                 return $chkLmt;
             }
@@ -755,11 +756,11 @@ class AIController extends Controller
         $driver = Entity::driver(EntityEnum::WHISPER_1);
         $driver->redirectIfNoCreditBalance();
         $path = 'uploads/audio/';
-        $file_name = Str::random(4) . '-' . Str::slug($user?->fullName()) . '-audio.' . $file->getClientOriginalExtension();
+        $file_name = Str::random(4) . '-' . Str::slug($user?->fullName()) . '-audio.' . $file->guessExtension();
 
         // Audio Extension Control
         $imageTypes = ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'];
-        if (! in_array(Str::lower($file->getClientOriginalExtension()), $imageTypes)) {
+        if (! in_array(Str::lower($file->guessExtension()), $imageTypes)) {
             $data = [
                 'errors' => ['Invalid extension, accepted extensions are mp3, mp4, mpeg, mpga, m4a, wav, and webm.'],
             ];
@@ -790,6 +791,8 @@ class AIController extends Controller
             'hash'      => Str::random(256),
             'credits'   => countWords($text),
             'words'     => countWords($text),
+            'model' 	   => EntityEnum::WHISPER_1->value,
+            'engine' 	  => EntityEnum::WHISPER_1->engine()->value,
         ]);
 
         $driver->input($text)->calculateCredit()->decreaseCredit();
@@ -1166,6 +1169,7 @@ class AIController extends Controller
             'words'     => 0,
             'storage'   => $this->settings_two->ai_image_storage,
             'payload'   => request()?->all(),
+            'engine'	   => isset($imageDetails['engine']) ? $imageDetails['engine']?->value : null,
         ];
         if (isset($imageDetails['engine']) && $imageDetails['engine'] === EngineEnum::FAL_AI) {
             $data['request_id'] = $imageDetails['requestId'];
@@ -1316,6 +1320,8 @@ class AIController extends Controller
             'user_id'   => $user->id,
             'hash'      => Str::random(256),
             'openai_id' => $ai->id,
+            'model' 	   => EntityEnum::ISOLATOR->value,
+            'engine' 	  => EntityEnum::ISOLATOR->engine()->value,
         ]);
 
         $entry->response = json_encode($langsAndVoices, JSON_THROW_ON_ERROR);

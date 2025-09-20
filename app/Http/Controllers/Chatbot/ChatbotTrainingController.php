@@ -132,7 +132,7 @@ class ChatbotTrainingController extends Controller
 
         $file = $request->file('file');
 
-        $extension = $file->getClientOriginalExtension();
+        $extension = $file->guessExtension();
 
         $defaultDisk = 'public';
 

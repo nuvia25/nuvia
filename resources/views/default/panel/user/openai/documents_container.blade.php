@@ -1,6 +1,6 @@
 @php
     //Replicating table styles from table component
-    $base_class = 'transition-colors';
+    $base_class = 'transition-colors max-lg:group-[&[data-view-mode=list]]:overflow-x-auto';
 
     $variations = [
         'variant' => [
@@ -21,7 +21,7 @@
 @endphp
 
 <div
-    class="lqd-posts-container lqd-docs-container group transition-all [&[aria-busy=true]]:animate-pulse max-lg:[&[data-view-mode=list]]:max-w-full max-lg:[&[data-view-mode=list]]:overflow-x-auto"
+    class="lqd-posts-container lqd-docs-container group transition-all [&[aria-busy=true]]:animate-pulse max-lg:[&[data-view-mode=list]]:max-w-full"
     id="lqd-docs-container"
     data-view-mode="list"
     x-bind:data-view-mode="$store.docsViewMode.docsViewMode"
@@ -52,7 +52,7 @@
                 {{ __('Cost') }}
             </span>
 
-            <span class="text-end">
+            <span class="text-center">
                 {{ __('Actions') }}
             </span>
         </div>
@@ -60,9 +60,11 @@
         @include('panel.user.openai.documents_list')
     </div>
 
+	@if (!isset($disablePagination))
     {{ $items->links('pagination::ajax', [
         'action' => route('dashboard.user.openai.documents.all', ['id' => $currfolder?->id, 'listOnly' => true]),
         'currfolder' => $currfolder,
         'target_id' => 'lqd-docs-container',
     ]) }}
+	@endif
 </div>

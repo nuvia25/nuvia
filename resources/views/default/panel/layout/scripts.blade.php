@@ -116,6 +116,5 @@
 
 @auth
     <script src="{{ custom_theme_url('/assets/js/tabler.min.js') }}"></script>
-    <script src="{{ custom_theme_url('/assets/js/panel/search.js') }}"></script>
     <script src="{{ custom_theme_url('/assets/libs/list.js/dist/list.js') }}"></script>
 @endauth

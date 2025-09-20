@@ -8,49 +8,47 @@ $(document).ready(function () {
 });
 
 function frontendSettingsSave() {
-    "use strict";
+	"use strict";
 
-    document.getElementById("settings_button").disabled = true;
-    document.getElementById("settings_button").innerHTML = magicai_localize.please_wait;
+	document.getElementById("settings_button").disabled = true;
+	document.getElementById("settings_button").innerHTML = magicai_localize.please_wait;
 
-    var formData = new FormData();
-    formData.append('site_name', $("#site_name").val());
-    formData.append('register_active', $("#register_active").val());
+	var formData = new FormData();
+	formData.append('site_name', $("#site_name").val());
+	formData.append('register_active', $("#register_active").val());
 	formData.append('facebook_domain_verification', $("#facebook_domain_verification").val());
 	formData.append('google_robots', $("#google_robots").val());
-    formData.append('site_url', $("#site_url").val());
-    formData.append('site_email', $("#site_email").val());
-    formData.append('frontend_pricing_section', $("#frontend_pricing_section").val());
-    formData.append('frontend_custom_templates_section', $("#frontend_custom_templates_section").val());
-    formData.append('frontend_business_partners_section', $("#frontend_business_partners_section").val());
-    formData.append('frontend_additional_url', $("#frontend_additional_url").val());
-    formData.append('frontend_custom_css', $("#frontend_custom_css").val());
-    formData.append('frontend_custom_js', $("#frontend_custom_js").val());
-    formData.append('frontend_footer_facebook', $("#frontend_footer_facebook").val());
-    formData.append('frontend_footer_twitter', $("#frontend_footer_twitter").val());
-    formData.append('frontend_footer_instagram', $("#frontend_footer_instagram").val());
+	formData.append('site_url', $("#site_url").val());
+	formData.append('site_email', $("#site_email").val());
+	formData.append('frontend_pricing_section', $("#frontend_pricing_section").val());
+	formData.append('frontend_custom_templates_section', $("#frontend_custom_templates_section").val());
+	formData.append('frontend_business_partners_section', $("#frontend_business_partners_section").val());
+	formData.append('frontend_additional_url', $("#frontend_additional_url").val());
+	formData.append('frontend_custom_css', $("#frontend_custom_css").val());
+	formData.append('frontend_custom_js', $("#frontend_custom_js").val());
+	formData.append('frontend_footer_facebook', $("#frontend_footer_facebook").val());
+	formData.append('frontend_footer_twitter', $("#frontend_footer_twitter").val());
+	formData.append('frontend_footer_instagram', $("#frontend_footer_instagram").val());
 
-    formData.append('preheader_active', $("#preheader_active").val());
-    formData.append('header_title', $("#header_title").val());
-    formData.append('header_text', $("#header_text").val());
-    formData.append('sign_in', $("#sign_in").val());
-    formData.append('join_hub', $("#join_hub").val());
+	formData.append('preheader_active', $("#preheader_active").val());
+	formData.append('header_title', $("#header_title").val());
+	formData.append('header_text', $("#header_text").val());
+	formData.append('sign_in', $("#sign_in").val());
+	formData.append('join_hub', $("#join_hub").val());
 
-    formData.append('hero_subtitle', $("#hero_subtitle").val());
-    formData.append('hero_title', $("#hero_title").val());
-    formData.append('hero_title_text_rotator', $("#hero_title_text_rotator").val());
-    formData.append('hero_description', $("#hero_description").val());
-    formData.append('hero_scroll_text', $("#hero_scroll_text").val());
-    formData.append('hero_button', $("#hero_button").val());
-    formData.append('hero_button_url', $("#hero_button_url").val());
-    formData.append('hero_button_type', $("#hero_button_type").val());
+	formData.append('hero_subtitle', $("#hero_subtitle").val());
+	formData.append('hero_title', $("#hero_title").val());
+	formData.append('hero_title_text_rotator', $("#hero_title_text_rotator").val());
+	formData.append('hero_description', $("#hero_description").val());
+	formData.append('hero_scroll_text', $("#hero_scroll_text").val());
+	formData.append('hero_button', $("#hero_button").val());
+	formData.append('hero_button_url', $("#hero_button_url").val());
+	formData.append('hero_button_type', $("#hero_button_type").val());
 
-
-
-    formData.append('floating_button_small_text', $("#floating_button_small_text").val());
-    formData.append('floating_button_bold_text', $("#floating_button_bold_text").val());
-    formData.append('floating_button_link', $("#floating_button_link").val());
-    formData.append('floating_button_active', $("#floating_button_active").val());
+	formData.append('floating_button_small_text', $("#floating_button_small_text").val());
+	formData.append('floating_button_bold_text', $("#floating_button_bold_text").val());
+	formData.append('floating_button_link', $("#floating_button_link").val());
+	formData.append('floating_button_active', $("#floating_button_active").val());
 
 	if ($("#no_credit_cart_required") && faster_content_creation && over_5000_businesses) {
 		formData.append('no_credit_cart_required', $("#no_credit_cart_required").val());
@@ -58,47 +56,99 @@ function frontendSettingsSave() {
 		formData.append('over_5000_businesses', over_5000_businesses.getValue());
 	}
 
+	if (frontend_code_before_head) {
+		formData.append('frontend_code_before_head', frontend_code_before_head.getValue());
+	}
+	if (frontend_code_before_body) {
+		formData.append('frontend_code_before_body', frontend_code_before_body.getValue());
+	}
 
-    if (frontend_code_before_head) {
-        formData.append('frontend_code_before_head', frontend_code_before_head.getValue());
-    }
-    if (frontend_code_before_body) {
-        formData.append('frontend_code_before_body', frontend_code_before_body.getValue());
-    }
-
-    formData.append('footer_header', $("#footer_header").val());
-    formData.append('footer_text_small', $("#footer_text_small").val());
-    formData.append('footer_text', $("#footer_text").val());
-    formData.append('footer_button_text', $("#footer_button_text").val());
-    formData.append('footer_button_url', $("#footer_button_url").val());
-    formData.append('footer_copyright', $("#footer_copyright").val());
+	formData.append('footer_header', $("#footer_header").val());
+	formData.append('footer_text_small', $("#footer_text_small").val());
+	formData.append('footer_text', $("#footer_text").val());
+	formData.append('footer_button_text', $("#footer_button_text").val());
+	formData.append('footer_button_url', $("#footer_button_url").val());
+	formData.append('footer_copyright', $("#footer_copyright").val());
 	formData.append('footer_text_color', $("#footer_text_color").val());
 
 	if ($('#hero_image').val() != 'undefined') {
 		formData.append('hero_image', $('#hero_image').prop('files')[0]);
 	}
 
-    $.ajax({
-        type: "post",
-        url: "/dashboard/admin/frontend/settings-save",
-        data: formData,
-        contentType: false,
-        processData: false,
-        success: function (data) {
-            toastr.success(magicai_localize?.settings_saved ||'Settings saved succesfully')
-            document.getElementById("settings_button").disabled = false;
-            document.getElementById("settings_button").innerHTML = "Save";
-        },
-        error: function (data) {
-            var err = data.responseJSON.errors;
-            $.each(err, function (index, value) {
-                toastr.error(value);
-            });
-            document.getElementById("settings_button").disabled = false;
-            document.getElementById("settings_button").innerHTML = "Save";
-        }
-    });
-    return false;
+	// Add footer links data
+	// Collect Use Cases links
+	var useCases = [];
+	$('input[name^="use_cases"]').each(function() {
+		var name = $(this).attr('name');
+		var matches = name.match(/use_cases\[(\d+)\]\[(title|link)\]/);
+		if (matches) {
+			var index = matches[1];
+			var field = matches[2];
+
+			if (!useCases[index]) {
+				useCases[index] = {};
+			}
+			useCases[index][field] = $(this).val();
+		}
+	});
+
+	// Filter out empty entries and convert to proper array
+	var filteredUseCases = [];
+	useCases.forEach(function(useCase) {
+		if (useCase && useCase.title && useCase.title.trim() !== '') {
+			filteredUseCases.push(useCase);
+		}
+	});
+
+	formData.append('use_cases', JSON.stringify(filteredUseCases));
+
+	// Collect Resources links
+	var resources = [];
+	$('input[name^="resources"]').each(function() {
+		var name = $(this).attr('name');
+		var matches = name.match(/resources\[(\d+)\]\[(title|link)\]/);
+		if (matches) {
+			var index = matches[1];
+			var field = matches[2];
+
+			if (!resources[index]) {
+				resources[index] = {};
+			}
+			resources[index][field] = $(this).val();
+		}
+	});
+
+	// Filter out empty entries and convert to proper array
+	var filteredResources = [];
+	resources.forEach(function(resource) {
+		if (resource && resource.title && resource.title.trim() !== '') {
+			filteredResources.push(resource);
+		}
+	});
+
+	formData.append('resources', JSON.stringify(filteredResources));
+
+	$.ajax({
+		type: "post",
+		url: "/dashboard/admin/frontend/settings-save",
+		data: formData,
+		contentType: false,
+		processData: false,
+		success: function (data) {
+			toastr.success(magicai_localize?.settings_saved ||'Settings saved succesfully')
+			document.getElementById("settings_button").disabled = false;
+			document.getElementById("settings_button").innerHTML = "Save";
+		},
+		error: function (data) {
+			var err = data.responseJSON.errors;
+			$.each(err, function (index, value) {
+				toastr.error(value);
+			});
+			document.getElementById("settings_button").disabled = false;
+			document.getElementById("settings_button").innerHTML = "Save";
+		}
+	});
+	return false;
 }
 
 function frontendSectionSettingsSave() {
@@ -113,6 +163,7 @@ function frontendSectionSettingsSave() {
 	formData.append('features_subtitle', $("#features_subtitle").val());
 	formData.append('marquee_items', $("#marquee_items").val());
     formData.append('features_description', $("#features_description").val());
+
 
 
     formData.append('generators_active', $("#generators_active").val());
@@ -153,7 +204,10 @@ function frontendSectionSettingsSave() {
     formData.append('testimonials_title', $("#testimonials_title").val());
 	formData.append('testimonials_description', $("#testimonials_description").val());
     formData.append('testimonials_subtitle_one', $("#testimonials_subtitle_one").val());
-    formData.append('testimonials_subtitle_two', $("#testimonials_subtitle_two").val());
+	formData.append('testimonials_subtitle_two', $("#testimonials_subtitle_two").val());
+
+	formData.append('testimonials_stars', $("#testimonials_stars").val());
+	formData.append('testimonials_count', $("#testimonials_count").val());
 
     formData.append('pricing_active', $("#pricing_active").val());
     formData.append('pricing_title', $("#pricing_title").val());
@@ -161,6 +215,9 @@ function frontendSectionSettingsSave() {
     formData.append('pricing_description', $("#pricing_description").val());
     formData.append('pricing_save_percent', $("#pricing_save_percent").val());
 
+	formData.append('marketing_tools', $("#marketing_tools").val());
+	formData.append('marquee_active', $("#marquee_active").val());
+	formData.append('vertical_slider_active', $("#vertical_slider_active").val());
 
     formData.append('faq_active', $("#faq_active").val());
     formData.append('faq_title', $("#faq_title").val());
@@ -323,6 +380,7 @@ function generalSettingsSave() {
     formData.append('daily_limit_count', $("#daily_limit_count").val());
     formData.append('daily_voice_limit_count', $("#daily_voice_limit_count").val());
 
+	formData.append('hide_premium_support_chat', $('#hide_premium_support_chat').is(":checked") ? 1 : 0);
     formData.append('notification_active', $("#notification_active").is(":checked") ? 1 : 0);
     formData.append('pusher_app_id', $("#pusher_app_id").val());
     formData.append('pusher_app_key', $("#pusher_app_key").val());
@@ -570,6 +628,7 @@ function openaiSettingsSave() {
     formData.append('dalle_hidden', $("#dalle_hidden").is(":checked") ? 1 : 0);
     formData.append('realtime_voice_chat', $("#realtime_voice_chat").is(":checked") ? 1 : 0);
 	formData.append('openai_file_search', $("#openai_file_search").is(":checked") ? 1 : 0)
+	formData.append('openai_reasoning_models_effort', $("#openai_reasoning_models_effort").val());
 
 	if ($('#enabled_gpt_image_1')) {
 		formData.append('enabled_gpt_image_1', $("#enabled_gpt_image_1").is(":checked") ? 1 : 0);

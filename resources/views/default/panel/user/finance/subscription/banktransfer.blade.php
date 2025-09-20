@@ -167,6 +167,7 @@
                             type="file"
                             name="proof_image"
                             required
+							accept="image/*, file/*"
                         >
                     </div>
                     {{ __('Upon confirmation, your application will be promptly submitted. Following successful payment verification, your plan will be activated. To ensure the continuous activation of your plan in the subsequent months, kindly make payments by the end of each recurring payment date. For seamless transactions, please utilize the order ID number as a reference when making payments in the upcoming months.') }}

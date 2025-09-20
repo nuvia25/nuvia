@@ -70,6 +70,68 @@
             </div>
         </div>
 
+		@if(\App\Helpers\Classes\MarketplaceHelper::isRegistered('url-to-video'))
+			<div class="col-md-12 mb-4">
+				<div class="mb-3">
+					@php
+						$ai_influencer_engines = [EngineEnum::CREATIFY, EngineEnum::TOPVIEW];
+						$current_engine = setting('default_ai_influencer_tool', EngineEnum::CREATIFY->value);
+					@endphp
+					<x-card
+						class="w-full"
+						size="sm"
+					>
+						<label class="form-label">{{ __('AI Influencer Engine') }}</label>
+						<select
+							class="form-select"
+							id="ai_influencer_tool"
+							name="ai_influencer_tool"
+						>
+							@foreach ($ai_influencer_engines as $engine)
+								<option
+									value="{{ $engine->value }}"
+									{{ $current_engine === $engine->value ? 'selected' : null }}
+								>
+									{{ $engine->label() }}
+								</option>
+							@endforeach
+						</select>
+					</x-card>
+				</div>
+			</div>
+		@endif
+
+		@if(\App\Helpers\Classes\MarketplaceHelper::isRegistered('ai-viral-clips'))
+        	<div class="col-md-12 mb-4">
+            <div class="mb-3">
+                @php
+                    $ai_clip_engines = [EngineEnum::VIZARD, EngineEnum::KLAP];
+                    $current_engine = setting('default_ai_clip_tool', EngineEnum::VIZARD->value);
+                @endphp
+                <x-card
+                    class="w-full"
+                    size="sm"
+                >
+                    <label class="form-label">{{ __('AI Clip Engine') }}</label>
+                    <select
+                        class="form-select"
+                        id="ai_clip_tool"
+                        name="ai_clip_tool"
+                    >
+                        @foreach ($ai_clip_engines as $engine)
+                            <option
+                                value="{{ $engine->value }}"
+                                {{ $current_engine === $engine->value ? 'selected' : null }}
+                            >
+                                {{ $engine->label() }}
+                            </option>
+                        @endforeach
+                    </select>
+                </x-card>
+            </div>
+        </div>
+		@endif
+
         <div class="col-md-12 mb-4">
             <div class="mb-3">
                 @php
@@ -93,6 +155,8 @@
                 />
             </div>
         </div>
+
+        @includeIf('social-media::setting.particles.ai-tools-settings')
 
         @includeIf('photo-studio::particles.default-photo-studio')
 

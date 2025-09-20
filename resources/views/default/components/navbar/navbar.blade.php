@@ -80,7 +80,7 @@
                 <!-- Menu cache -->
                 {!! App\Caches\BladeCache::navMenu(fn() => view('panel.layout.partials.menu')->render()) !!}
                 @if (Auth::user()->isAdmin())
-                    @if ($app_is_not_demo && setting('premium_support', true))
+                    @if ($app_is_not_demo && setting('premium_support', true) && !\App\Helpers\Classes\Helper::isUserVIP())
                         <x-navbar.item>
                             <x-navbar.link
                                 label="{{ __('Premium Membership') }}"
@@ -97,13 +97,9 @@
                 @endif
 
                 @if ($app_is_demo)
-                    {!! \Illuminate\Support\Facades\Cache::remember(
-                        'components.navbar.partials.credit-for-menu',
-                        3600 * 36000,
-                        function () {
-                            return view('components.navbar.partials.credit-for-menu')->render();
-                        },
-                    ) !!}
+                    {!! \Illuminate\Support\Facades\Cache::remember('components.navbar.partials.credit-for-menu', 3600 * 36000, function () {
+                        return view('components.navbar.partials.credit-for-menu')->render();
+                    }) !!}
                 @else
                     @include('components.navbar.partials.credit-for-menu')
                 @endif
@@ -119,9 +115,7 @@
                         </x-navbar.label>
                     </x-navbar.item>
 
-                    <x-navbar.item
-                        class="pb-navbar-link-pb pe-navbar-link-pe ps-navbar-link-ps pt-navbar-link-pt group-[&.navbar-shrinked]/body:hidden"
-                    >
+                    <x-navbar.item class="pb-navbar-link-pb pe-navbar-link-pe ps-navbar-link-ps pt-navbar-link-pt group-[&.navbar-shrinked]/body:hidden">
                         <div
                             class="lqd-navbar-affiliation inline-block w-full rounded-xl border border-navbar-divider px-8 py-4 text-center text-2xs leading-tight transition-border">
                             <p class="m-0 mb-2 text-[20px] not-italic">🎁</p>

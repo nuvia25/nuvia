@@ -26,6 +26,7 @@ class Link extends Component
         public bool $dropdownTrigger = false,
         public string $triggerType = '',
         public string $modal = '',
+        public bool $performUserChecks = true,
     ) {}
 
     /**

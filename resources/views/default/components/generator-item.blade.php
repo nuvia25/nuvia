@@ -1,47 +1,41 @@
 @php
-    $auth = Auth::user();
-    $plan = $auth->activePlan();
-    $plan_type = 'regular';
-    $upgrade = false;
-    $overlay_link_href = '';
-    $overlay_link_label = 'Create Workbook';
+	$auth = Auth::user();
+	$plan = $auth->activePlan();
+	$planType = $plan ? \App\Enums\AccessType::tryFrom($plan->plan_type) : \App\Enums\AccessType::REGULAR;
 
-    if ($plan != null) {
-        $plan_type = strtolower($plan->plan_type);
-    }
+	$itemType = \App\Enums\AccessType::tryFrom($item->access_type) ?? \App\Enums\AccessType::REGULAR;
 
-    if ($app_is_demo) {
-        if ($item->premium == 1 && $plan_type === 'regular') {
-            $upgrade = true;
-        }
-    } else {
-        if (!$auth->isAdmin() && $item->premium == 1 && $plan_type === 'regular') {
-            $upgrade = true;
-        }
-    }
+	// Only upgrade if the item is non-regular and user's plan does not match
+	$upgrade = $itemType !== \App\Enums\AccessType::REGULAR
+			   && (!$auth->isAdmin() || $app_is_demo)
+			   && $planType !== $itemType;
 
-    if ($upgrade) {
-        $overlay_link_href = route('dashboard.user.payment.subscription');
-        $overlay_link_label = 'Upgrade';
-    } elseif ($item->type === 'text' || $item->type === 'code') {
-        if ($item->slug === 'ai_article_wizard_generator') {
-            $overlay_link_href = route('dashboard.user.openai.articlewizard.new');
-        } else {
-            $overlay_link_href = route('dashboard.user.openai.generator.workbook', $item->slug);
-        }
-    } elseif ($item->type === 'voiceover' || $item->type === 'audio' || $item->type === \App\Domains\Entity\Enums\EntityEnum::ISOLATOR->value || $item->type === 'image') {
-        $overlay_link_href = route('dashboard.user.openai.generator', $item->slug);
-        $overlay_link_label = 'Create';
-    } else {
-        $overlay_link_href = '#';
-        $overlay_link_label = 'No Tokens Left';
-    }
+	$overlay_link_href = '';
+	$overlay_link_label = 'Create Workbook';
 
-    $item_filters = $item->filters;
+	if ($upgrade) {
+    	$overlay_link_href = route('dashboard.user.payment.subscription');
+		$overlay_link_label = $itemType->label(); // show the type required
+	} elseif ($itemType === \App\Enums\AccessType::REGULAR || $item->type === 'text' || $item->type === 'code') {
+		// Regular items or text/code types proceed normally
+		if ($item->slug === 'ai_article_wizard_generator') {
+			$overlay_link_href = route('dashboard.user.openai.articlewizard.new');
+		} else {
+			$overlay_link_href = route('dashboard.user.openai.generator.workbook', $item->slug);
+		}
+	} elseif (in_array($item->type, ['voiceover', 'audio', \App\Domains\Entity\Enums\EntityEnum::ISOLATOR->value, 'image'])) {
+		$overlay_link_href = route('dashboard.user.openai.generator', $item->slug);
+		$overlay_link_label = 'Create';
+	} else {
+		$overlay_link_href = '#';
+		$overlay_link_label = 'No Tokens Left';
+	}
 
-    if (isFavorited($item->id)) {
-        $item_filters .= ',favorite';
-    }
+	$item_filters = $item->filters;
+
+	if (isFavorited($item->id)) {
+		$item_filters .= ',favorite';
+	}
 @endphp
 
 <x-card
@@ -91,7 +85,7 @@
     @if ($item->active == 1)
         @if (!$upgrade)
             <x-favorite-button
-                class="absolute end-4 top-4"
+                class="absolute end-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                 id="{{ $item->id }}"
                 is-favorite="{{ isFavorited($item->id) }}"
                 update-url="/dashboard/user/openai/favorite"

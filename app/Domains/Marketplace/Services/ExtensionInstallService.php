@@ -40,7 +40,7 @@ class ExtensionInstallService
             }
         }
 
-        $responseExtension = $this->repository->find($extension->getAttribute('slug'));
+        $responseExtension = $this->repository->findSupport($extension->getAttribute('slug'));
 
         $extensionFolderName = $responseExtension['extension_folder'];
 
@@ -53,7 +53,10 @@ class ExtensionInstallService
             ];
         }
 
-        $response = $this->repository->install($extension->getAttribute('slug'), data_get($responseExtension, 'version'));
+        $response = $this->repository->install(
+            $extension->getAttribute('slug'),
+            data_get($responseExtension, 'version')
+        );
 
         if ($response->failed()) {
             return [

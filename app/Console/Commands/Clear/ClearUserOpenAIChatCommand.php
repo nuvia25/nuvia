@@ -24,16 +24,19 @@ class ClearUserOpenAIChatCommand extends Command
         Log::info('Clearing user OpenAI chat data (except last 22)...');
 
         $idsToRetain = UserOpenaiChat::query()
+            ->whereNotIn('openai_chat_category_id', [15, 18])
             ->orderByDesc('id')
             ->take($this->itemsToRetain)
             ->pluck('id')
             ->toArray();
 
         UserOpenaiChat::query()
+            ->whereNotIn('openai_chat_category_id', [15, 18])
             ->whereNotIn('id', $idsToRetain)
-            ->orderByDesc('id')
             ->take(PHP_INT_MAX)
             ->delete();
+
+        // File chat
 
         Log::info('User OpenAI chat data cleared successfully (last 22 retained).');
     }

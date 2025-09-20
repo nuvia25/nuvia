@@ -311,36 +311,9 @@
                     size="lg"
                     label="{{ __('Template Access') }}"
                 >
-                    @if (isset($subscription))
-                        <option
-                            value="All"
-                            @selected($subscription->plan_type == 'All')
-                        >
-                            {{ __('All') }}
-                        </option>
-                        <option
-                            value="Premium"
-                            @selected($subscription->plan_type == 'Premium')
-                        >
-                            {{ __('Premium') }}
-                        </option>
-                        <option
-                            value="Regular"
-                            @selected($subscription->plan_type == 'Regular')
-                        >
-                            {{ __('Regular') }}
-                        </option>
-                    @else
-                        <option value="All">
-                            {{ __('All') }}
-                        </option>
-                        <option value="Premium">
-                            {{ __('Premium') }}
-                        </option>
-                        <option value="Regular">
-                            {{ __('Regular') }}
-                        </option>
-                    @endif
+					@foreach (\App\Enums\AccessType::cases() as $key)
+						<option @selected($subscription?->plan_type === $key->value) value="{{ $key->value }}">{{ __($key->label()) }}</option>
+					@endforeach
                 </x-forms.input>
 
                 <x-forms.input

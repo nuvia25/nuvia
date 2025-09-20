@@ -20,8 +20,33 @@ class Localization
         session()->save();
     }
 
+    public static function getCurrentLocaleDirection()
+    {
+
+        if (! empty(self::getSupportedLocales()[self::getLocale()]['dir'])) {
+            return self::getSupportedLocales()[self::getLocale()]['dir'];
+        }
+
+        switch (self::getCurrentLocaleScript()) {
+            // Other (historic) RTL scripts exist, but this list contains the only ones in current use.
+            case 'Arab':
+            case 'Hebr':
+            case 'Mong':
+            case 'Tfng':
+            case 'Thaa':
+                return 'rtl';
+            default:
+                return 'ltr';
+        }
+    }
+
+    public static function getCurrentLocaleScript()
+    {
+        return self::getSupportedLocales()[self::getLocale()]['script'];
+    }
+
     public static function getLocale(): ?string
     {
-        return session()->get('app_locale') ?: app()->getLocale();
+        return session('app_locale') ?: app()->getLocale();
     }
 }

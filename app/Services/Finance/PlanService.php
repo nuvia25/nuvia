@@ -12,6 +12,8 @@ class PlanService
 {
     public const ACTIVE_PLANS_CACHE_KEY = 'active_plans_cache_v1';
 
+    public const CREDIT_LIST_PLAN_TRACKED_KEYS = 'credit-list-plan-tracked-keys';
+
     private Collection $plans;
 
     public function __construct()
@@ -59,5 +61,7 @@ class PlanService
     public static function clearCache(): void
     {
         Cache::forget(self::ACTIVE_PLANS_CACHE_KEY);
+        Cache::forget(self::CREDIT_LIST_PLAN_TRACKED_KEYS);
+        Plan::forgetCache();
     }
 }

@@ -9,14 +9,18 @@ use App\Jobs\SendTeamInviteEmail;
 use App\Models\Team\Team;
 use App\Models\Team\TeamMember;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class TeamController extends Controller
 {
+    public function __construct()
+    {
+        abort_if(! Helper::setting('team_functionality'), 404);
+    }
+
     public function index(Request $request)
     {
-        abort_if(Helper::setting('team_functionality') == 0, 404);
-
         $team = $this->getTeam($request->user());
 
         return view('panel.user.team.index', [
@@ -46,29 +50,27 @@ class TeamController extends Controller
         $allow_seats = $user->isAdmin() ? 100 : $user?->relationPlan?->plan_allow_seat;
 
         return Team::query()->firstOrCreate([
-            'user_id' => auth()->id(),
+            'user_id' => $user?->id,
         ], [
             'name'        => $user?->fullName(),
             'allow_seats' => $allow_seats ?: 0,
         ]);
     }
 
-    public function storeInvitation(TeamInviteRequest $request, Team $team)
+    public function storeInvitation(TeamInviteRequest $request, Team $team): RedirectResponse
     {
         if (Helper::appIsDemo()) {
-            return response()->json([
-                'status'  => 'error',
+            return back()->with([
+                'type'    => 'error',
                 'message' => trans('This feature is disabled in demo mode.'),
             ]);
         }
-
-        abort_if(Helper::setting('team_functionality') == 0, 404);
 
         $subscription = getCurrentActiveSubscription();
 
         if (! $subscription || $request->user()?->relationPlan?->is_team_plan == 0) {
             return back()->with([
-                'type'    => 'error', // success, error, warning, info, '
+                'type'    => 'error',
                 'message' => trans('Please subscribe to a new plan'),
             ]);
         }
@@ -78,7 +80,7 @@ class TeamController extends Controller
         dispatch(new SendTeamInviteEmail($request->user(), $request->get('email')));
 
         return back()->with([
-            'type'    => 'success', // success, error, warning, info, '
+            'type'    => 'success',
             'message' => trans('Invitation sent successfully.'),
         ]);
     }
@@ -95,32 +97,31 @@ class TeamController extends Controller
         ]);
     }
 
-    public function teamMemberUpdate(Request $request, Team $team, TeamMember $teamMember)
+    public function teamMemberUpdate(Request $request, Team $team, TeamMember $teamMember): RedirectResponse
     {
         if (Helper::appIsDemo()) {
-            return response()->json([
-                'status'  => 'error',
+            return back()->with([
+                'type'    => 'error',
                 'message' => trans('This feature is disabled in demo mode.'),
             ]);
         }
 
         $request['allow_unlimited_credits'] = (bool) $request->get('allow_unlimited_credits', false);
 
-        $user = $team->user;
-
-        $manager_remaining_images = $user->remaining_images;
-        $manager_remaining_words = $user->remaining_words;
+        // $user = $team->user;
+        // $manager_remaining_images = $user->remaining_images;
+        // $manager_remaining_words = $user->remaining_words;
 
         $data = $request->validate([
             'role'             => 'required',
             'status'           => 'required',
-            'remaining_images' => $request['allow_unlimited_credits']
-                ? 'sometimes|nullable|numeric'
-                : 'required|numeric|max:' . $manager_remaining_images,
-            'remaining_words' => $request['allow_unlimited_credits']
-                ? 'sometimes|nullable|numeric'
-                : 'required|numeric|max:' . $manager_remaining_words,
-            'allow_unlimited_credits' => 'sometimes|nullable|boolean',
+            // 'remaining_images' => $request['allow_unlimited_credits']
+            //     ? 'sometimes|nullable|numeric'
+            //     : 'required|numeric|max:' . $manager_remaining_images,
+            // 'remaining_words' => $request['allow_unlimited_credits']
+            //     ? 'sometimes|nullable|numeric'
+            //     : 'required|numeric|max:' . $manager_remaining_words,
+            // 'allow_unlimited_credits' => 'sometimes|nullable|boolean',
         ]);
 
         $teamMember->update($data);
@@ -131,11 +132,11 @@ class TeamController extends Controller
         ]);
     }
 
-    public function teamMemberDelete(Team $team, TeamMember $teamMember)
+    public function teamMemberDelete(Team $team, TeamMember $teamMember): RedirectResponse
     {
         if (Helper::appIsDemo()) {
-            return response()->json([
-                'status'  => 'error',
+            return back()->with([
+                'type'    => 'error',
                 'message' => trans('This feature is disabled in demo mode.'),
             ]);
         }
@@ -149,7 +150,7 @@ class TeamController extends Controller
         $teamMember->delete();
 
         return back()->with([
-            'type'    => 'success', // success, error, warning, info,
+            'type'    => 'success',
             'message' => trans('Team member deleted successfully.'),
         ]);
     }

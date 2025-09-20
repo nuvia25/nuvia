@@ -80,12 +80,20 @@ if ( fs.existsSync( 'resources/views/default/js/chatbotApp.js' ) ) {
 	laravelInputs.push( 'resources/views/default/js/chatbotApp.js' );
 }
 
+if ( fs.existsSync( 'resources/views/default/scss/tiptap.scss' ) ) {
+	laravelInputs.push( 'resources/views/default/scss/tiptap.scss' );
+}
+
 if ( fs.existsSync( 'resources/views/default/js/voiceChatbot.js' ) ) {
 	laravelInputs.push( 'resources/views/default/js/voiceChatbot.js' );
 }
 
 if ( fs.existsSync( 'app/Extensions/Chatbot/resources/assets/scss/external-chatbot.scss' ) ) {
 	laravelInputs.push( 'app/Extensions/Chatbot/resources/assets/scss/external-chatbot.scss' );
+}
+
+if ( fs.existsSync( 'app/Extensions/Chatbot/resources/assets/scss/external-chatbot-tw.scss' ) ) {
+	laravelInputs.push( 'app/Extensions/Chatbot/resources/assets/scss/external-chatbot-tw.scss' );
 }
 
 if ( fs.existsSync( 'app/Extensions/ChatbotVoice/resources/assets/scss/external-chatbot-voice.scss' ) ) {
@@ -142,6 +150,9 @@ function detectServerConfig( domain ) {
 			origin: process.env.VITE_APP_URL,
 			headers: {
 				'Access-Control-Allow-Origin': '*',
+				'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+				'Pragma': 'no-cache',
+				'Expires': '0',
 			},
 			https: true,
 			port: 4443,
@@ -157,7 +168,6 @@ function detectServerConfig( domain ) {
 
 	let keyPath = resolve( homedir(), `.config/valet/Certificates/${ domain }.key` );
 	let certPath = resolve( homedir(), `.config/valet/Certificates/${ domain }.crt` );
-
 	if ( !fs.existsSync( keyPath ) ) {
 		return {};
 	}

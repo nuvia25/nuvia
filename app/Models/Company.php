@@ -11,7 +11,7 @@ class Company extends Model
     protected $table = 'companies';
 
     protected $fillable = [
-        'name', 'industry', 'description', 'website', 'tagline', 'logo', 'brand_color', 'user_id',
+        'name', 'industry', 'description', 'website', 'tagline', 'logo', 'brand_color', 'specific_instructions', 'user_id',
     ];
 
     public function user(): BelongsTo

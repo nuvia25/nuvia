@@ -15,6 +15,7 @@ class Dropdown extends Component
         public string $anchor = 'start',
         public string $offsetY = '',
         public string $triggerType = 'hover',
+        public bool $teleport = true,
     ) {}
 
     /**

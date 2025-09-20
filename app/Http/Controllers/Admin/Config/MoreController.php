@@ -40,12 +40,14 @@ class MoreController extends Controller
 
         setting(
             [
-                'notification_active' => $request->has('notification_active') ? 1 : 0,
-                'pusher_app_id'       => $request->get('pusher_app_id'),
-                'pusher_app_key'      => $request->get('pusher_app_key'),
-                'pusher_app_secret'   => $request->get('pusher_app_secret'),
-                'pusher_app_cluster'  => $request->get('pusher_app_cluster'),
-                'default_realtime'    => $request->get('default_realtime'),
+                'hide_premium_support_chat' => $request->has('hide_premium_support_chat') ? 1 : 0,
+                'notification_active'       => $request->has('notification_active') ? 1 : 0,
+                'pusher_app_id'             => $request->get('pusher_app_id'),
+                'pusher_app_key'            => $request->get('pusher_app_key'),
+                'pusher_app_secret'         => $request->get('pusher_app_secret'),
+                'pusher_app_cluster'        => $request->get('pusher_app_cluster'),
+                'default_realtime'          => $request->get('default_realtime'),
+                'default_search'            => $request->get('default_search'),
             ]
         )->save();
 

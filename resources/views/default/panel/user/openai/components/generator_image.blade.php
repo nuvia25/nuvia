@@ -62,6 +62,7 @@
 
 <x-card
     class="lqd-image-generator mb-10 border-0 bg-secondary dark:bg-surface"
+    class:body="max-sm:px-6"
     size="lg"
     x-data="{
         promptLibraryShow: false,
@@ -102,7 +103,7 @@
     }"
 >
     <div class="mb-5 flex flex-wrap justify-between">
-        <div class="lqd-image-generator-tabs-nav flex gap-1 self-center">
+        <div class="lqd-image-generator-tabs-nav flex flex-wrap gap-x-1 gap-y-0.5 self-center">
             @if (setting('dalle_hidden', 0) != 1)
                 <x-button
                     class="lqd-image-generator-tabs-trigger active py-2 text-2xs font-bold text-heading-foreground hover:shadow-none [&.active]:bg-foreground/10"
@@ -120,7 +121,7 @@
             @endif
             @if (setting('enabled_gpt_image_1', '0') != '0')
                 <x-button
-                    class="lqd-image-generator-tabs-trigger active py-2 text-2xs font-bold text-heading-foreground hover:shadow-none [&.active]:bg-foreground/10"
+                    class="lqd-image-generator-tabs-trigger py-2 text-2xs font-bold text-heading-foreground hover:shadow-none [&.active]:bg-foreground/10"
                     data-generator-name="gpt-image-1"
                     tag="button"
                     type="button"
@@ -156,6 +157,7 @@
             @if (\App\Helpers\Classes\ApiHelper::setFalAIKey())
                 @includeFirst(['flux-pro::flux-pro-tab', 'panel.user.openai.includes.flux-pro-tab', 'vendor.empty'])
                 @includeFirst(['ideogram::ideogram-tab', 'panel.user.openai.includes.ideogram-tab', 'vendor.empty'])
+				@includeIf('nano-banana::nano-banana-tab')
             @endif
         </div>
         <div class="max-sm:-order-1 max-sm:mb-4 max-sm:w-full md:min-w-96">
@@ -175,6 +177,7 @@
             <form
                 class="lqd-image-generator-dalle-form flex flex-col items-start gap-4"
                 id="openai_generator_form"
+                enctype="multipart/form-data"
                 onsubmit="return sendOpenaiGeneratorForm();"
                 x-data="{ advancedSettingsShow: false }"
             >
@@ -267,7 +270,7 @@
 
     @if (setting('enabled_gpt_image_1', '0') != '0')
         <div
-            class="lqd-image-generator-tabs-content lqd-image-generator-dalle"
+            class="lqd-image-generator-tabs-content lqd-image-generator-gpt-image-1 hidden"
             x-data="{}"
             :class="{ 'hidden': activeGenerator !== 'gpt_image_1' }"
         >
@@ -535,7 +538,7 @@
                             class="hidden"
                             id="img2img_src"
                             type="file"
-                            accept=".png, .jpg, .jpeg"
+                            accept="image/*"
                             onchange="handleFileSelect('img2img_src')"
                         />
                     </label>
@@ -590,7 +593,7 @@
                             class="hidden"
                             id="upscale_src"
                             type="file"
-                            accept=".png, .jpg, .jpeg"
+                            accept="image/*"
                             onchange="handleFileSelect('upscale_src')"
                         />
                     </label>
@@ -691,6 +694,7 @@
     @if (\App\Helpers\Classes\ApiHelper::setFalAIKey())
         @includeFirst(['flux-pro::flux-pro-tab-body', 'panel.user.openai.includes.flux-pro-tab-body', 'vendor.empty'])
         @includeFirst(['ideogram::ideogram-tab-body', 'panel.user.openai.includes.ideogram-tab-body', 'vendor.empty'])
+		@includeIf('nano-banana::nano-banana-tab-body')
     @endif
 
     @include('panel.user.openai_chat.components.prompt_library_modal')
@@ -852,7 +856,7 @@
                     </div>
                 </figure>
                 <p class="lqd-image-result-title mb-1 w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-heading-foreground transition-opacity">
-                    {{ $item->input }}
+                    {{ \Illuminate\Support\Str::limit($item->input, '30', '...') }}
                 </p>
             </div>
         @endforeach
@@ -1258,6 +1262,12 @@
                 return skeletonTemplates;
             }
 
+            function limitText(text, limit = 30, end = '...') {
+                if (typeof text !== 'string') return '';
+                return text.length > limit ? text.slice(0, limit) + end : text;
+            }
+
+
             function lazyLoadImages() {
                 loadMoreTrigger.classList.add('lqd-is-loading');
 
@@ -1284,7 +1294,7 @@
                             imageResultTemplate.querySelector('.lqd-image-result-download').setAttribute('href', image.output);
                             imageResultTemplate.querySelector('.lqd-image-result-download').setAttribute('download', image.slug);
                             imageResultTemplate.querySelector('.lqd-image-result-title').setAttribute('title', image.input);
-                            imageResultTemplate.querySelector('.lqd-image-result-title').innerText = image.input;
+                            imageResultTemplate.querySelector('.lqd-image-result-title').innerText = limitText(image.input, 30, '...');
 
                             imageResultTemplate.classList.remove('lqd-is-loading');
                         });
@@ -1316,4 +1326,5 @@
     @includeIf('midjourney::midjourney-script')
     @includeFirst(['flux-pro::flux-pro-script', 'panel.user.openai.includes.flux-pro-script', 'vendor.empty'])
     @includeFirst(['ideogram::ideogram-script', 'panel.user.openai.includes.ideogram-script', 'vendor.empty'])
+	@includeIf('nano-banana::nano-banana-script')
 @endpush

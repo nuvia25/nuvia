@@ -1,6 +1,7 @@
 @php
     $base_class .= ' grid gap-4 px-4 py-3 text-2xs font-medium';
-	$isImage = $entry->generator->type === 'image';
+    $isImage = $entry->generator->type === 'image';
+    $isVideo = $entry->generator->type === 'video';
 @endphp
 
 <div
@@ -9,7 +10,7 @@
 >
     <a
         class="lqd-posts-item-overlay-link lqd-docs-item-overlay-link absolute left-0 top-0 z-[2] h-full w-full"
-        href="{{  (route('dashboard.user.openai.documents.single', $entry->slug)) }}"
+        href="{{ route('dashboard.user.openai.documents.single', $entry->slug) }}"
         title="{{ __('View and edit') }}"
     ></a>
 
@@ -22,6 +23,34 @@
                 alt="{{ __($entry->generator->title) }}"
                 loading="lazy"
             />
+        @elseif ($isVideo)
+            <x-lqd-icon
+                class="lqd-posts-item-icon lqd-docs-item-icon"
+                style="background: darkgrey "
+            >
+                <span class="size-5">
+                    <svg
+                        class="icon icon-tabler icons-tabler-outline icon-tabler-video"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path
+                            stroke="none"
+                            d="M0 0h24v24H0z"
+                            fill="none"
+                        />
+                        <path d="M15 10l4.553 -2.276a1 1 0 0 1 1.447 .894v6.764a1 1 0 0 1 -1.447 .894l-4.553 -2.276v-4z" />
+                        <path d="M3 6m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z" />
+                    </svg>
+                </span>
+            </x-lqd-icon>
         @else
             <x-lqd-icon
                 class="lqd-posts-item-icon lqd-docs-item-icon"
@@ -38,10 +67,10 @@
         <div class="lqd-posts-item-content-inner lqd-docs-item-content-inner grow overflow-hidden group-[&[data-view-mode=grid]]:h-full">
             <p
                 class="lqd-posts-item-title lqd-docs-item-title overflow-hidden overflow-ellipsis whitespace-nowrap group-[&[data-view-mode=grid]]:h-full group-[&[data-view-mode=grid]]:whitespace-normal">
-				@php
-					$title = $entry->title ? ($entry->title. ' : ' . $entry->output) :  $entry->output
-				@endphp
-                @if (in_array($entry->generator->type, ['text', 'youtube', 'rss', 'code', 'image']))
+                @php
+                    $title = $entry->title ? $entry->title . ' : ' . $entry->output : $entry->output;
+                @endphp
+                @if (in_array($entry->generator->type, ['text', 'youtube', 'rss', 'code', 'image', 'video']))
                     {{ str()->limit(strip_tags($entry->generator->type === 'image' ? $entry->input : $title), $trim) }}
                 @elseif($entry->generator->type == 'audio')
                     {!! str()->limit($title, $trim) !!}
@@ -53,9 +82,9 @@
     </div>
 
     <p
-        class="lqd-posts-item-type lqd-docs-item-type sort-file inline-block w-auto justify-self-start whitespace-nowrap rounded-md px-1.5 py-1 text-3xs font-medium leading-tight text-black"
+        class="lqd-posts-item-type lqd-docs-item-type sort-file inline-block w-auto justify-self-start whitespace-nowrap rounded-md bg-primary px-1.5 py-1 text-3xs font-medium leading-tight text-primary-foreground"
         data-generator-title="{{ trim($entry->generator->title) }}"
-        style="background: {{ $entry->generator->color }}"
+        @if ($entry->generator->color) style="background: {{ $entry->generator->color }}; color: black;" @endif
     >
         {{ __($entry->generator->title) }}
     </p>
@@ -64,11 +93,11 @@
         class="lqd-posts-item-date lqd-docs-item-date sort-date m-0 group-[&[data-view-mode=list]]:font-normal"
         data-date="{{ trim(strtotime($entry->created_at)) }}"
     >
-{{--        {{ date('M j Y', strtotime($entry->created_at)) }}--}}
-{{--        <span class="opacity-50 group-[&[data-view-mode=grid]]:hidden">--}}
-{{--            , {{ date('H:i', strtotime($entry->created_at)) }}--}}
-{{--        </span>--}}
-		{{ $entry->created_at->diffForHumans() }}
+        {{--        {{ date('M j Y', strtotime($entry->created_at)) }} --}}
+        {{--        <span class="opacity-50 group-[&[data-view-mode=grid]]:hidden"> --}}
+        {{--            , {{ date('H:i', strtotime($entry->created_at)) }} --}}
+        {{--        </span> --}}
+        {{ $entry->created_at->diffForHumans() }}
     </p>
 
     <span
@@ -92,7 +121,7 @@
             size="none"
             variant="ghost-shadow"
             hover-variant="danger"
-            href="{{  (route('dashboard.user.openai.documents.delete', $entry->slug)) }}"
+            href="{{ route('dashboard.user.openai.documents.delete', $entry->slug) }}"
             onclick="return confirm('Are you sure?')"
             title="{{ __('Delete') }}"
         >
@@ -142,7 +171,7 @@
                     size="none"
                     variant="ghost-shadow"
                     hover-variant="danger"
-                    href="{{  (route('dashboard.user.openai.documents.delete', $entry->slug)) }}"
+                    href="{{ route('dashboard.user.openai.documents.delete', $entry->slug) }}"
                     onclick="return confirm('Are you sure?')"
                 >
                     <x-tabler-circle-minus class="size-4 text-red-600" />

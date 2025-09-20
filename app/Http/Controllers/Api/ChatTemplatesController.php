@@ -166,11 +166,11 @@ class ChatTemplatesController extends Controller
         if ($request->hasFile('avatar')) {
             $path = 'upload/images/chatbot/';
             $image = $request->file('avatar');
-            $image_name = Str::random(4) . '-' . Str::slug($request->name) . '-avatar.' . $image->getClientOriginalExtension();
+            $image_name = Str::random(4) . '-' . Str::slug($request->name) . '-avatar.' . ($image->guessExtension());
 
             // Resim uzantı kontrolü
             $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-            if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+            if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                 $data = [
                     'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                 ];

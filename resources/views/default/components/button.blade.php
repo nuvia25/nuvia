@@ -4,7 +4,7 @@
 
     $variations = [
         'variant' => [
-            'none' => 'lqd-btn-variant-none',
+            'none' => 'lqd-btn-variant-none hover:shadow-none',
             'primary' =>
                 'lqd-btn-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-primary/10 focus-visible:bg-primary/90 focus-visible:shadow-primary/10',
             'secondary' => 'lqd-btn-secondary bg-secondary text-secondary-foreground',
@@ -15,7 +15,7 @@
             'ghost-shadow' =>
                 'lqd-btn-ghost-shadow bg-background text-foreground shadow-xs hover:bg-primary hover:text-primary-foreground dark:bg-foreground/[3%] dark:hover:bg-foreground dark:hover:text-background focus-visible:bg-primary focus-visible:text-primary-foreground dark:bg-foreground/[3%] dark:focus-visible:bg-foreground dark:focus-visible:text-background',
             'link' =>
-                'lqd-btn-link bg-transparent text-foreground hover:underline p-0 hover:translate-y-0 hover:shadow-none focus-visible:underline p-0 focus-visible:translate-y-0 focus-visible:shadow-none focus-visible:outline-0',
+                'lqd-btn-link bg-transparent text-foreground hover:underline hover:transform-none hover:shadow-none focus-visible:underline p-0 focus-visible:translate-y-0 focus-visible:shadow-none focus-visible:outline-0',
         ],
         'hoverVariant' => [
             'none' => 'lqd-btn-hover-none',

@@ -5,6 +5,7 @@ export default {
 	content: [
 		'./resources/views/**/*.blade.php',
 		'./resources/views/**/*.js',
+		'./app/Helpers/helpers.php',
 		'./app/Extensions/**/*.blade.php',
 	],
 	darkMode: [ 'class', '.theme-dark' ],
@@ -204,7 +205,11 @@ export default {
 					'30%, 50%, 70%, 90%': { transform: 'scale(1.1) rotate(3deg)' },
 					'40%, 60%, 80%': { transform: 'scale(1.1) rotate(-3deg)' },
 					'100%': { transform: 'scale(1) rotate(0)' },
-				}
+				},
+				'hue-rotate': {
+					'0%': { filter: 'hue-rotate(0deg)' },
+					'100%': { filter: 'hue-rotate(360deg)' },
+				},
 			},
 			animation: {
 				'pulse-intense': 'pulse-intense 2s ease-in-out infinite',
@@ -216,6 +221,7 @@ export default {
 				'marquee-reverse-2': 'marquee-reverse-2 15s linear infinite',
 				'bell-ring': 'bell-ring 4s ease-in-out infinite',
 				'tada': 'tada 1s ease-in-out infinite',
+				'hue-rotate': 'hue-rotate 1.9s linear infinite',
 			},
 			transitionProperty: {
 				'border': 'border-color, border-width',
@@ -262,7 +268,7 @@ export default {
 		},
 	},
 	plugins: [
-		require('@tailwindcss/typography'),
-		require('tailwindcss-motion')
+		require( '@tailwindcss/typography' ),
+		require( 'tailwindcss-motion' )
 	]
 };

@@ -121,6 +121,14 @@
                             tooltip="{{ __('Price') }}"
                             error="plan.price"
                         >
+							<x-form.checkbox
+								class="mb-2"
+								wire:model="plan.price_tax_included"
+								label="{{ __('Tax Included') }}"
+								tooltip="{{ __('When enabled, the price will be considered as tax Included. If disabled, the price will be considered as tax excluded.') }}"
+								switcher
+								checked="{{ $plan?->price_tax_included }}"
+							/>
                             <x-form.stepper
                                 class="{{ $errors->has('plan.price') ? 'border-2 border-rose-500' : '' }}"
                                 wire:model="plan.price"

@@ -24,7 +24,7 @@
             size="lg"
             label="{{ __('Avatar') }}"
             value="{{ isset($testimonial) ? $testimonial->avatar : null }}"
-            accept="image/png, image/jpeg"
+            accept="image/*"
         />
 
         <x-forms.input

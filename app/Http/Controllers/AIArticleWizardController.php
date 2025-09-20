@@ -335,7 +335,7 @@ class AIArticleWizardController extends Controller
                     'model'    => $chatBot?->value,
                     'messages' => [[
                         'role'    => 'user',
-                        'content' => "Write Article(Maximum  $length words). in $wizard-> language. Generate article (Must not contain title, Must Mark outline with <h3> tag) about $title with following outline " . implode(',', $outlines) . 'Must mark outline with <h3> tag.  Must not write ```json',
+                        'content' => "Write Article(Maximum  $length words). in $wizard->language. Generate article (Must not contain title, Must Mark outline with <h3> tag) about $title with following outline " . implode(',', $outlines) . 'Must mark outline with <h3> tag.  Must not write ```json',
                     ]],
                     'stream' => true,
                 ]);
@@ -569,7 +569,7 @@ class AIArticleWizardController extends Controller
 
         try {
             // check daily limit
-            $chkLmt = Helper::checkImageDailyLimit();
+            $chkLmt = Helper::checkImageDailyLimit('generate_image_wizard_output_lock');
             if ($chkLmt->getStatusCode() === 429) {
                 return $chkLmt;
             }

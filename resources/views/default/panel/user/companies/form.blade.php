@@ -1,27 +1,14 @@
 @php
-    $voice_tones = [
-        'Professional',
-        'Funny',
-        'Casual',
-        'Excited',
-        'Witty',
-        'Sarcastic',
-        'Feminine',
-        'Masculine',
-        'Bold',
-        'Dramatic',
-        'Grumpy',
-        'Secretive',
-    ];
+    $voice_tones = ['Professional', 'Funny', 'Casual', 'Excited', 'Witty', 'Sarcastic', 'Feminine', 'Masculine', 'Bold', 'Dramatic', 'Grumpy', 'Secretive'];
 @endphp
 
-@extends('panel.layout.settings')
+@extends('panel.layout.settings', ['disable_tblr' => true])
 @section('title', __('Brand Voice'))
 @section('titlebar_subtitle',
     __('Generate AI content exclusive to your brand and eliminate the need for repetitive
     introductions of your company.'))
 @section('titlebar_actions')
-    <div class="flex space-x-1 lg:justify-end">
+    <div class="flex gap-4 lg:justify-end">
         <x-button
             variant="ghost-shadow"
             href="{{ route('dashboard.user.brand.index') }}"
@@ -160,6 +147,16 @@
             value="{{ $item != null ? $item?->brand_color : '#8fd2d0' }}"
             size="lg"
         />
+
+		<x-forms.input
+			id="specific_instructions"
+			label="{{ __('Specific Instructions') }}"
+			tooltip="{{ __('You can define specific writing rules here, such as tone, punctuation, banned words, sentence structure, etc.') }}"
+			placeholder="{{ __('Define specific writing rules here, such as tone, punctuation, banned words, sentence structure, etc.') }}"
+			type="textarea"
+			rows="3"
+			name="specific_instructions"
+		>{{ $item?->specific_instructions }}</x-forms.input>
 
         <x-form-step
             step="2"
@@ -508,6 +505,7 @@
             formData.append('input_features', input_features);
             formData.append('input_type', input_type);
             formData.append('tone_of_voice', $("#tone_of_voice").val());
+			formData.append('specific_instructions', $("#specific_instructions").val());
             formData.append('target_audience', $("#target_audience").val());
             formData.append('tone_of_voice_custom', $("#tone_of_voice_custom").val());
             formData.append('_method', $('[name="_method"]').val());

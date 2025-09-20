@@ -27,7 +27,10 @@
         >
             <h3
                 {{ $attributes->twMergeFor('title', ['lqd-curtain-item-title relative z-1 m-0 flex overflow-hidden px-8 py-8 text-[22px] text-white lg:order-3 lg:px-11 lg:py-9 xl:px-14', !isset($item['title']) || !filled($item['title']) ?? 'lqd-curtain-item-title-empty']) }}>
-                <span class="lqd-curtain-item-title-inner flex grow items-center lg:rotate-180 lg:[writing-mode:vertical-rl]">
+                <span
+                    class="lqd-curtain-item-title-inner flex grow items-center lg:rotate-180 lg:[writing-mode:vertical-rl]"
+                    :class="{ 'opacity-0': activeCurtain === {{ $loop->index }} }"
+                >
                     @if (isset($item['title_icon']) && filled($item['title_icon']))
                         <span class="lqd-curtain-item-title-icon inline-flex lg:rotate-90">
                             {!! $item['title_icon'] !!}
@@ -58,7 +61,7 @@
                                         @endphp
 
                                         <div
-                                            {{ $attributes->twMergeFor('bg', 'lqd-curtain-item-bg transition-all duration-500 ease-in-out pointer-events-none absolute inset-0 z-0 rounded-[inherit]') }}
+                                            {{ $attributes->twMergeFor('bg', 'lqd-curtain-item-bg transition-all duration-500 ease-in-out pointer-events-none absolute inset-0 z-0 rounded-xl') }}
                                             style="background: {{ $bg_color }}"
                                             @if (!$loop->first) x-cloak @endif
                                             @if (count($item['sliders']) > 1) x-show="$data.activeSlide === {{ $loop->index }}"
@@ -69,7 +72,7 @@
                                         >
                                             @if (isset($slide['bg_video']) && filled($slide['bg_video']))
                                                 <video
-                                                    class="scale-115 absolute left-0 top-0 h-full w-full object-cover object-center"
+                                                    class="scale-115 absolute left-0 top-0 h-full w-full rounded-xl object-cover object-center"
                                                     data-src="{{ $slide['bg_video'] }}"
                                                     :class="{
                                                         'scale-115': $data.activeCurtain !== {{ $loop->parent->index }},
@@ -96,7 +99,7 @@
                                             @endif
                                             @if (isset($slide['bg_image']) && filled($slide['bg_image']))
                                                 <img
-                                                    class="scale-115 absolute left-0 top-0 h-full w-full object-cover object-center"
+                                                    class="scale-115 absolute left-0 top-0 h-full w-full rounded-xl object-cover object-center"
                                                     data-src="{{ $slide['bg_image'] }}"
                                                     :class="{
                                                         'scale-115': $data.activeCurtain !== {{ $loop->parent->index }},
@@ -111,7 +114,7 @@
                                             @endif
 
                                             <div
-                                                class="absolute inset-0 backdrop-blur-md transition-all"
+                                                class="absolute inset-0 rounded-xl backdrop-blur-md transition-all"
                                                 :class="{
                                                     'backdrop-blur-0': $data.activeCurtain === {{ $loop->parent->index }},
                                                     'backdrop-blur-md': $data.activeCurtain !== {{ $loop->parent->index }}

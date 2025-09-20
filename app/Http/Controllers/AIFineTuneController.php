@@ -61,7 +61,7 @@ class AIFineTuneController extends Controller
         ]);
         $createFineTune = json_decode($createFineTune);
 
-        if (isset($createFineTune->error)) {
+        if (isset($createFineTune->error) && isset($createFineTune->error->message)) {
             return response()->json($createFineTune->error, 419);
         }
 

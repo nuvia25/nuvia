@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Domains\Engine\Enums\EngineEnum;
+use App\Domains\Entity\Enums\EntityEnum;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +21,8 @@ class UserOpenai extends Model
     protected $guarded = [];
 
     protected $fillable = [
+        'is_demo',
+        'request_id',
         'team_id',
         'title',
         'slug',
@@ -35,10 +39,14 @@ class UserOpenai extends Model
         'status',
         'request_id',
         'is_advanced_image',
+        'engine',
+        'model',
     ];
 
     protected $casts = [
         'payload' => 'array',
+        'engine'  => EngineEnum::class,
+        'model'   => EntityEnum::class,
     ];
 
     protected $appends = [
@@ -51,6 +59,8 @@ class UserOpenai extends Model
     public const STORAGE_LOCAL = 'public';
 
     public const STORAGE_AWS = 's3';
+
+    public const STORAGE_R2 = 'r2';
 
     public function outputUrl(): Attribute
     {

@@ -1,6 +1,7 @@
 @php
     $user = App\Models\User::find($post->user_id);
     $avatar = !$user->github_token && !$user->google_token && !$user->facebook_token ? '/' . custom_theme_url($user->avatar) : custom_theme_url($user->avatar);
+    $avatar = str_replace('//', '/', $avatar);
 @endphp
 
 <div class="flex space-x-6 items-center">

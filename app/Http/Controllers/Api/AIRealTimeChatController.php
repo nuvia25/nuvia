@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Entity\Facades\Entity;
 use App\Helpers\Classes\ApiHelper;
+use App\Helpers\Classes\Helper;
 use App\Http\Controllers\Controller;
 use App\Models\OpenAIGenerator;
 use App\Models\OpenaiGeneratorChatCategory;
@@ -219,6 +220,8 @@ class AIRealTimeChatController extends Controller
      */
     public function startNewChat(Request $request)
     {
+        Helper::clearEmptyConversations();
+
         if ($request->category_id == null) {
             return response()->json(['error' => __('Category ID missing.')], 412);
         }

@@ -17,6 +17,7 @@ class Input extends Component
         public string $containerClass = '',
         public string $value = '',
         public string $label = '',
+        public string $labelIcon = '',
         public string $labelExtra = '',
         public string $type = 'text',
         public string $placeholder = '',

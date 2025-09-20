@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Gateways;
 use App\Models\OpenAIGenerator;
 use App\Models\Plan;
+use App\Models\Team\Team;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -72,21 +73,55 @@ class PlanAndPricingController extends Controller
     public function creditListPartial(Request $request): JsonResponse
     {
         $cacheKey = $request->get('cache_key', 'credit-list-cache');
-
+        $planId = $request->get('plan_id');
         $plan = new Plan;
 
-        if ($planId = $request->get('plan_id')) {
-
-            $plan = Plan::query()->find($planId);
-
+        if ($planId) {
+            $plan = Plan::getCache()->find($planId);
             $cacheKey .= '-' . $planId;
+
+            $trackedKeys = Cache::get('credit-list-plan-tracked-keys', []);
+            if (! in_array($cacheKey, $trackedKeys, true)) {
+                $trackedKeys[] = $cacheKey;
+                Cache::forever('credit-list-plan-tracked-keys', $trackedKeys);
+            }
         }
 
-        return response()->json([
-            'html' => Cache::remember($cacheKey, 2, function () use ($plan) {
+        if ($planId) {
+            $html = Cache::rememberForever($cacheKey, static function () use ($plan) {
                 return view('default.components.credit-list-partial', [
                     'categories' => EntityStats::all(),
                     'plan'       => $plan,
+                ])->render();
+            });
+        } else {
+            $html = Cache::remember($cacheKey, 2, static function () use ($plan) {
+                return view('default.components.credit-list-partial', [
+                    'categories' => EntityStats::all(),
+                    'plan'       => $plan,
+                ])->render();
+            });
+        }
+
+        return response()->json(['html' => $html]);
+    }
+
+    public function teamCreditListPartial(Request $request): JsonResponse
+    {
+        $cacheKey = $request->get('cache_key', 'team-credit-list-cache');
+        $team = null;
+
+        if ($teamId = $request->get('team_id')) {
+            $team = Team::query()->find($teamId);
+
+            $cacheKey .= '-' . $teamId;
+        }
+
+        return response()->json([
+            'html' => Cache::remember($cacheKey, 2, static function () use ($team) {
+                return view('default.components.team-credit-list-partial', [
+                    'categories' => EntityStats::all(),
+                    'team'       => $team,
                 ])->render();
             }),
         ]);

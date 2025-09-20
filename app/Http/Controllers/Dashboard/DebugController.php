@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Artisan;
 
 class DebugController extends Controller
 {
-    public function __invoke($token)
+    public function __invoke()
     {
         $currentDebugValue = env('APP_DEBUG', false);
         $newDebugValue = ! $currentDebugValue;

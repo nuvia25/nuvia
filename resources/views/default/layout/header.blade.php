@@ -61,7 +61,7 @@
                                 href="{{ $menu_item['url'] }}"
                                 @if ($menu_item['target']) target="_blank" @endif
                             >
-                                {{ $menu_item['title'] }}
+                                {{ __($menu_item['title']) }}
 
                                 @if ($has_children)
                                 @endif
@@ -106,7 +106,7 @@
                             @if (in_array($localeCode, explode(',', $settings_two->languages)))
                                 <a
                                     class="block border-b border-black border-opacity-5 py-3 transition-colors last:border-none hover:bg-black hover:bg-opacity-5"
-									href="{{ route('language.change', $localeCode) }}"
+                                    href="{{ route('language.change', $localeCode) }}"
                                     rel="alternate"
                                     hreflang="{{ $localeCode }}"
                                 >{{ country2flag(substr($properties['regional'], strrpos($properties['regional'], '_') + 1)) }}
@@ -147,7 +147,7 @@
                             @if (in_array($localeCode, explode(',', $settings_two->languages)))
                                 <a
                                     class="block border-b border-black border-opacity-5 px-3 py-3 transition-colors last:border-none hover:bg-black hover:bg-opacity-5"
-									href="{{ route('language.change', $localeCode) }}"
+                                    href="{{ route('language.change', $localeCode) }}"
                                     rel="alternate"
                                     hreflang="{{ $localeCode }}"
                                 >

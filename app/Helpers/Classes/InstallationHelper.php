@@ -525,13 +525,26 @@ class InstallationHelper
                                 Models\Common\Menu::query()->where('key', 'ai_chat_models')->update([
                                     'order' => 3,
                                 ]);
-                                Models\Common\Menu::query()->where('key', 'ext_chat_bot')->update([
-                                    'label' => 'AI Bots',
-                                    'order' => 2,
-                                ]);
                                 Models\Common\Menu::query()->where('key', 'ext_chat_bot_agent')->update([
                                     'label' => 'Human Agent',
                                 ]);
+
+                                // ai influencer
+                                Models\Common\Menu::query()->where('key', 'ai_influencer')->update([
+                                    'icon'      => 'tabler-star',
+                                    'route'     => 'dashboard.user.ai-influencer.index',
+                                    'extension' => true,
+                                ]);
+
+                                if (Helper::appIsDemo()) {
+                                    Models\Common\Menu::query()->where('key', 'ai_influencer_1')->delete();
+                                    Models\Common\Menu::query()->where('key', 'ai_influencer_2')->delete();
+
+                                    Models\Common\Menu::query()->where('key', 'ext_migration')->update([
+                                        'is_active' => false,
+                                    ]);
+                                }
+
                             } catch (Exception $exception) {
                             }
                         },
@@ -614,12 +627,13 @@ class InstallationHelper
                                         'route' => 'default',
                                     ]);
 
-                                Models\Common\Menu::query()
-                                    ->where([
-                                        'key' => 'ai_chat_all',
-                                    ])->update([
-                                        'route' => Helper::appIsDemo() ? 'dashboard.user.openai.chat.list' : 'dashboard.user.openai.chat.chat',
-                                    ]);
+                                if (Helper::appIsDemo()) {
+                                    Models\Common\Menu::query()
+                                        ->where('key', 'ai_chat_all')
+                                        ->update([
+                                            'route' => 'dashboard.user.openai.chat.list',
+                                        ]);
+                                }
 
                                 Models\Common\Menu::query()
                                     ->where([

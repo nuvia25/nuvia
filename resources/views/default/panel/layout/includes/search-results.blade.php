@@ -43,21 +43,21 @@
             <li class="border-b px-3 py-2 transition-colors last:border-b-0 hover:bg-foreground/5">
                 <a
                     class="flex items-center gap-2 text-heading-foreground"
-                    href="{{  (route($href, $item->slug)) }}"
+                    href="{{ route($href, $item->slug) }}"
                 >
                     <x-lqd-icon
                         size="lg"
                         style="background: {{ $item->color }}"
                     >
-                        <span class="size-5 flex">
+                        <span class="flex size-5">
                             @if ($item->image !== 'none')
                                 {!! html_entity_decode($item->image) !!}
                             @endif
 
                             @if ($item->active == 1)
-                                <span class="size-3 absolute bottom-0 end-0 inline-block rounded-full border-2 border-background bg-green-500"></span>
+                                <span class="absolute bottom-0 end-0 inline-block size-3 rounded-full border-2 border-background bg-green-500"></span>
                             @else
-                                <span class="size-3 absolute bottom-0 end-0 inline-block rounded-full border-2 border-background bg-red-500"></span>
+                                <span class="absolute bottom-0 end-0 inline-block size-3 rounded-full border-2 border-background bg-red-500"></span>
                             @endif
                         </span>
                     </x-lqd-icon>
@@ -75,13 +75,13 @@
             <li class="border-b px-3 py-2 transition-colors last:border-b-0 hover:bg-foreground/10">
                 <a
                     class="flex items-center gap-2 text-heading-foreground"
-                    href="{{  (route('dashboard.user.openai.chat.chat', $item->slug)) }}"
+                    href="{{ route('dashboard.user.openai.chat.chat', $item->slug) }}"
                 >
                     <x-lqd-icon
                         size="lg"
                         style="background: {{ $item->color }}"
                     >
-                        <span class="size-5 flex">
+                        <span class="flex size-5">
                             @if ($item->slug == 'ai-chat-bot')
                                 <x-tabler-messages class="size-5" />
                             @else
@@ -98,27 +98,28 @@
 @endif
 
 @if (count($workbook_search) > 0)
-    <hr class="border-t-2">
-    <h3 class="m-0 border-b px-3 py-3 text-base font-medium">{{ __('Workbooks') }}</h3>
+    <h3 class="m-0 border-b px-3 py-3 text-base font-medium">
+        {{ __('Documents') }}
+    </h3>
     <ul>
         @foreach ($workbook_search as $item)
             <li class="border-b px-3 py-2 transition-colors last:border-b-0 hover:bg-foreground/5">
                 <a
                     class="flex items-center gap-2 text-heading-foreground"
-                    href="{{  (route('dashboard.user.openai.documents.single', $item->slug)) }}"
+                    href="{{ route('dashboard.user.openai.documents.single', $item->slug) }}"
                 >
                     <x-lqd-icon
                         size="lg"
-                        style="background: {{ $item->color }}"
+                        style="background: {{ $item->generator->color }}"
                     >
-                        <span class="size-5 flex">
-                            @if ($item->image !== 'none')
-                                {!! html_entity_decode($item->image) !!}
+                        <span class="flex size-5">
+                            @if ($item->generator->image !== 'none')
+                                {!! html_entity_decode($item->generator->image) !!}
                             @endif
                         </span>
                     </x-lqd-icon>
                     {{ $item->title }}
-                    <small class="ms-auto text-foreground/50">{{ __('Workbook') }}</small>
+                    <small class="ms-auto text-foreground/50">{{ $item->generator->type == 'text' ? __('Document') : __(ucfirst($item->generator->type)) }}</small>
                 </a>
             </li>
         @endforeach

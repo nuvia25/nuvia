@@ -20,9 +20,7 @@
                 class="mb-2 max-md:text-center"
                 szie="lg"
         >
-
-            <!-- TODO Pexels api key -->
-            @if ($app_is_demo)
+			@if ($app_is_demo)
                 <div class="mb-3">
                     <label class="form-label">{{ __(':label API Key', ['label' => \App\Domains\Engine\Enums\EngineEnum::PEXELS->label()]) }}</label>
                     <input
@@ -72,7 +70,40 @@
                     </a>
                 </div>
             @endif
-
+			<!-- return image count per request -->
+			<div class="form-control mb-3">
+				<label class="form-label">{{ __('Return Image Count Per Request') }}</label>
+				<input
+						class="form-control"
+						id="pexels_image_count"
+						type="number"
+						name="pexels_image_count"
+						value="{{ setting('pexels_image_count', 20) }}"
+						min="1"
+						max="80"
+						required
+				>
+				<x-alert class="mt-2">
+					{{ __('This is the number of images returned per request to the Pexels API. The maximum allowed by Pexels is 80.') }}
+				</x-alert>
+			</div>
+			<!-- return video count per request -->
+			<div class="form-control mb-3">
+				<label class="form-label">{{ __('Return Video Count Per Request') }}</label>
+				<input
+						class="form-control"
+						id="pexels_video_count"
+						type="number"
+						name="pexels_video_count"
+						value="{{ setting('pexels_video_count', 6) }}"
+						min="1"
+						max="80"
+						required
+				>
+				<x-alert class="mt-2">
+					{{ __('This is the number of videos returned per request to the Pexels API. The maximum allowed by Pexels is 80.') }}
+				</x-alert>
+			</div>
         </x-card>
         <button
                 class="btn btn-primary w-full"

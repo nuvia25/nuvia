@@ -56,6 +56,7 @@
                                     class="w-full"
                                     data-bs-toggle="{{ $app_is_demo ? '' : 'modal' }}"
                                     data-bs-target="{{ $app_is_demo ? '' : '#confirmationModal' }}"
+                                    size="lg"
                                     variant="secondary"
                                     type="button"
                                     onclick="{{ $app_is_demo ? 'return toastr.info(\'This feature is disabled in Demo version.\')' : '' }}"
@@ -64,9 +65,7 @@
                                         class="spinner hidden"
                                         id="spinner"
                                     ></div>
-                                    <span id="button-text">
-                                        {{ __('Subscribe for free now') }}
-                                    </span>
+                                    {{ __('Subscribe for free now') }}
                                 </x-button>
                             </div>
                         </div>

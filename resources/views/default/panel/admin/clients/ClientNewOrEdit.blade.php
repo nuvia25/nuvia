@@ -24,7 +24,7 @@
             size="lg"
             label="{{ __('Avatar') }}"
             value="{{ isset($client) ? $client->avatar : null }}"
-            accept="image/png, image/jpeg, image/svg"
+            accept="image/*"
         />
 
         <x-forms.input

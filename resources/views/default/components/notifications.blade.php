@@ -22,7 +22,7 @@
     <x-dropdown.dropdown
         {{ $attributes->twMergeFor('dropdown', 'notifications-dropdown') }}
         anchor="end"
-        offsetY="26px"
+        offsetY="{{ $attributes->get('dropdown-offset-y') ?? '26px' }}"
     >
         <x-slot:trigger
             :class="$trigger_class"

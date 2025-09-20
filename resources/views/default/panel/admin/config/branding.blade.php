@@ -72,6 +72,7 @@
                         id="favicon"
                         type="file"
                         name="favicon"
+						accept="image/*"
                     >
                 </div>
                 <x-alert class="!mt-2">
@@ -92,6 +93,7 @@
                         data-id="logo"
                         type="file"
                         name="logo"
+						accept="image/*"
                     >
                 </div>
 
@@ -102,6 +104,7 @@
                         id="logo_dark"
                         data-id="logo_dark"
                         type="file"
+						accept="image/*"
                         name="logo_dark"
                     >
                 </div>
@@ -112,6 +115,7 @@
                         class="form-control item-img"
                         id="logo_sticky"
                         data-id="logo_sticky"
+						accept="image/*"
                         type="file"
                         name="logo_sticky"
                     >
@@ -123,6 +127,7 @@
                         class="form-control item-img"
                         id="logo_dashboard"
                         data-id="logo_dashboard"
+						accept="image/*"
                         type="file"
                         name="logo_dashboard"
                     >
@@ -134,6 +139,7 @@
                         class="form-control item-img"
                         id="logo_dashboard_dark"
                         data-id="logo_dashboard_dark"
+						accept="image/*"
                         type="file"
                         name="logo_dashboard_dark"
                     >
@@ -146,6 +152,7 @@
                         id="logo_collapsed"
                         data-id="logo_collapsed"
                         type="file"
+						accept="image/*"
                         name="logo_collapsed"
                     >
                 </div>
@@ -157,6 +164,7 @@
                         id="logo_collapsed_dark"
                         data-id="logo_collapsed_dark"
                         type="file"
+						accept="image/*"
                         name="logo_collapsed_dark"
                     >
                 </div>
@@ -172,6 +180,7 @@
                         id="logo_2x"
                         data-id="logo_2x"
                         type="file"
+						accept="image/*"
                         name="logo_2x"
                     >
                 </div>
@@ -183,6 +192,7 @@
                         id="logo_dark_2x"
                         data-id="logo_dark_2x"
                         type="file"
+						accept="image/*"
                         name="logo_dark_2x"
                     >
                 </div>
@@ -194,6 +204,7 @@
                         id="logo_sticky_2x"
                         data-id="logo_sticky_2x"
                         type="file"
+						accept="image/*"
                         name="logo_sticky_2x"
                     >
                 </div>
@@ -205,6 +216,7 @@
                         id="logo_dashboard_2x"
                         data-id="logo_dashboard_2x"
                         type="file"
+						accept="image/*"
                         name="logo_dashboard_2x"
                     >
                 </div>
@@ -216,6 +228,7 @@
                         id="logo_dashboard_dark_2x"
                         data-id="logo_dashboard_dark_2x"
                         type="file"
+						accept="image/*"
                         name="logo_dashboard_dark_2x"
                     >
                 </div>
@@ -227,6 +240,7 @@
                         id="logo_collapsed_2x"
                         data-id="logo_collapsed_2x"
                         type="file"
+						accept="image/*"
                         name="logo_collapsed_2x"
                     >
                 </div>
@@ -238,6 +252,7 @@
                         id="logo_collapsed_dark_2x"
                         data-id="logo_collapsed_dark_2x"
                         type="file"
+						accept="image/*"
                         name="logo_collapsed_dark_2x"
                     >
                 </div>

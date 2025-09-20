@@ -1,5 +1,5 @@
 <x-card
-    class="lqd-team-overview bg-gradient-to-b from-secondary to-[#F1EEFF] to-100% dark:from-pink-300/10 dark:to-transparent max-md:text-center"
+    class="lqd-team-overview from-accent.20 bg-gradient-to-b to-transparent dark:from-pink-300/10 dark:to-transparent max-md:text-center"
     size="lg"
 >
     <div class="flex flex-wrap items-center gap-y-5">
@@ -39,24 +39,16 @@
                 <p class="my-3 text-[58px] font-bold leading-none">
                     {{ $app_is_demo ? 4 : $team->members->count() }}
                 </p>
-                <p class="mb-0">
+                <p class="mb-3">
                     <span class="opacity-60">
                         @lang('Allowed Seats'):
                     </span>
                     <b>{{ $app_is_demo ? 2 : $team->allow_seats }}</b>
                 </p>
-                <p class="mb-0">
-                    <span class="opacity-60">
-                        @lang('Total Words Generated'):
-                    </span>
-                    <b>{{ $app_is_demo ? 2400 : $team->members?->sum('used_word_credit') }}</b>
-                </p>
-                <p class="mb-0">
-                    <span class="opacity-60">
-                        @lang('Total Images Generated'):
-                    </span>
-                    <b>{{ $app_is_demo ? 2400 : $team->members?->sum('used_image_credit') }}</b>
-                </p>
+                <x-credit-list
+                    class="pt-2"
+                    :team="$team"
+                />
             </div>
         </div>
     </div>

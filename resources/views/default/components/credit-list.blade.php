@@ -65,8 +65,13 @@
         $wordEntities = $imageEntities = null;
 
         if (auth()->check()) {
-            $wordEntities = \App\Domains\Entity\EntityStats::word()->forUser(auth()->user());
-            $imageEntities = \App\Domains\Entity\EntityStats::image()->forUser(auth()->user());
+            if (isset($team) && $team?->exists) {
+                $wordEntities = \App\Domains\Entity\EntityStats::word()->forTeam($team);
+                $imageEntities = \App\Domains\Entity\EntityStats::image()->forTeam($team);
+            } else {
+                $wordEntities = \App\Domains\Entity\EntityStats::word()->forUser(auth()->user());
+                $imageEntities = \App\Domains\Entity\EntityStats::image()->forUser(auth()->user());
+            }
 
             $wordContainUnlimited = $wordEntities->checkIfThereUnlimited();
             $imageContainUnlimited = $imageEntities->checkIfThereUnlimited();
@@ -194,8 +199,14 @@
                 ></div>
             </div>
         @endif
+
         <x-modal
-            @class(['static', '-mt-3' => $modalTriggerPos === 'inline'])
+            @class([
+                @twMerge(
+                    'static',
+                    $modalTriggerPos === 'inline' ? '-mt-3' : '',
+                    $attributes->get('class:modal')),
+            ])
             title="{{ __('Your Credit List') }}"
             disable-focus
         >
@@ -204,10 +215,14 @@
                 variant="{{ $attributes->has('modal-trigger-variant') ? $attributes->get('modal-trigger-variant') : 'outline' }}"
                 title="{{ __('View Your Credits') }}"
             >
-                @if ($attributes->has('expanded-modal-trigger'))
-                    {{ __('View Your Credits') }}
+                @if (isset($trigger_label))
+                    {{ $trigger_label }}
                 @else
-                    <x-tabler-eye class="size-4" />
+                    @if ($attributes->has('expanded-modal-trigger'))
+                        {{ __('View Your Credits') }}
+                    @else
+                        <x-tabler-eye class="size-4" />
+                    @endif
                 @endif
             </x-slot:trigger>
             <x-slot:modal>
@@ -262,10 +277,11 @@
         </x-modal>
     </div>
 @endif
+
 <script>
     @if ($isJs)
         document.addEventListener('DOMContentLoaded', function() {
-            fetch('{!! route('credit-list-partial', ['cache_key' => request('credit-list-cache'), 'plan_id' => $plan?->id]) !!}')
+            fetch('{!! route('credit-list-partial', ['cache_key' => $plan?->id ? 'credit-list-plan-cache' : request('credit-list-cache'), 'plan_id' => $plan?->id]) !!}')
                 .then(response => response.json())
                 .then(data => {
                     let ID1 = '#credit-list-partial-direct-{{ $random }}';
@@ -281,8 +297,7 @@
                 });
         });
     @else
-        fetch('{!! route('credit-list-partial', ['cache_key' => request('credit-list-cache'), 'plan_id' => $plan?->id]) !!}')
-            .then(response => response.json())
+        fetch('{!! route('credit-list-partial', ['cache_key' => $plan?->id ? 'credit-list-plan-cache' : request('credit-list-cache'), 'plan_id' => $plan?->id]) !!}').then(response => response.json())
             .then(data => {
                 let ID1 = '#credit-list-partial-direct-{{ $random }}';
                 let ID2 = '#credit-list-partial-{{ $random }}';

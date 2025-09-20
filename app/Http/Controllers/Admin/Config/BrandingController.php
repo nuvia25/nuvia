@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -71,7 +72,7 @@ class BrandingController extends Controller
                 'favicon' => 'image|mimes:jpg,jpeg,png,svg|max:2048',
             ]);
             $image = $request->file('favicon');
-            $image_name = Str::random(4) . '-' . Str::slug($this->settings->site_name) . '-favicon.' . $image->getClientOriginalExtension();
+            $image_name = Str::random(4) . '-' . Str::slug($this->settings->site_name) . '-favicon.' . $image->guessExtension();
             $image->move($faviconPath, $image_name);
             $this->settings->update([
                 'favicon'      => $image_name,
@@ -90,7 +91,10 @@ class BrandingController extends Controller
             return back()->with(['message' => __('This feature is disabled in Demo version.'), 'type' => 'error']);
         }
 
-        $settings = Setting::query()->first();
+        $settings = Setting::getCache();
+        if (empty($settings)) {
+            return back()->with(['message' => 'Something went wrong. Please try again later.', 'type' => 'error']);
+        }
 
         $logo_types = [
             'logo'                => '',
@@ -111,49 +115,56 @@ class BrandingController extends Controller
         ];
 
         foreach ($logo_types as $logo => $logo_prefix) {
-
             if ($request->hasFile($logo)) {
-                $path = 'upload/images/logo/';
-                $image = $request->file($logo);
-                $image_name = Str::random(4) . '-' . $logo_prefix . '-' . Str::slug($settings->site_name) . '-logo.' . $image->getClientOriginalExtension();
+                $relativePath = 'upload/images/logo/';
+                $absolutePath = public_path($relativePath);
 
-                // Resim uzantı kontrolü
-                $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-                if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
-                    $data = [
-                        'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
-                    ];
-
-                    return response()->json($data, 419);
+                // Create directory if it doesn't exist
+                if (! File::exists($absolutePath)) {
+                    File::makeDirectory($absolutePath, 0777, true);
                 }
 
-                $image->move($path, $image_name);
+                $image = $request->file($logo);
+                $extension = $image->guessExtension();
 
-                $settings->{$logo . '_path'} = $path . $image_name;
+                if (! in_array(Str::lower($extension), ['jpg', 'jpeg', 'png', 'svg', 'webp'])) {
+                    return back()->with([
+                        'message' => 'The file extension must be jpg, jpeg, png, webp or svg.',
+                        'type'    => 'error',
+                    ]);
+                }
+
+                $image_name = Str::random(4) . '-' . $logo_prefix . '-' . Str::slug($settings->site_name) . '-logo.' . $extension;
+                $image->move($absolutePath, $image_name);
+
+                $settings->{$logo . '_path'} = $relativePath . $image_name;
                 $settings->{$logo} = $image_name;
                 $settings->save();
             }
-
         }
 
         if ($request->hasFile('favicon')) {
-            $path = 'upload/images/favicon/';
-            $image = $request->file('favicon');
-            $image_name = Str::random(4) . '-' . Str::slug($settings->site_name) . '-favicon.' . $image->getClientOriginalExtension();
+            $relativePath = 'upload/images/favicon/';
+            $absolutePath = public_path($relativePath);
 
-            // Resim uzantı kontrolü
-            $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-            if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
-                $data = [
-                    'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
-                ];
-
-                return response()->json($data, 419);
+            if (! File::exists($absolutePath)) {
+                File::makeDirectory($absolutePath, 0777, true);
             }
 
-            $image->move($path, $image_name);
+            $image = $request->file('favicon');
+            $extension = $image->guessExtension();
 
-            $settings->favicon_path = $path . $image_name;
+            if (! in_array(Str::lower($extension), ['jpg', 'jpeg', 'png', 'svg', 'webp'])) {
+                return back()->with([
+                    'message' => 'The file extension must be jpg, jpeg, png, webp or svg.',
+                    'type'    => 'error',
+                ]);
+            }
+
+            $image_name = Str::random(4) . '-' . Str::slug($settings->site_name) . '-favicon.' . $extension;
+            $image->move($absolutePath, $image_name);
+
+            $settings->favicon_path = $relativePath . $image_name;
             $settings->favicon = $image_name;
             $settings->save();
         }

@@ -9,6 +9,7 @@ use App\Domains\Entity\Models\Entity;
 use App\Domains\Marketplace\Repositories\Contracts\ExtensionRepositoryInterface;
 use App\Enums\Plan\FrequencyEnum;
 use App\Enums\Plan\TypeEnum;
+use App\Extensions\AiVideoPro\System\Models\UserFall;
 use App\Helpers\Classes\ApiHelper;
 use App\Helpers\Classes\Helper;
 use App\Helpers\Classes\MarketplaceHelper;
@@ -46,9 +47,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -599,15 +602,15 @@ class UserController extends Controller
             $path = 'upload/images/avatar/';
             $image = $request->file('avatar');
 
-            if ($image->getClientOriginalExtension() === 'svg') {
+            if ($image->guessExtension() === 'svg') {
                 $image = self::sanitizeSVG($request->file('avatar'));
             }
 
-            $image_name = Str::random(4) . '-' . Str::slug($user?->fullName()) . '-avatar.' . $image->getClientOriginalExtension();
+            $image_name = Str::random(4) . '-' . Str::slug($user?->fullName()) . '-avatar.' . $image->guessExtension();
 
             // Image extension check
             $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-            if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+            if (! MarketplaceHelper::isRegistered('content-manager') && ! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                 $data = [
                     'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                 ];
@@ -750,10 +753,54 @@ class UserController extends Controller
         $sort = $request->sort ?? 'created_at';
         $sortAscDesc = $request->sortAscDesc ?? 'desc';
 
-        $items = $this->openai($request, $folderID)
+        // Get all items first
+        $videos = $this->getUserVideos($folderID);
+        $documents = $this->openai($request, $folderID)
             ->where('folder_id', $folderID)
             ->orderBy($sort, $sortAscDesc)
-            ->paginate(20);
+            ->get();
+
+        $allItems = $documents->merge($videos);
+
+        $filteredItems = $this->applyFilter($allItems, $filter);
+
+        if ($sort === 'created_at') {
+            $filteredItems = $sortAscDesc === 'desc'
+                ? $filteredItems->sortByDesc('created_at')
+                : $filteredItems->sortBy('created_at');
+        } elseif ($sort === 'title') {
+            $filteredItems = $sortAscDesc === 'desc'
+                ? $filteredItems->sortByDesc('title')
+                : $filteredItems->sortBy('title');
+        } elseif ($sort === 'openai_id') {
+            $filteredItems = $sortAscDesc === 'desc'
+                ? $filteredItems->sortByDesc(function ($item) {
+                    return $item->generator->type ?? '';
+                })
+                : $filteredItems->sortBy(function ($item) {
+                    return $item->generator->type ?? '';
+                });
+        } elseif ($sort === 'credits') {
+            $filteredItems = $sortAscDesc === 'desc'
+                ? $filteredItems->sortByDesc('credits')
+                : $filteredItems->sortBy('credits');
+        }
+
+        // Paginate the filtered items
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $items = new LengthAwarePaginator(
+            $filteredItems->forPage($currentPage, $DOCS_PER_PAGE),
+            $filteredItems->count(),
+            $DOCS_PER_PAGE,
+            $currentPage,
+            [
+                'path'     => LengthAwarePaginator::resolveCurrentPath(),
+                'pageName' => 'page',
+            ]
+        );
+
+        // Preserve query parameters in pagination links
+        $items->appends($request->query());
 
         if ($folderID !== null) {
             $currfolder = Folders::query()
@@ -767,30 +814,122 @@ class UserController extends Controller
             $currfolder = null;
         }
 
-        // if(($items->total() == 0) && $folderID !== null){
-        //     $items = $this->openai($request, $folderID)
-        //     ->where('folder_id', null)
-        //     ->orderBy('created_at', 'desc')->paginate(20);
-        //     $currfolder = null;
-        // }else{
-        //     if ($folderID !== null) {
-        //         $currfolder = Folders::query()
-        //             ->where(function (Builder $query) {
-        //                 $query
-        //                     ->where('created_by', auth()->id())
-        //                     ->orWhere('team_id', auth()->user()->team_id);
-        //             })
-        //             ->findOrFail($folderID);
-        //     } else {
-        //         $currfolder = null;
-        //     }
-        // }
-
         if ($listOnly) {
             return view('panel.user.openai.documents_container', compact('items', 'currfolder', 'filter'))->render();
         }
 
         return view('panel.user.openai.documents', compact('items', 'currfolder', 'filter'));
+    }
+
+    /**
+     * Apply filtering logic to items collection
+     */
+    protected function applyFilter($items, $filter)
+    {
+        switch ($filter) {
+            case 'favorites':
+                return $items->filter(function ($entry) {
+                    return $entry->isFavoriteDoc();
+                });
+
+            case 'text':
+                return $items->filter(function ($entry) {
+                    return $entry->generator && $entry->generator->type === 'text';
+                });
+
+            case 'image':
+                return $items->filter(function ($entry) {
+                    return $entry->generator && $entry->generator->type === 'image';
+                });
+
+            case 'video':
+                return $items->filter(function ($entry) {
+                    return $entry->generator && $entry->generator->type === 'video';
+                });
+
+            case 'code':
+                return $items->filter(function ($entry) {
+                    return $entry->generator && $entry->generator->type === 'code';
+                });
+
+            case 'all':
+            default:
+                return $items->filter(function ($entry) {
+                    return $entry->generator !== null;
+                });
+        }
+    }
+
+    protected function getUserVideos($folderID = null): \Illuminate\Support\Collection
+    {
+        $user = Auth::user();
+        $query = UserOpenai::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'COMPLETED')
+            ->whereNotNull('output')
+            ->where('output', '!=', '')
+            ->where('folder_id', $folderID)
+            ->whereHas('generator', function ($q) {
+                $q->where('type', 'video');
+            })
+            ->with(['generator' => function ($q) {
+                $q->select('id', 'type', 'title');
+            }]);
+
+        $dbVideos = $query->get()->map(function ($item) {
+            $item->source = 'database';
+
+            return $item;
+        });
+
+        $userFallVideos = collect();
+        if (class_exists(UserFall::class) && $folderID === null) {
+            $userFallQuery = UserFall::query()
+                ->where('user_id', auth()->id())
+                ->where('status', 'complete')
+                ->whereNotNull('video_url')
+                ->where('video_url', '!=', '');
+
+            $userFallVideos = $userFallQuery->get()->map(function ($item) {
+                // Keep the original model and add properties instead of transforming to stdClass
+                $item->source = 'userfall';
+                $item->title = $this->generateTitleFromPrompt($item->prompt);
+                $item->input = $item->prompt;
+                $item->output = $item->video_url;
+                $item->output_url = $item->video_url;
+                $item->url = $item->video_url;
+                $item->format_date = $item->created_at->format('M d, Y');
+                $item->model = $item->model ?? 'veo2';
+                $item->is_demo = $item->is_demo ?? 0;
+                $item->slug = Str::slug($item->title);
+                $item->generator = (object) [
+                    'id'    => null,
+                    'type'  => 'video',
+                    'title' => ucfirst($item->model ?? 'veo2') . ' Video',
+                    'color' => null,
+                    'image' => null,
+                ];
+                $item->is_favorite_doc = false;
+
+                return $item;
+            });
+        }
+
+        return $dbVideos->merge($userFallVideos)->sortByDesc('created_at');
+    }
+
+    private function generateTitleFromPrompt(string $prompt): string
+    {
+        $words = explode(' ', trim($prompt));
+        $titleWords = array_slice($words, 0, 6); // Take first 6 words
+        $title = implode(' ', $titleWords);
+
+        // Add ellipsis if the prompt was longer
+        if (count($words) > 6) {
+            $title .= '...';
+        }
+
+        return $title ?: 'Untitled Video';
     }
 
     protected function openai(Request $request, $folderID = null)
@@ -882,9 +1021,59 @@ class UserController extends Controller
 
     public function documentsSingle($slug)
     {
-        $workbook = UserOpenai::where('slug', $slug)->where('user_id', auth()->user()->id)->firstOrFail();
+        $workbook = null;
+        $openai = null;
+        $isUserFallVideo = false;
 
-        $openai = $workbook->generator;
+        $workbook = UserOpenai::where('slug', $slug)
+            ->where('user_id', auth()->user()->id)
+            ->first();
+
+        if ($workbook) {
+            $openai = $workbook->generator;
+        } elseif (class_exists(UserFall::class)) {
+            $userFallVideo = UserFall::where('user_id', auth()->id())
+                ->where('status', 'complete')
+                ->whereNotNull('video_url')
+                ->where('video_url', '!=', '')
+                ->get()
+                ->first(function ($item) use ($slug) {
+                    // Generate title and slug the same way as in getUserVideos method
+                    $title = $this->generateTitleFromPrompt($item->prompt);
+
+                    return Str::slug($title) === $slug;
+                });
+
+            if ($userFallVideo) {
+                // Transform UserFall item to match UserOpenai structure
+                $workbook = $userFallVideo;
+                $workbook->source = 'userfall';
+                $workbook->title = $this->generateTitleFromPrompt($userFallVideo->prompt);
+                $workbook->input = $userFallVideo->prompt;
+                $workbook->output = $userFallVideo->video_url;
+                $workbook->output_url = $userFallVideo->video_url;
+                $workbook->url = $userFallVideo->video_url;
+                $workbook->format_date = $userFallVideo->created_at->format('M d, Y');
+                $workbook->model = $userFallVideo->model ?? 'veo2';
+                $workbook->is_demo = $userFallVideo->is_demo ?? 0;
+                $workbook->slug = Str::slug($workbook->title);
+                $workbook->generator = (object) [
+                    'id'    => null,
+                    'type'  => 'video',
+                    'title' => ucfirst($userFallVideo->model ?? 'veo2') . ' Video',
+                    'color' => null,
+                    'image' => null,
+                ];
+                $workbook->is_favorite_doc = false;
+
+                $openai = $workbook->generator;
+                $isUserFallVideo = true;
+            }
+        }
+
+        if (! $workbook) {
+            abort(404);
+        }
 
         $integrations = Auth::user()->getAttribute('integrations');
 
@@ -899,10 +1088,132 @@ class UserController extends Controller
 
         $checkIntegration = Integration::query()->whereHas('hasExtension')->count();
 
-        return view('panel.user.openai.documents_workbook', compact('wordpressExist', 'checkIntegration', 'workbook', 'openai', 'integrations'));
+        return view('panel.user.openai.documents_workbook', compact(
+            'wordpressExist',
+            'checkIntegration',
+            'workbook',
+            'openai',
+            'integrations',
+            'isUserFallVideo'
+        ));
     }
 
     public function documentsDelete($slug)
+    {
+        $workbook = null;
+        $isUserFallVideo = false;
+
+        // First, try to find in UserOpenai table
+        $workbook = UserOpenai::where('slug', $slug)
+            ->where('user_id', auth()->user()->id)
+            ->first();
+
+        if (! $workbook) {
+            // If not found in UserOpenai, check UserFall table for videos
+            if (class_exists(UserFall::class)) {
+                $userFallVideo = UserFall::where('user_id', auth()->id())
+                    ->where('status', 'complete')
+                    ->whereNotNull('video_url')
+                    ->where('video_url', '!=', '')
+                    ->get()
+                    ->first(function ($item) use ($slug) {
+                        // Generate title and slug the same way as in other methods
+                        $title = $this->generateTitleFromPrompt($item->prompt);
+
+                        return Str::slug($title) === $slug;
+                    });
+
+                if ($userFallVideo) {
+                    $workbook = $userFallVideo;
+                    $isUserFallVideo = true;
+                }
+            }
+        }
+
+        // If still not found, throw 404
+        if (! $workbook) {
+            abort(404);
+        }
+
+        try {
+            if ($isUserFallVideo) {
+                // Handle UserFall video deletion
+                $this->deleteUserFallVideo($workbook);
+            } else {
+                // Handle UserOpenai document/file deletion
+                $this->deleteUserOpenaiDocument($workbook);
+            }
+        } catch (Throwable $th) {
+            // Log error but continue with database deletion
+            Log::error('Error deleting file: ' . $th->getMessage());
+        }
+
+        // Delete the database record
+        $workbook->delete();
+
+        return redirect()->route('dashboard.user.openai.documents.all')
+            ->with([
+                'message' => __('Document deleted successfully'),
+                'type'    => 'success',
+            ]);
+    }
+
+    /**
+     * Delete UserOpenai document files
+     */
+    private function deleteUserOpenaiDocument($workbook)
+    {
+        if ($workbook->storage == UserOpenai::STORAGE_LOCAL) {
+            $file = str_replace('/uploads/', '', $workbook->output);
+            Storage::disk('public')->delete($file);
+        } elseif ($workbook->storage == UserOpenai::STORAGE_AWS) {
+            $file = str_replace('/', '', parse_url($workbook->output)['path']);
+            Storage::disk('s3')->delete($file);
+        } else {
+            // Manual deleting depends on response
+            if (str_contains($workbook->output, 'https://')) {
+                // AWS Storage
+                $file = str_replace('/', '', parse_url($workbook->output)['path']);
+                Storage::disk('s3')->delete($file);
+            } else {
+                $file = str_replace('/uploads/', '', $workbook->output);
+                Storage::disk('public')->delete($file);
+            }
+        }
+
+        // Delete thumbnail if exists
+        $basefilename = basename($workbook->output);
+        Storage::disk('thumbs')->delete($basefilename);
+    }
+
+    /**
+     * Delete UserFall video files
+     */
+    private function deleteUserFallVideo($userFallVideo)
+    {
+        // Check if video_url contains a file that needs to be deleted
+        if ($userFallVideo->video_url && ! empty($userFallVideo->video_url)) {
+            // Check if it's a local file or external URL
+            if (str_contains($userFallVideo->video_url, 'https://')) {
+                // If it's an external URL (like AWS S3), try to delete it
+                $parsedUrl = parse_url($userFallVideo->video_url);
+                if (isset($parsedUrl['path'])) {
+                    $file = ltrim($parsedUrl['path'], '/');
+                    Storage::disk('s3')->delete($file);
+                }
+            } else {
+                // If it's a local file
+                $file = str_replace('/uploads/', '', $userFallVideo->video_url);
+                Storage::disk('public')->delete($file);
+            }
+
+            // Delete thumbnail if exists
+            $basefilename = basename($userFallVideo->video_url);
+            Storage::disk('thumbs')->delete($basefilename);
+        }
+    }
+
+    public function documentsImageDelete($slug)
     {
         $workbook = UserOpenai::where('slug', $slug)->where('user_id', auth()->user()->id)->firstOrFail();
 
@@ -913,7 +1224,15 @@ class UserController extends Controller
             } elseif ($workbook->storage == UserOpenai::STORAGE_AWS) {
                 $file = str_replace('/', '', parse_url($workbook->output)['path']);
                 Storage::disk('s3')->delete($file);
+            } elseif ($workbook->storage == UserOpenai::STORAGE_R2) {
+                if (str_contains($workbook->output, 'https://')) {
+                    // AWS Storage
+                    $file = str_replace('/', '', parse_url($workbook->output)['path']);
+
+                    Storage::disk('r2')->delete($file);
+                }
             } else {
+
                 // Manual deleting depends on response
                 if (str_contains($workbook->output, 'https://')) {
                     // AWS Storage
@@ -923,44 +1242,16 @@ class UserController extends Controller
                     $file = str_replace('/uploads/', '', $workbook->output);
                     Storage::disk('public')->delete($file);
                 }
+
             }
+
             $basefilename = basename($workbook->output);
+            $workbook->delete();
             Storage::disk('thumbs')->delete($basefilename);
-        } catch (Throwable $th) {
-            // throw $th;
+        } catch (Exception $exception) {
         }
 
         $workbook->delete();
-
-        return redirect()->route('dashboard.user.openai.documents.all')->with(['message' => __('Document deleted successfuly'), 'type' => 'success']);
-    }
-
-    public function documentsImageDelete($slug)
-    {
-        $workbook = UserOpenai::where('slug', $slug)->where('user_id', auth()->user()->id)->firstOrFail();
-        if ($workbook->storage == UserOpenai::STORAGE_LOCAL) {
-            $file = str_replace('/uploads/', '', $workbook->output);
-            Storage::disk('public')->delete($file);
-        } elseif ($workbook->storage == UserOpenai::STORAGE_AWS) {
-            $file = str_replace('/', '', parse_url($workbook->output)['path']);
-            Storage::disk('s3')->delete($file);
-        } else {
-
-            // Manual deleting depends on response
-            if (str_contains($workbook->output, 'https://')) {
-                // AWS Storage
-                $file = str_replace('/', '', parse_url($workbook->output)['path']);
-                Storage::disk('s3')->delete($file);
-            } else {
-                $file = str_replace('/uploads/', '', $workbook->output);
-                Storage::disk('public')->delete($file);
-            }
-
-        }
-
-        $basefilename = basename($workbook->output);
-        $workbook->delete();
-        Storage::disk('thumbs')->delete($basefilename);
 
         return back()->with(['message' => __('Deleted successfuly'), 'type' => 'success']);
     }

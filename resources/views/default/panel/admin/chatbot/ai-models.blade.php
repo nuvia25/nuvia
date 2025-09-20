@@ -52,7 +52,7 @@
                                 tooltip="{{ __($entity->label()) }}"
                             >
 
-                                <x-dropdown.dropdown class="mt-2 w-full">
+                                <x-dropdown.dropdown :teleport="false" class="mt-2 w-full">
                                     <x-slot:trigger
                                         class="w-full justify-start text-start"
                                     >
@@ -85,7 +85,7 @@
                                                 class:container="h-full bg-input-background mt-2"
                                                 class:label="w-full border h-full rounded px-3 py-4 hover:bg-foreground/5 transition-colors"
                                                 id="ai_model_{{ $entity->enum()->value.'_no_plan_users' }}"
-                                                :checked="$entity->model()->is_selected == 1"
+                                                :checked="$entity->model(true)->is_selected == 1"
                                                 type="checkbox"
                                                 name="no_plan_users[{{  $entity->model()->id }}]"
                                                 value="{{ $entity->model()->id }}"

@@ -110,16 +110,12 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
     case TOPVIEW = 'topview';
 
     case VIZARD = 'vizard';
-
     case KLAP = 'klap';
 
     public function label(): string
     {
         return match ($this) {
             self::TOGETHER               => __('Together'),
-            self::CREATIFY               => __('Creatify'),
-            self::TOPVIEW                => __('Topview'),
-            self::VIZARD                 => __('Vizard'),
             self::OPEN_AI                => __('OpenAI'),
             self::DEEP_SEEK              => __('Deepseek'),
             self::STABLE_DIFFUSION       => __('Stable Diffusion'),
@@ -146,6 +142,9 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::PI_API                 => __('PiAPI'),
             self::AI_ML_MINIMAX          => __('AI/ML Minimax'),
             self::OPEN_ROUTER            => __('Open Router'),
+            self::CREATIFY               => __('Creatify'),
+            self::TOPVIEW                => __('Topview'),
+            self::VIZARD                 => __('Vizard'),
             self::KLAP                   => __('Klap'),
         };
     }
@@ -176,14 +175,14 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::HEYGEN           => HeygenEngineDriver::class,
             self::PEBBLELY         => PebblelyEngineDriver::class,
             self::FAL_AI           => FallAIEngineDriver::class,
+            self::CREATIFY         => CreatifyEngineDriver::class,
+            self::TOPVIEW          => TopviewEngineDriver::class,
+            self::VIZARD           => VizardEngineDriver::class,
+            self::KLAP             => KlapEngineDriver::class,
             self::X_AI             => XAIEngineDriver::class,
             self::AI_ML_MINIMAX    => AiMlMinimaxAIEngineDriver::class,
             self::OPEN_ROUTER      => OpenRouterEngineDriver::class,
             self::TOGETHER         => TogetherEngineDriver::class,
-            self::CREATIFY         => CreatifyEngineDriver::class,
-            self::TOPVIEW          => TopViewEngineDriver::class,
-            self::VIZARD           => VizardEngineDriver::class,
-            self::KLAP             => KlapEngineDriver::class,
         };
     }
 
@@ -261,9 +260,13 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::FAL_AI           => [
                 EntityEnum::fromSlug(setting('fal_ai_default_model', EntityEnum::FLUX_PRO->slug())),
                 EntityEnum::VEO_2,
+                EntityEnum::VEO_3,
+                EntityEnum::VEO_3_FAST,
+                EntityEnum::VEED,
                 EntityEnum::KLING,
                 EntityEnum::KLING_2_1,
                 EntityEnum::KLING_IMAGE,
+                EntityEnum::KLING_VIDEO,
                 EntityEnum::LUMA_DREAM_MACHINE,
                 EntityEnum::MINIMAX,
                 EntityEnum::IDEOGRAM,
@@ -271,11 +274,17 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
                 EntityEnum::COGVIDEOX_5B,
                 EntityEnum::ANIMATEDIFF_V2V,
                 EntityEnum::FAST_ANIMATEDIFF_TURBO,
+                EntityEnum::FLUX_PRO_KONTEXT_MAX_MULTI,
+                EntityEnum::FLUX_PRO_KONTEXT,
+                EntityEnum::FLUX_PRO_KONTEXT_TEXT_TO_IMAGE,
+                EntityEnum::NANO_BANANA,
+                EntityEnum::NANO_BANANA_EDIT,
             ],
-            self::X_AI => [
-                EntityEnum::GROK_2_1212,
-                EntityEnum::GROK_2_VISION_1212,
-            ],
+            self::CREATIFY => [EntityEnum::AD_MARKETING_VIDEO],
+            self::TOPVIEW  => [EntityEnum::AD_MARKETING_VIDEO_TOPVIEW],
+            self::VIZARD   => [EntityEnum::AI_CLIP_VIZARD],
+            self::KLAP     => [EntityEnum::AI_CLIP_KLAP],
+            self::X_AI     => [EntityEnum::fromSlug(setting('xai_default_model', EntityEnum::GROK_2_1212->slug()))],
 
             self::AI_ML_MINIMAX     => [EntityEnum::MUSIC_01],
             self::UNSPLASH          => [EntityEnum::UNSPLASH],

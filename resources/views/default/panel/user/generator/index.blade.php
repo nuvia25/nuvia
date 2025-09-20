@@ -15,6 +15,6 @@
         x-data="generatorV2"
     >
         @include('panel.user.generator.components.sidebar')
-        @include('panel.user.generator.components.editor')
+		@include('panel.user.generator.components.editor')
     </div>
 @endsection

@@ -71,6 +71,7 @@
                                     class="form-control"
                                     id="login_image"
                                     type="file"
+									accept="image/*"
                                     name="login_image"
                                 >
                             </div>

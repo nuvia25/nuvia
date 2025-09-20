@@ -13,6 +13,8 @@ class Coupon extends Model
         'name',
         'code',
         'discount',
+        'is_offer',
+        'is_offer_fixed_price',
         'limit',
         'created_by',
     ];

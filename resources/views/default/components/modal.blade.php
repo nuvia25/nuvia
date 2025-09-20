@@ -27,6 +27,7 @@
         $modal_body_base_class .= ' py-24 px-0';
         $modal_close_btn_base_class .= ' absolute top-11 end-0 lg:end-11 bg-background text-heading-foreground size-14 rounded-full hover:bg-background hover:scale-110';
     }
+
 @endphp
 
 <div
@@ -87,7 +88,6 @@
                         @if (!empty($headContent))
                             {{ $headContent }}
                         @endif
-
                         <button
                             {{ $attributes->twMergeFor('close-btn', $modal_close_btn_base_class) }}
                             type="button"

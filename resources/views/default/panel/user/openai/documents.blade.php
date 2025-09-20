@@ -36,6 +36,10 @@
             'filter' => 'image',
         ],
         [
+            'label' => __('Video'),
+            'filter' => 'video',
+        ],
+        [
             'label' => __('Code'),
             'filter' => 'code',
         ],
@@ -51,19 +55,19 @@
 {{-- Filter list --}}
 @if ($items && count($items) > 0)
     @section('titlebar_after')
-        <div class="flex flex-wrap items-center justify-between gap-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2 lg:flex-nowrap">
             @if (blank($currfolder))
                 <div class="flex flex-wrap items-center gap-1">
-                    {{ __('Sort by:') }}
                     <x-dropdown.dropdown
                         class="pe-3"
                         offsetY="1rem"
                     >
                         <x-slot:trigger
-                            class="px-2 py-1"
+                            class="whitespace-nowrap px-2 py-1"
                             variant="link"
                             size="xs"
                         >
+                            {{ __('Sort by:') }}
                             <x-tabler-arrows-sort class="size-4" />
                         </x-slot:trigger>
 
@@ -154,38 +158,34 @@
                         @endforeach
                     </form>
                 </div>
+
+                <div class="lqd-posts-view-toggle lqd-docs-view-toggle lqd-view-toggle relative z-1 flex items-center gap-2 lg:ms-auto lg:justify-end">
+                    <button
+                        class="lqd-view-toggle-trigger inline-flex size-7 items-center justify-center rounded-md transition-colors hover:bg-foreground/5 [&.active]:bg-foreground/5"
+                        :class="$store.docsViewMode.docsViewMode === 'list' && 'active'"
+                        x-init
+                        @click="$store.docsViewMode.change('list')"
+                        title="List view"
+                    >
+                        <x-tabler-list
+                            class="size-5"
+                            stroke-width="1.5"
+                        />
+                    </button>
+                    <button
+                        class="lqd-view-toggle-trigger inline-flex size-7 items-center justify-center rounded-md transition-colors hover:bg-foreground/5 [&.active]:bg-foreground/5"
+                        :class="$store.docsViewMode.docsViewMode === 'grid' && 'active'"
+                        x-init
+                        @click="$store.docsViewMode.change('grid')"
+                        title="Grid view"
+                    >
+                        <x-tabler-layout-grid
+                            class="size-5"
+                            stroke-width="1.5"
+                        />
+                    </button>
+                </div>
             @endif
-        </div>
-    @endsection
-    @section('titlebar_actions_after')
-        <div @class([
-            'lqd-posts-view-toggle lqd-docs-view-toggle lqd-view-toggle relative z-1 flex w-full items-center gap-2 lg:ms-auto lg:justify-end',
-            'mt-3 lg:-mb-16' => blank($currfolder),
-        ])>
-            <button
-                class="lqd-view-toggle-trigger inline-flex size-7 items-center justify-center rounded-md transition-colors hover:bg-foreground/5 [&.active]:bg-foreground/5"
-                :class="$store.docsViewMode.docsViewMode === 'list' && 'active'"
-                x-init
-                @click="$store.docsViewMode.change('list')"
-                title="List view"
-            >
-                <x-tabler-list
-                    class="size-5"
-                    stroke-width="1.5"
-                />
-            </button>
-            <button
-                class="lqd-view-toggle-trigger inline-flex size-7 items-center justify-center rounded-md transition-colors hover:bg-foreground/5 [&.active]:bg-foreground/5"
-                :class="$store.docsViewMode.docsViewMode === 'grid' && 'active'"
-                x-init
-                @click="$store.docsViewMode.change('grid')"
-                title="Grid view"
-            >
-                <x-tabler-layout-grid
-                    class="size-5"
-                    stroke-width="1.5"
-                />
-            </button>
         </div>
     @endsection
 @endif

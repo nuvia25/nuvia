@@ -23,6 +23,7 @@ use App\Http\Controllers\AiChatbotModelController;
 use App\Http\Controllers\AIChatController;
 use App\Http\Controllers\AIController;
 use App\Http\Controllers\AIFineTuneController;
+use App\Http\Controllers\AiInfluencerController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\Auth\Google2FAController;
@@ -84,7 +85,7 @@ Route::middleware(['auth', 'updateUserActivity'])
         // User Area
         Route::prefix('user')
             ->name('user.')
-            ->group(function () {
+            ->group(callback: function () {
                 Route::get('', [UserController::class, 'index'])->name('index');
 
                 Route::get('check/payment', [PaymentProcessController::class, 'checkSubscriptionStatusFromAjax'])->name('check.payment');
@@ -352,6 +353,15 @@ Route::middleware(['auth', 'updateUserActivity'])
                 Route::resource('voice', ElevenlabVoiceController::class)->except('show', 'destroy');
                 Route::get('voice/{voice}', [ElevenlabVoiceController::class, 'delete'])->name('voice.destroy');
 
+                Route::group([
+                    'prefix' => 'ai-influencer',
+                    'as'     => 'ai-influencer.',
+                ], function () {
+                    Route::get('', [AiInfluencerController::class, 'index'])->name('index');
+
+                    Route::delete('delete-exported-video', [AiInfluencerController::class, 'deleteExportedVideo'])->name('delete-exported-video');
+                    Route::post('upload-files', [AiInfluencerController::class, 'uploadFiles'])->name('upload-files');
+                });
             });
         // Admin Area
         Route::prefix('admin')
@@ -844,7 +854,11 @@ Route::middleware(['auth', 'updateUserActivity'])
         // });
 
         // Search
+        Route::get('/api/search/recent-search-keys', [SearchController::class, 'recentSearchKeys']);
+        Route::get('/api/search/recent-lunch', [SearchController::class, 'recentLunch']);
+
         Route::post('/api/search', [SearchController::class, 'search']);
+        Route::delete('/api/search/delete-search-key/{key}', [SearchController::class, 'deleteSearchkey']);
     });
 
 Route::group(['prefix' => config('elseyyid-location.prefix'), 'middleware' => config('elseyyid-location.middlewares'), 'as' => 'elseyyid.translations.'], function () {

@@ -16,15 +16,24 @@ trait HasModel
 {
     use HasStatus;
 
-    public function model(): Builder|Model|null
+    public function model(?bool $fresh = false): Builder|Model|null
     {
-        return $this->getEntity()?->firstWhere('key.value', value: $this->name());
+        return $this->getEntity($fresh)?->firstWhere('key.value', value: $this->name());
     }
 
-    private function getEntity(): ?Collection
+    private function getEntity(?bool $fresh = false): ?Collection
     {
-        $ttl = Helper::appIsNotDemo() ? 60 : 600;
+        $ttl = Helper::appIsNotDemo() ? 10 : 600;
 
+        // If fresh is true, bypass the cache and fetch directly from the database
+        if ($fresh) {
+            $validEngines = collect(EntityEnum::cases())->pluck('value');
+            Entity::whereNotIn('key', $validEngines)->delete();
+
+            return Entity::whereIn('key', $validEngines)->get();
+        }
+
+        // Otherwise, use the cache to store/retrieve the entities
         return Cache::remember('entities', $ttl, static function () {
             $validEngines = collect(EntityEnum::cases())->pluck('value');
             Entity::whereNotIn('key', $validEngines)->delete();

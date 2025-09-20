@@ -62,7 +62,8 @@
                             badge="{{ data_get($child, 'badge') ?? '' }}"
                             slug="{{ $child['route_slug'] }}"
                             active-condition="{{ $child_is_active }}"
-                        ></x-navbar.dropdown.link>
+							onclick="{{ data_get($child, 'onclick') ?? '' }}"
+						></x-navbar.dropdown.link>
                     </x-navbar.dropdown.item>
                 @endif
             @endif

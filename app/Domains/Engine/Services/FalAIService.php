@@ -56,19 +56,77 @@ class FalAIService
         return $ratio;
     }
 
-    public static function generate($prompt, ?EntityEnum $entity = EntityEnum::FLUX_PRO)
+    public static function generateKontext($prompt, EntityEnum $entity = EntityEnum::FLUX_PRO, array $images = [])
     {
-        $ratio = self::ratio();
+        $url = sprintf(self::GENERATE_ENDPOINT, $entity->value);
 
-        $entityValue = (setting('fal_ai_default_model') ?: $entity?->value);
+        $images = self::createImageUrl($images);
 
-        $entityValue = EntityEnum::fromSlug($entityValue)->value;
+        $entityValue = $entity->value;
 
-        $url = sprintf(self::GENERATE_ENDPOINT, $entityValue);
+        if ($entityValue === EntityEnum::IMAGEN_4->value) {
+            $url .= '/preview';
+        }
 
         $request = [
             'prompt' => $prompt,
         ];
+
+        if ($entity === EntityEnum::FLUX_PRO_KONTEXT && count($images) === 1) {
+            $request['image_url'] = Arr::first($images);
+        } else {
+            $request['image_urls'] = $images;
+        }
+
+        $http = Http::withHeaders([
+            'Content-Type'  => 'application/json',
+            'Accept'        => 'application/json',
+            'Authorization' => 'Key ' . ApiHelper::setFalAIKey(),
+        ])->post($url, $request);
+
+        if (($http->status() === 200) && $requestId = $http->json('request_id')) {
+            return $requestId;
+        }
+
+        $detail = $http->json('detail');
+
+        throw new RuntimeException(__($detail ?: 'Check your FAL API key.'));
+    }
+
+    public static function createImageUrl(array $images = []): ?array
+    {
+        $urls = [];
+
+        foreach ($images as $image) {
+            $urls[] = url('uploads/' . $image->store('falai', 'public'));
+        }
+
+        return $urls;
+    }
+
+    public static function generate($prompt, ?EntityEnum $entity = EntityEnum::FLUX_PRO)
+    {
+        $ratio = self::ratio();
+
+        if ($entity === EntityEnum::FLUX_PRO_KONTEXT_TEXT_TO_IMAGE) {
+            $entityValue = $entity->value;
+        } elseif ($entity === EntityEnum::NANO_BANANA) {
+            $entityValue = $entity->value;
+        } else {
+            $entityValue = (setting('fal_ai_default_model') ?: $entity?->value);
+
+            $entityValue = EntityEnum::fromSlug($entityValue)->value;
+        }
+
+        $request = [
+            'prompt' => $prompt,
+        ];
+
+        $url = sprintf(self::GENERATE_ENDPOINT, $entityValue);
+
+        if ($entityValue === EntityEnum::IMAGEN_4->value) {
+            $url .= '/preview';
+        }
 
         if ($ratio) {
             $request = Arr::add($request, 'image_size', $ratio);
@@ -92,7 +150,6 @@ class FalAIService
     public static function check($uuid, EntityEnum $entity = EntityEnum::FLUX_PRO): ?array
     {
         $entityValue = (setting('fal_ai_default_model') ?: $entity->value);
-
         $enum = EntityEnum::fromSlug($entityValue);
 
         if ($enum === EntityEnum::FLUX_SCHNELL) {

@@ -24,6 +24,7 @@
                                     id="avatar"
                                     type="file"
                                     name="avatar"
+									accept="image/*"
                                 >
                             </div>
                             <div class="mb-[10px]">

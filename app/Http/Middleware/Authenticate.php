@@ -24,7 +24,6 @@ class Authenticate extends Middleware
     public function handle($request, Closure $next, ...$guards)
     {
         $this->authenticate($request, $guards);
-
         if (Auth::check()) {
             if (Google2FA::isActivated() && ! session()->has('save_login_2fa')) {
                 $user = Auth::id();

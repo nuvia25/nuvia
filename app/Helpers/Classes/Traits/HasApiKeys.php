@@ -15,9 +15,53 @@ trait HasApiKeys
 
     public static function setFalAIKey(): string
     {
-        $apiKeys = explode(',', setting('fal_ai_api_secret'));
+        $apiKeys = explode(',', setting('fal_ai_api_secret', 'empty'));
 
         return Arr::random($apiKeys);
+    }
+
+    // set klap api key
+    public static function setKlapApiKey(): string
+    {
+        return setting('klap_api_key');
+    }
+
+    // set vizard api key
+    public static function setVizardApiKey(): string
+    {
+        return setting('vizard_api_key', 'empty');
+    }
+
+    public static function setCreatifyAIKey(): array
+    {
+        config([
+            'url-to-video.creatify_api_id'  => setting('creatify_api_id'),
+            'url-to-video.creatify_api_key' => setting('creatify_api_key'),
+        ]);
+
+        return [
+            'creatify_api_id'  => config('url-to-video.creatify_api_id', 'empty'),
+            'creatify_api_key' => config('url-to-video.creatify_api_key', 'empty'),
+        ];
+    }
+
+    public static function setTopviewKey(): array
+    {
+        $id = $key = '';
+        if (! app()->runningInConsole()) {
+            $id = setting('topview_api_id');
+            $key = setting('topview_api_key');
+        }
+
+        config([
+            'url-to-video.topview_api_id'  => $id,
+            'url-to-video.topview_api_key' => $key,
+        ]);
+
+        return [
+            'topview_api_id'  => config('url-to-video.topview_api_id', 'empty'),
+            'topview_api_key' => config('url-to-video.topview_api_key', 'empty'),
+        ];
     }
 
     public static function setAnthropicKey($setting = null): string

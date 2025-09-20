@@ -22,13 +22,11 @@ class Introduction extends Model
         'key' => \App\Enums\Introduction::class,
     ];
 
-    // Alt initialize itemları için ilişki
     public function children()
     {
         return $this->hasMany(Introduction::class, 'parent_id');
     }
 
-    // Eğer parent ilişkisini de kullanıyorsanız:
     public function parent()
     {
         return $this->belongsTo(Introduction::class, 'parent_id');
@@ -37,10 +35,10 @@ class Introduction extends Model
     public static function getFormattedSteps()
     {
         return self::query()
-            ->whereNull('parent_id') // Sadece ana itemları al
+            ->whereNull('parent_id')
             ->where('status', true)
             ->orderBy('order')
-            ->with('children') // Alt itemları yükle
+            ->with('children')
             ->get()
             ->map(function ($item) {
                 $result = [
@@ -51,7 +49,6 @@ class Introduction extends Model
                     'element'   => '[data-name="' . $item->key->value . '"]',
                 ];
 
-                // Eğer initialize itemıysa ve alt itemları varsa
                 if ($item->key->value === 'initialize' && $item->children->count() > 0) {
                     $result['steps'] = $item->children->map(function ($child) {
                         return [

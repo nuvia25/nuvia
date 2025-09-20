@@ -19,6 +19,8 @@ use App\Models\User;
 use App\Models\UserOrder;
 use App\Services\Common\MenuService;
 use App\Services\GatewaySelector;
+use App\Services\Payment\Enums\PaymentGatewayEnum;
+use App\Services\Payment\Factories\GatewayFactory;
 use App\Services\PaymentGateways\Contracts\CreditUpdater;
 use App\Services\PaymentGateways\StripeService;
 use Carbon\Carbon;
@@ -123,6 +125,10 @@ class PaymentProcessController extends Controller
             }
 
             try {
+                if (PaymentGatewayEnum::isRefactored($gatewayCode)) {
+                    return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gatewayCode))->subscribe($plan);
+                }
+
                 return GatewaySelector::selectGateway($gatewayCode)::subscribe($plan);
             } catch (Exception $e) {
                 return back()->with(['message' => $e->getMessage(), 'type' => 'error']);
@@ -136,6 +142,10 @@ class PaymentProcessController extends Controller
         $plan = Plan::where('id', $planId)->first();
         if ($plan) {
             try {
+                if (PaymentGatewayEnum::isRefactored($gatewayCode)) {
+                    return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gatewayCode))->prepaid($plan);
+                }
+
                 return GatewaySelector::selectGateway($gatewayCode)::prepaid($plan);
             } catch (Exception $e) {
                 return back()->with(['message' => $e->getMessage(), 'type' => 'error']);
@@ -160,6 +170,10 @@ class PaymentProcessController extends Controller
         }
 
         try {
+            if (PaymentGatewayEnum::isRefactored($gateway)) {
+                return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gateway))->subscribeCheckout($request, $referral);
+            }
+
             return GatewaySelector::selectGateway($gateway)::subscribeCheckout($request, $referral);
         } catch (Exception $e) {
             return back()->with(['message' => $e->getMessage(), 'type' => 'error']);
@@ -171,7 +185,7 @@ class PaymentProcessController extends Controller
         if ($gateway !== 'freeservice' && $request->isMethod('post')) {
             $gateways = Gateways::where('is_active', 1)->pluck('code')->toArray();
             $request->validate([
-                'planID'   => 'required',
+                'planID'   => 'nullable',
                 'orderID'  => 'nullable',
                 'couponID' => 'nullable',
                 'gateway'  => ['required', 'in:' . implode(',', $gateways)],
@@ -182,6 +196,10 @@ class PaymentProcessController extends Controller
         }
 
         try {
+            if (PaymentGatewayEnum::isRefactored($gateway)) {
+                return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gateway))->prepaidCheckout($request, $referral);
+            }
+
             return GatewaySelector::selectGateway($gateway)::prepaidCheckout($request, $referral);
         } catch (Exception $e) {
             return back()->with(['message' => $e->getMessage(), 'type' => 'error']);
@@ -192,6 +210,10 @@ class PaymentProcessController extends Controller
     public function createPayPalOrder(Request $request): null|RedirectResponse|View
     {
         try {
+            if (PaymentGatewayEnum::isRefactored(PaymentGatewayEnum::Paypal->value)) {
+                return GatewayFactory::make(PaymentGatewayEnum::Paypal)->prepaidCheckout($request);
+            }
+
             return GatewaySelector::selectGateway('paypal')::createPayPalOrder($request);
         } catch (Exception $e) {
             return back()->with(['message' => $e->getMessage(), 'type' => 'error']);
@@ -201,6 +223,10 @@ class PaymentProcessController extends Controller
     public function iyzicoPrepaidCallback(Request $request): null|RedirectResponse|View
     {
         try {
+            if (PaymentGatewayEnum::isRefactored(PaymentGatewayEnum::Iyzico->value)) {
+                return GatewayFactory::make(PaymentGatewayEnum::Iyzico)->iyzicoPrepaidCallback($request);
+            }
+
             return GatewaySelector::selectGateway('iyzico')::iyzicoPrepaidCallback($request);
         } catch (Exception $e) {
             return back()->with(['message' => $e->getMessage(), 'type' => 'error']);
@@ -210,6 +236,10 @@ class PaymentProcessController extends Controller
     public function iyzicoSubscribeCallback(Request $request): null|RedirectResponse|View
     {
         try {
+            if (PaymentGatewayEnum::isRefactored(PaymentGatewayEnum::Iyzico->value)) {
+                return GatewayFactory::make(PaymentGatewayEnum::Iyzico)->iyzicoSubscribeCallback($request);
+            }
+
             return GatewaySelector::selectGateway('iyzico')::iyzicoSubscribeCallback($request);
         } catch (Exception $e) {
             return back()->with(['message' => $e->getMessage(), 'type' => 'error']);
@@ -219,6 +249,10 @@ class PaymentProcessController extends Controller
     public function iyzicoProductsList(Request $request): null|RedirectResponse|View
     {
         try {
+            if (PaymentGatewayEnum::isRefactored(PaymentGatewayEnum::Iyzico->value)) {
+                return GatewayFactory::make(PaymentGatewayEnum::Iyzico)->iyzicoProductsList($request);
+            }
+
             return GatewaySelector::selectGateway('iyzico')::iyzicoProductsList($request);
         } catch (Exception $e) {
             return back()->with(['message' => $e->getMessage(), 'type' => 'error']);
@@ -233,28 +267,48 @@ class PaymentProcessController extends Controller
     }
 
     // webhook control area
-    public function handleWebhook(Request $request, $gateway)
+    public function handleWebhook(Request $request, $gatewayCode)
     {
         try {
             if ($request->isMethod('post')) { // accept the post method for all
-                if ($gateway === 'simulate') {
-                    return GatewaySelector::selectGateway($gateway)::simulateWebhookEvent($request);
+                if ($gatewayCode === 'simulate') {
+                    if (PaymentGatewayEnum::isRefactored(PaymentGatewayEnum::Paypal->value)) {
+                        return GatewayFactory::make(PaymentGatewayEnum::Paypal)->simulateWebhookEvent($request);
+                    }
+
+                    return GatewaySelector::selectGateway($gatewayCode)::simulateWebhookEvent($request);
                 }
 
-                return GatewaySelector::selectGateway($gateway)::handleWebhook($request);
+                if (PaymentGatewayEnum::isRefactored($gatewayCode)) {
+                    return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gatewayCode))->handleWebhook($request);
+                }
+
+                return GatewaySelector::selectGateway($gatewayCode)::handleWebhook($request);
             }
 
             if ($request->isMethod('get')) { // accept the get method only for [twocheckout, simulate]
-                if ($gateway === 'simulate') {
+                if ($gatewayCode === 'simulate') {
+                    if (PaymentGatewayEnum::isRefactored(PaymentGatewayEnum::Paypal->value)) {
+                        return GatewayFactory::make(PaymentGatewayEnum::Paypal)->simulateWebhookEvent($request);
+                    }
+
                     return GatewaySelector::selectGateway('paypal')::simulateWebhookEvent($request);
                 }
 
-                if ($gateway === 'twocheckout') {
-                    return GatewaySelector::selectGateway($gateway)::handleWebhook($request);
+                if ($gatewayCode === 'twocheckout') {
+                    if (PaymentGatewayEnum::isRefactored($gatewayCode)) {
+                        return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gatewayCode))->handleWebhook($request);
+                    }
+
+                    return GatewaySelector::selectGateway($gatewayCode)::handleWebhook($request);
                 }
 
-                if ($gateway === 'razorpay') {
-                    return GatewaySelector::selectGateway($gateway)::handleWebhook($request);
+                if ($gatewayCode === 'razorpay') {
+                    if (PaymentGatewayEnum::isRefactored($gatewayCode)) {
+                        return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gatewayCode))->handleWebhook($request);
+                    }
+
+                    return GatewaySelector::selectGateway($gatewayCode)::handleWebhook($request);
                 }
 
                 abort(404);
@@ -408,6 +462,9 @@ class PaymentProcessController extends Controller
             if ((bool) setting('soft_plan_cancellation', false)) {
                 self::checkSoftDelete($activeSub);
             }
+            if (PaymentGatewayEnum::isRefactored($gateway)) {
+                return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gateway))->getSubscriptionStatus();
+            }
 
             return GatewaySelector::selectGateway($gateway)::getSubscriptionStatus();
         } catch (Exception $e) {
@@ -429,6 +486,10 @@ class PaymentProcessController extends Controller
         }
 
         try {
+            if (PaymentGatewayEnum::isRefactored($gateway)) {
+                return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gateway))->getSubscriptionDaysLeft();
+            }
+
             return GatewaySelector::selectGateway($gateway)::getSubscriptionDaysLeft();
         } catch (Exception $e) {
             return null;
@@ -449,6 +510,10 @@ class PaymentProcessController extends Controller
         }
 
         try {
+            if (PaymentGatewayEnum::isRefactored($gateway)) {
+                return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gateway))->subscribeCancel(\auth()->user(), 'Could not cancel subscription. Please try again. If this error occures again, please update and migrate.');
+            }
+
             return GatewaySelector::selectGateway($gateway, 'Could not cancel subscription. Please try again. If this error occures again, please update and migrate.')::subscribeCancel();
         } catch (Exception $e) {
             return back()->with(['message' => $e->getMessage(), 'type' => 'error']);
@@ -473,6 +538,10 @@ class PaymentProcessController extends Controller
                 return false;
             }
 
+            if (PaymentGatewayEnum::isRefactored($gateway)) {
+                return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gateway))->checkIfTrial();
+            }
+
             return GatewaySelector::selectGateway($gateway)::checkIfTrial();
         } catch (Exception $e) {
             return back()->with(['message' => $e->getMessage(), 'type' => 'error']);
@@ -493,6 +562,10 @@ class PaymentProcessController extends Controller
         }
 
         try {
+            if (PaymentGatewayEnum::isRefactored($gateway)) {
+                return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gateway))->getSubscriptionRenewDate();
+            }
+
             return GatewaySelector::selectGateway($gateway)::getSubscriptionRenewDate();
         } catch (Exception $e) {
             return null;
@@ -518,7 +591,11 @@ class PaymentProcessController extends Controller
             if ($subscriptions) {
                 foreach ($subscriptions as $subscription) {
                     try {
-                        $tmp = GatewaySelector::selectGateway($subscription->paid_with)::cancelSubscribedPlan($subscription, $plan->id);
+                        if (PaymentGatewayEnum::isRefactored($subscription->paid_with)) {
+                            $tmp = GatewayFactory::make(PaymentGatewayEnum::tryFrom($subscription->paid_with))->cancelSubscribedPlan($subscription, $plan->id);
+                        } else {
+                            $tmp = GatewaySelector::selectGateway($subscription->paid_with)::cancelSubscribedPlan($subscription, $plan->id);
+                        }
                     } catch (Exception $e) {
                         return false;
                     }
@@ -560,6 +637,10 @@ class PaymentProcessController extends Controller
         if ($gateways) {
             foreach ($gateways as $gateway) {
                 try {
+                    if (PaymentGatewayEnum::isRefactored($gateway->code)) {
+                        GatewayFactory::make(PaymentGatewayEnum::tryFrom($gateway->code))->saveProduct($plan);
+                    }
+
                     GatewaySelector::selectGateway($gateway->code)::saveProduct($plan);
                 } catch (Exception $e) {
                     Log::error('saveGatewayProducts(): ' . $e->getMessage());
@@ -617,7 +698,11 @@ class PaymentProcessController extends Controller
                 $isValid = false;
 
                 try {
-                    $isValid = GatewaySelector::selectGateway($gateway)::getSubscriptionStatus();
+                    if (PaymentGatewayEnum::isRefactored($gateway)) {
+                        $isValid = GatewayFactory::make(PaymentGatewayEnum::tryFrom($gateway))->getSubscriptionStatus();
+                    } else {
+                        $isValid = GatewaySelector::selectGateway($gateway)::getSubscriptionStatus();
+                    }
                 } catch (Exception $e) {
                 }
             }
@@ -646,6 +731,10 @@ class PaymentProcessController extends Controller
 
         try {
             $user = User::find($userId);
+
+            if (PaymentGatewayEnum::isRefactored($gateway)) {
+                return GatewayFactory::make(PaymentGatewayEnum::tryFrom($gateway))->subscribeCancel($user, 'Could not cancel subscription. Please try again. If this error occures again, please update and migrate.');
+            }
 
             return GatewaySelector::selectGateway($gateway, 'Could not cancel subscription. Please try again. If this error occures again, please update and migrate.')::subscribeCancel($user);
         } catch (Exception $e) {

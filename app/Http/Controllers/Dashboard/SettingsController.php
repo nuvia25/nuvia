@@ -144,6 +144,7 @@ class SettingsController extends Controller
 
             setting(
                 [
+                    'hide_premium_support_chat'       => $request->hide_premium_support_chat,
                     'notification_active'             => $request->notification_active,
                     'pusher_app_id'                   => $request->pusher_app_id,
                     'pusher_app_key'                  => $request->pusher_app_key,
@@ -192,11 +193,11 @@ class SettingsController extends Controller
                 if ($request->hasFile($logo)) {
                     $path = 'upload/images/logo/';
                     $image = $request->file($logo);
-                    $image_name = Str::random(4) . '-' . $logo_prefix . '-' . Str::slug($settings->site_name) . '-logo.' . $image->getClientOriginalExtension();
+                    $image_name = Str::random(4) . '-' . $logo_prefix . '-' . Str::slug($settings->site_name) . '-logo.' . $image->guessExtension();
 
                     // Resim uzantı kontrolü
                     $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-                    if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+                    if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                         $data = [
                             'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                         ];
@@ -216,11 +217,11 @@ class SettingsController extends Controller
             if ($request->hasFile('favicon')) {
                 $path = 'upload/images/favicon/';
                 $image = $request->file('favicon');
-                $image_name = Str::random(4) . '-' . Str::slug($settings->site_name) . '-favicon.' . $image->getClientOriginalExtension();
+                $image_name = Str::random(4) . '-' . Str::slug($settings->site_name) . '-favicon.' . $image->guessExtension();
 
                 // Resim uzantı kontrolü
                 $imageTypes = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
-                if (! in_array(Str::lower($image->getClientOriginalExtension()), $imageTypes)) {
+                if (! in_array(Str::lower($image->guessExtension()), $imageTypes)) {
                     $data = [
                         'errors' => ['The file extension must be jpg, jpeg, png, webp or svg.'],
                     ];
@@ -538,7 +539,13 @@ class SettingsController extends Controller
     public function pexelsapiSave(Request $request)
     {
         if (Helper::appIsNotDemo()) {
-            setting(['pexels_api_key' => $request->pexels_api_key])->save();
+            setting(
+                [
+                    'pexels_api_key'     => $request->pexels_api_key,
+                    'pexels_image_count' => $request->pexels_image_count,
+                    'pexels_video_count' => $request->pexels_video_count,
+                ]
+            )->save();
         }
 
         return response()->json([], 200);
@@ -816,13 +823,14 @@ class SettingsController extends Controller
             $settings->save();
             $settings_two->save();
             setting(key: [
-                'hide_creativity_option'    => $request->hide_creativity_option,
-                'hide_tone_of_voice_option' => $request->hide_tone_of_voice_option,
-                'hide_output_length_option' => $request->hide_output_length_option,
-                'dalle_hidden'              => $request->dalle_hidden,
-                'realtime_voice_chat'       => $request->realtime_voice_chat,
-                'openai_file_search'        => $request->openai_file_search,
-                'enabled_gpt_image_1'		     => $request->enabled_gpt_image_1,
+                'hide_creativity_option'         => $request->hide_creativity_option,
+                'hide_tone_of_voice_option'      => $request->hide_tone_of_voice_option,
+                'hide_output_length_option'      => $request->hide_output_length_option,
+                'dalle_hidden'                   => $request->dalle_hidden,
+                'realtime_voice_chat'            => $request->realtime_voice_chat,
+                'openai_file_search'             => $request->openai_file_search,
+                'enabled_gpt_image_1'            => $request->enabled_gpt_image_1,
+                'openai_reasoning_models_effort' => $request->openai_reasoning_models_effort,
             ])->save();
 
             if (MarketplaceHelper::isRegistered('chatbot')) {

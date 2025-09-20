@@ -68,22 +68,71 @@
                         <div class="relative z-2">
 
                             @if ($item['version'] != $item['db_version'])
-                                <x-button
-                                    data-name="{{ $item['slug'] }}"
-                                    @class([
-                                        'size-14 btn_install group me-2',
-                                        'hidden' => !$item['installed'],
-                                    ])
-                                    variant="outline"
-                                    hover-variant="warning"
-                                    size="none"
-                                >
-                                    <x-tabler-reload class="size-6 group-[&.lqd-is-busy]:hidden" />
-                                    <x-tabler-refresh class="size-6 hidden animate-spin group-[&.lqd-is-busy]:block" />
-                                    <span class="sr-only">
+
+								@if($item['support']['support'])
+									<x-button
+										data-name="{{ $item['slug'] }}"
+										@class([
+											'size-14 btn_install group me-2',
+											'hidden' => !$item['installed'],
+										])
+										variant="outline"
+										hover-variant="warning"
+										size="none"
+										title="{{ __('Upgrade') }}"
+									>
+										<x-tabler-reload class="size-6 group-[&.lqd-is-busy]:hidden" />
+										<x-tabler-refresh class="size-6 hidden animate-spin group-[&.lqd-is-busy]:block" />
+										<span class="sr-only">
                                         {{ __('Upgrade') }}
                                     </span>
-                                </x-button>
+									</x-button>
+								@else
+									<x-modal
+										class:modal-backdrop="backdrop-blur-none bg-foreground/15"
+										class="inline-flex"
+										title="{{ __('Your update and support period has ended.') }}"
+									>
+										<x-slot:trigger
+											@class([
+												'size-14 btn_install_reload group me-2',
+											])
+											variant="ghost-shadow"
+											size="none"
+											title="{{ __('Your update and support period has ended.') }}"
+										>
+											<x-tabler-reload class="size-6 group-[&.lqd-is-busy]:hidden" />
+										</x-slot:trigger>
+
+										<x-slot:modal>
+
+
+											<p>
+												Your extension license remains active, but access to new updates <br>
+												and support ended after the initial 6-month period. <span class="underline">Extend your  <br>
+											license period to get the latest features, updates, and dedicated <br>
+											support.</span>
+											</p>
+
+											<p class="mt-4">Alternatively, you can continue using your current extension<br> version, but without access to new features or support. </p>
+
+											<x-button
+												class="w-full text-2xs font-semibold mt-3"
+												variant="secondary"
+												href="{{ $item['routes']['paymentSupport'] }}"
+											>
+												@lang('Renew License')
+												<span
+													class="inline-grid size-7 place-items-center rounded-full bg-background text-heading-foreground shadow-xl"
+													aria-hidden="true"
+												>
+												<x-tabler-chevron-right class="size-4" />
+											</span>
+											</x-button>
+
+										</x-slot:modal>
+									</x-modal>
+								@endif
                             @endif
 
                             <x-button

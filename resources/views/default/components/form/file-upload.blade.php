@@ -108,7 +108,8 @@
             @foreach($file as $key => $f)
                 <div class="py-3 flex {{ !$loop->last ? 'border-b border-gray-200' : '' }}">
                     <div class="w-16 mr-4 flex-shrink-0 shadow-xs rounded-lg">
-                        @if(collect(['jpg', 'png', 'jpeg', 'webp'])->contains($f->getClientOriginalExtension()))
+                        @if(collect(['jpg', 'png', 'jpeg', 'webp'])->contains($f->guessExtension()))
+							{{-- prints attachment.* --}}
                             <div class="relative pb-16 overflow-hidden rounded-lg border border-gray-100">
                                 <img src="{{ $f->temporaryUrl() }}" alt="" class="w-full h-full absolute object-cover rounded-lg">
                             </div>
@@ -132,7 +133,7 @@
                         <div class="flex items-center space-x-1">
                             <div class="text-xs text-gray-500">{{ Str::formatBytes($f->getSize()) }}</div>
                             <div class="text-gray-400 text-xs">&bull;</div>
-                            <div class="text-xs text-gray-500 uppercase">{{ $f->getClientOriginalExtension() }}</div>
+                            <div class="text-xs text-gray-500 uppercase">{{ $f->guessExtension() }}</div>
                         </div>
 
                         <button
@@ -149,7 +150,7 @@
             @if($file)
                 <div class="mt-3 flex">
                     <div class="w-16 mr-4 flex-shrink-0 shadow-xs rounded-lg">
-                        @if(collect(['jpg', 'png', 'jpeg', 'webp', 'svg'])->contains($file->getClientOriginalExtension()))
+                        @if(collect(['jpg', 'png', 'jpeg', 'webp', 'svg'])->contains($file->guessExtension()))
                             <div class="relative pb-16 w-full overflow-hidden rounded-lg border border-gray-100">
                                 <img src="{{ $file->temporaryUrl() }}" class="w-full h-full absolute object-cover rounded-lg" alt="">
                             </div>
@@ -171,7 +172,7 @@
                         <div class="flex items-center space-x-1">
                             <div class="text-xs text-gray-500">{{ Str::formatBytes($file->getSize()) }}</div>
                             <div class="text-gray-400 text-xs">&bull;</div>
-                            <div class="text-xs text-gray-500 uppercase">{{ $file->getClientOriginalExtension() }}</div>
+                            <div class="text-xs text-gray-500 uppercase">{{ $file->guessExtension() }}</div>
                         </div>
                         <button wire:loading.attr="disabled"
                                 type="button"
